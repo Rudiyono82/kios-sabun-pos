@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= esc($title ?? 'Kios Sabun & Parfum POS') ?></title>
+    
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5.3.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- DataTables Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.min.css">
+
+    <!-- Select2 Searchable Dropdown & Bootstrap 5 Theme -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+
+    <!-- Core JavaScript Libraries Loaded in Head to Guarantee Availability for All Views -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <style>
+        :root {
+            --app-primary: #0284c7;
+            --app-primary-dark: #0369a1;
+            --app-secondary: #0d9488;
+            --app-bg: #f8fafc;
+            --app-sidebar: #0f172a;
+            --app-card-border: rgba(226, 232, 240, 0.8);
+        }
+
+        /* Penyesuaian Komponen Select2 Searchable Dropdown */
+        .select2-container--bootstrap-5 .select2-selection {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.875rem;
+            border-color: #cbd5e1;
+            border-radius: 8px;
+            min-height: 38px;
+            padding: 4px 8px;
+        }
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+        .select2-container--bootstrap-5.select2-container--open .select2-selection {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 0.2rem rgba(2, 132, 199, 0.2);
+        }
+        .select2-dropdown {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.875rem;
+            border-color: #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            z-index: 99999 !important;
+        }
+        .select2-search--dropdown .select2-search__field {
+            border-radius: 6px;
+            border-color: #cbd5e1;
+            padding: 6px 12px;
+            font-size: 0.875rem;
+        }
+        .select2-container--bootstrap-5 .select2-results__option--highlighted.select2-results__option--selectable {
+            background-color: #0284c7;
+            color: #ffffff;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--app-bg);
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+        }
+        #sidebar {
+            width: 265px;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s;
+            z-index: 100;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+        #sidebar .brand {
+            padding: 20px 18px 18px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.35);
+        }
+        #sidebar .brand-badge {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            background: linear-gradient(135deg, #0d6efd 0%, #0052cc 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(13, 110, 253, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        #sidebar .brand:hover .brand-badge {
+            transform: scale(1.05);
+            box-shadow: 0 6px 18px rgba(13, 110, 253, 0.6);
+        }
+        #sidebar .brand-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.25;
+            letter-spacing: 0.4px;
+        }
+        #sidebar .brand-subtitle {
+            color: #94a3b8;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            display: block;
+            margin-top: 2px;
+        }
+        #sidebar .sidebar-menu-wrapper {
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: 24px;
+        }
+        #sidebar .sidebar-menu-wrapper::-webkit-scrollbar {
+            width: 5px;
+        }
+        #sidebar .sidebar-menu-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        #sidebar .sidebar-menu-wrapper::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .sidebar-section-title {
+            color: #64748b;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 14px 18px 4px 18px;
+            display: block;
+        }
+        #sidebar .nav-link {
+            color: #94a3b8;
+            padding: 10px 16px;
+            font-weight: 500;
+            font-size: 0.90rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 8px;
+            margin: 2px 10px;
+            transition: all 0.2s;
+        }
+        #sidebar .nav-link.parent-menu {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            color: #cbd5e1;
+            cursor: pointer;
+        }
+        #sidebar .nav-link.parent-menu .chevron-icon {
+            font-size: 0.75rem;
+            transition: transform 0.25s ease;
+            opacity: 0.7;
+        }
+        #sidebar .nav-link.parent-menu[aria-expanded="true"] .chevron-icon {
+            transform: rotate(180deg);
+            opacity: 1;
+        }
+        #sidebar .sub-menu {
+            padding-left: 6px;
+            margin-left: 18px;
+            border-left: 1px solid rgba(255, 255, 255, 0.12);
+            margin-bottom: 6px;
+            margin-top: 2px;
+        }
+        #sidebar .sub-menu .nav-link {
+            padding: 7.5px 12px;
+            font-size: 0.84rem;
+            margin: 1.5px 2px;
+            gap: 8px;
+            border-radius: 6px;
+            color: #94a3b8;
+        }
+        #sidebar .sub-menu .nav-link:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(3px);
+        }
+        #sidebar .sub-menu .nav-link.active {
+            background: rgba(2, 132, 199, 0.25);
+            color: #38bdf8;
+            font-weight: 600;
+            border-left: 3px solid #38bdf8;
+            box-shadow: none;
+        }
+        #sidebar .nav-link:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateX(3px);
+        }
+        #sidebar .nav-link.active {
+            color: #ffffff;
+            background: linear-gradient(90deg, #0284c7 0%, #0369a1 100%);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+        #sidebar .nav-link i {
+            font-size: 1.15rem;
+        }
+        #content-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        .top-navbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .main-content {
+            padding: 28px;
+            flex-grow: 1;
+        }
+        .card-modern {
+            background: #ffffff;
+            border: 1px solid var(--app-card-border);
+            border-radius: 16px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+            transition: all 0.25s ease;
+        }
+        .card-modern:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+        }
+        .metric-card {
+            padding: 22px;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+        }
+        .badge-subtle-success { background: #dcfce7; color: #15803d; }
+        .badge-subtle-primary { background: #e0f2fe; color: #0369a1; }
+        .badge-subtle-warning { background: #fef9c3; color: #a16207; }
+        .badge-subtle-danger { background: #fee2e2; color: #b91c1c; }
+
+        /* ============================================================ */
+        /* STYLING GRID LIST / TABEL: ZEBRA, HEADER KONTRAS & ELLIPSIS */
+        /* ============================================================ */
+        /* 1. Header Grid List Berwarna & Kontras Tinggi */
+        .table thead,
+        .table thead tr,
+        .table thead th,
+        .table thead.table-light th,
+        .table thead.table-dark th {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 0.8rem !important;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #0284c7 !important; /* aksen biru */
+            border-top: none !important;
+            vertical-align: middle;
+            padding: 12px 14px !important;
+        }
+
+        .table thead tr th:first-child {
+            border-top-left-radius: 8px;
+        }
+        .table thead tr th:last-child {
+            border-top-right-radius: 8px;
+        }
+
+        /* DataTables Sorting Icon Kontras Putih */
+        table.dataTable thead > tr > th.sorting:before,
+        table.dataTable thead > tr > th.sorting:after,
+        table.dataTable thead > tr > th.sorting_asc:before,
+        table.dataTable thead > tr > th.sorting_asc:after,
+        table.dataTable thead > tr > th.sorting_desc:before,
+        table.dataTable thead > tr > th.sorting_desc:after {
+            color: #ffffff !important;
+            opacity: 0.75;
+        }
+        table.dataTable thead > tr > th.sorting_asc:after,
+        table.dataTable thead > tr > th.sorting_desc:after {
+            opacity: 1 !important;
+            color: #38bdf8 !important;
+        }
+
+        /* 2. Warna Baris Selang-Seling (Zebra Striping) & Hover Modern */
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .table > tbody > tr:nth-of-type(odd) > * {
+            background-color: #ffffff !important;
+            color: #1e293b;
+        }
+
+        .table > tbody > tr:nth-of-type(even) > * {
+            background-color: #f8fafc !important; /* warna baris selang-seling */
+            color: #1e293b;
+        }
+
+        .table > tbody > tr:hover > * {
+            background-color: #f1f5f9 !important; /* hover halus */
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        .table td {
+            padding: 11px 14px !important;
+            vertical-align: middle;
+            border-color: #f1f5f9;
+        }
+
+        /* Cegah pemecahan baris pada kolom nilai uang (Rp) */
+        .text-nowrap,
+        .table td.text-end,
+        .table th.text-end,
+        .table tfoot td.text-end {
+            white-space: nowrap !important;
+        }
+
+        /* 3. Pemotongan Teks Panjang dengan Ellipsis (...) & Tooltip */
+        .cell-truncate,
+        .truncate-text {
+            max-width: 220px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            vertical-align: middle;
+            cursor: help;
+        }
+
+        /* Custom Bootstrap Tooltip */
+        .tooltip .tooltip-inner {
+            max-width: 340px;
+            padding: 8px 12px;
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            text-align: left;
+            word-break: break-word;
+        }
+        .tooltip.bs-tooltip-top .tooltip-arrow::before {
+            border-top-color: #0f172a;
+        }
+        .tooltip.bs-tooltip-bottom .tooltip-arrow::before {
+            border-bottom-color: #0f172a;
+        }
+
+        /* ============================================================ */
+        /* DRAGGABLE POPUP / MODAL (BISA DIGESER-GESER BEBAS)           */
+        /* ============================================================ */
+        .modal-header {
+            cursor: grab;
+            user-select: none;
+        }
+        .modal-header:active {
+            cursor: grabbing;
+        }
+        .modal-header .btn-close {
+            cursor: pointer !important;
+        }
+        /* Indikator visual pegangan (grip) bahwa header modal bisa digeser */
+        .modal-header .modal-title::before {
+            content: "⋮⋮ ";
+            opacity: 0.6;
+            margin-right: 5px;
+            font-size: 1.15rem;
+            letter-spacing: -2px;
+            display: inline-block;
+            vertical-align: middle;
+            cursor: grab;
+        }
+        /* Backdrop lebih transparan & tidak pekat agar konten belakang tetap terlihat jelas saat modal digeser */
+        .modal-backdrop.show {
+            opacity: 0.3 !important;
+        }
+        .swal2-container.swal2-backdrop-show {
+            background: rgba(15, 23, 42, 0.35) !important;
+        }
+        .swal2-title {
+            cursor: grab !important;
+            user-select: none;
+        }
+        .swal2-title:active {
+            cursor: grabbing !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Menu -->
+    <aside id="sidebar">
+        <div class="brand">
+            <div class="brand-badge">
+                <i class="bi bi-droplet-half fs-4"></i>
+            </div>
+            <div class="overflow-hidden">
+                <div class="brand-title">KIOS SABUN &amp; PARFUM</div>
+                <span class="brand-subtitle">METLAND CILEUNGSI</span>
+            </div>
+        </div>
+
+        <div class="p-3 pb-2">
+            <a href="<?= base_url('pos') ?>" class="btn btn-primary w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm rounded-3">
+                <i class="bi bi-cart-check-fill fs-5"></i> Buka Kasir (POS)
+            </a>
+        </div>
+
+        <?php
+            $uri = uri_string();
+            $isMasterActive = (str_contains($uri, 'barang') || str_contains($uri, 'kategori') || str_contains($uri, 'satuan') || str_contains($uri, 'supplier') || str_contains($uri, 'member') || str_contains($uri, 'barcode'));
+            $isTransaksiActive = (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || (str_contains($uri, 'stok-opname') && !str_contains($uri, 'laporan')));
+            $isLaporanActive = (str_contains($uri, 'laporan'));
+            $isConfigActive = (str_contains($uri, 'karyawan') || str_contains($uri, 'cabang') || str_contains($uri, 'profile'));
+        ?>
+
+        <div class="sidebar-menu-wrapper">
+            <ul class="nav flex-column">
+                <!-- 1. DASHBOARD UTAMA -->
+                <li class="nav-item">
+                    <a href="<?= base_url('dashboard') ?>" class="nav-link <?= uri_string() == 'dashboard' || uri_string() == '' ? 'active' : '' ?>">
+                        <i class="bi bi-grid-1x2-fill text-primary"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                <!-- ======================================================== -->
+                <!-- PARENT 1: MASTER DATA                                    -->
+                <!-- ======================================================== -->
+                <div class="sidebar-section-title">Master Data</div>
+                <li class="nav-item">
+                    <a class="nav-link parent-menu <?= $isMasterActive ? 'active' : '' ?>" data-bs-toggle="collapse" href="#collapseMasterData" role="button" aria-expanded="<?= $isMasterActive ? 'true' : 'false' ?>">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-database-fill text-info"></i>
+                            <span>Master Data</span>
+                        </div>
+                        <i class="bi bi-chevron-down chevron-icon"></i>
+                    </a>
+                    <div class="collapse <?= $isMasterActive ? 'show' : '' ?>" id="collapseMasterData">
+                        <ul class="nav flex-column sub-menu">
+                            <li class="nav-item">
+                                <a href="<?= base_url('barang') ?>" class="nav-link <?= str_contains($uri, 'barang') ? 'active' : '' ?>">
+                                    <i class="bi bi-boxes"></i>
+                                    <span>Master Barang & Stok</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('kategori') ?>" class="nav-link <?= str_contains($uri, 'kategori') ? 'active' : '' ?>">
+                                    <i class="bi bi-tag-fill text-info"></i>
+                                    <span>Master Kategori Produk</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('satuan') ?>" class="nav-link <?= str_contains($uri, 'satuan') ? 'active' : '' ?>">
+                                    <i class="bi bi-rulers text-warning"></i>
+                                    <span>Master Satuan Barang</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('supplier') ?>" class="nav-link <?= str_contains($uri, 'supplier') ? 'active' : '' ?>">
+                                    <i class="bi bi-truck text-primary"></i>
+                                    <span>Master Data Supplier</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('member') ?>" class="nav-link <?= str_contains($uri, 'member') ? 'active' : '' ?>">
+                                    <i class="bi bi-people-fill text-success"></i>
+                                    <span>Pelanggan & Member</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('barcode') ?>" class="nav-link <?= str_contains($uri, 'barcode') ? 'active' : '' ?>">
+                                    <i class="bi bi-upc-scan text-primary"></i>
+                                    <span>Cetak Barcode & Label</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- ======================================================== -->
+                <!-- PARENT 2: TRANSAKSI                                      -->
+                <!-- ======================================================== -->
+                <div class="sidebar-section-title">Transaksi</div>
+                <li class="nav-item">
+                    <a class="nav-link parent-menu <?= $isTransaksiActive ? 'active' : '' ?>" data-bs-toggle="collapse" href="#collapseTransaksi" role="button" aria-expanded="<?= $isTransaksiActive ? 'true' : 'false' ?>">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-cart-check-fill text-success"></i>
+                            <span>Transaksi</span>
+                        </div>
+                        <i class="bi bi-chevron-down chevron-icon"></i>
+                    </a>
+                    <div class="collapse <?= $isTransaksiActive ? 'show' : '' ?>" id="collapseTransaksi">
+                        <ul class="nav flex-column sub-menu">
+                            <li class="nav-item">
+                                <a href="<?= base_url('pos') ?>" class="nav-link <?= $uri == 'pos' ? 'active' : '' ?>">
+                                    <i class="bi bi-cart-plus-fill text-success"></i>
+                                    <span>Kasir POS Kasir</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('penjualan') ?>" class="nav-link <?= str_contains($uri, 'penjualan') ? 'active' : '' ?>">
+                                    <i class="bi bi-receipt-cutoff text-info"></i>
+                                    <span>Faktur Penjualan</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('pembelian') ?>" class="nav-link <?= str_contains($uri, 'pembelian') ? 'active' : '' ?>">
+                                    <i class="bi bi-truck text-primary"></i>
+                                    <span>Pembelian / Restock</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('retur') ?>" class="nav-link <?= str_contains($uri, 'retur') ? 'active' : '' ?>">
+                                    <i class="bi bi-arrow-left-right text-warning"></i>
+                                    <span>Retur Supplier (Rijek)</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('produksi') ?>" class="nav-link <?= str_contains($uri, 'produksi') ? 'active' : '' ?>">
+                                    <i class="bi bi-gear-wide-connected text-info"></i>
+                                    <span>Produksi Sabun</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('keuangan') ?>" class="nav-link <?= str_contains($uri, 'keuangan') ? 'active' : '' ?>">
+                                    <i class="bi bi-wallet2 text-success"></i>
+                                    <span>Buku Kas & Operasional</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('stok-opname') ?>" class="nav-link <?= (str_contains($uri, 'stok-opname') && !str_contains($uri, 'laporan')) ? 'active' : '' ?>">
+                                    <i class="bi bi-clipboard2-check text-warning"></i>
+                                    <span>Stok Opname (STO)</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- ======================================================== -->
+                <!-- PARENT 3: LAPORAN                                        -->
+                <!-- ======================================================== -->
+                <div class="sidebar-section-title">Laporan</div>
+                <li class="nav-item">
+                    <a class="nav-link parent-menu <?= $isLaporanActive ? 'active' : '' ?>" data-bs-toggle="collapse" href="#collapseLaporan" role="button" aria-expanded="<?= $isLaporanActive ? 'true' : 'false' ?>">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-bar-graph-fill text-warning"></i>
+                            <span>Laporan</span>
+                        </div>
+                        <i class="bi bi-chevron-down chevron-icon"></i>
+                    </a>
+                    <div class="collapse <?= $isLaporanActive ? 'show' : '' ?>" id="collapseLaporan">
+                        <ul class="nav flex-column sub-menu">
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/harian') ?>" class="nav-link <?= str_contains($uri, 'laporan/harian') ? 'active' : '' ?>">
+                                    <i class="bi bi-graph-up-arrow text-warning"></i>
+                                    <span>Laporan Toko Harian</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/cetak-struk-harian') ?>" target="_blank" onclick="window.open(this.href, 'StrukHarian', 'width=440,height=700'); return false;" class="nav-link">
+                                    <i class="bi bi-receipt text-warning"></i>
+                                    <span>Struk Rekap Kasir (Thermal)</span>
+                                </a>
+                            </li>
+                            <?php if (session()->get('role') === 'admin'): ?>
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/stok-opname') ?>" class="nav-link <?= str_contains($uri, 'laporan/stok-opname') ? 'active' : '' ?>">
+                                    <i class="bi bi-box-seam-fill text-success"></i>
+                                    <span>Laporan Aset &amp; STO</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/kartu-stok') ?>" class="nav-link <?= str_contains($uri, 'kartu-stok') ? 'active' : '' ?>">
+                                    <i class="bi bi-journal-text text-info"></i>
+                                    <span>Kartu Stok & Audit</span>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- ======================================================== -->
+                <!-- PARENT 4: SISTEM KONFIGURASI                             -->
+                <!-- ======================================================== -->
+                <div class="sidebar-section-title">Sistem Konfigurasi</div>
+                <li class="nav-item">
+                    <a class="nav-link parent-menu <?= $isConfigActive ? 'active' : '' ?>" data-bs-toggle="collapse" href="#collapseKonfigurasi" role="button" aria-expanded="<?= $isConfigActive ? 'true' : 'false' ?>">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-gear-fill text-secondary"></i>
+                            <span>Sistem Konfigurasi</span>
+                        </div>
+                        <i class="bi bi-chevron-down chevron-icon"></i>
+                    </a>
+                    <div class="collapse <?= $isConfigActive ? 'show' : '' ?>" id="collapseKonfigurasi">
+                        <ul class="nav flex-column sub-menu">
+                            <?php if (session()->get('role') === 'admin'): ?>
+                            <li class="nav-item">
+                                <a href="<?= base_url('karyawan') ?>" class="nav-link <?= str_contains($uri, 'karyawan') ? 'active' : '' ?>">
+                                    <i class="bi bi-people-gear"></i>
+                                    <span>Monitoring Karyawan & User</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('cabang') ?>" class="nav-link <?= str_contains($uri, 'cabang') ? 'active' : '' ?>">
+                                    <i class="bi bi-shop-window text-warning"></i>
+                                    <span>Master Cabang & Toko</span>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            <li class="nav-item">
+                                <a href="<?= base_url('profile') ?>" class="nav-link <?= str_contains($uri, 'profile') ? 'active' : '' ?>">
+                                    <i class="bi bi-person-badge"></i>
+                                    <span>Profil Akun Pengguna</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="p-3 border-top border-secondary border-opacity-25 mt-auto">
+            <div class="d-flex align-items-center justify-content-between">
+                <a href="<?= base_url('profile') ?>" class="d-flex align-items-center gap-3 text-decoration-none text-white overflow-hidden" title="Lihat Profil Pengguna">
+                    <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+                        <i class="bi bi-person-fill fs-5"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <div class="text-white fw-semibold small text-truncate"><?= esc(session()->get('nama_user') ?? 'Kasir / Admin') ?></div>
+                        <div class="text-success small" style="font-size: 0.75rem;"><i class="bi bi-circle-fill" style="font-size: 7px;"></i> <?= esc(strtoupper(session()->get('role') ?? 'User')) ?></div>
+                    </div>
+                </a>
+                <a href="<?= base_url('logout') ?>" class="btn btn-outline-danger btn-sm border-0" title="Keluar / Logout" onclick="return confirm('Yakin ingin keluar dari sistem?')">
+                    <i class="bi bi-box-arrow-right fs-5"></i>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div id="content-wrapper">
+        <!-- Top Navbar -->
+        <header class="top-navbar">
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="mb-0 fw-bold text-dark"><?= esc($title ?? 'Dashboard') ?></h5>
+                <span class="badge bg-light text-muted border px-2 py-1"><i class="bi bi-geo-alt-fill text-danger"></i> Metland Cileungsi</span>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                <!-- Jam Live -->
+                <div class="text-end d-none d-md-block">
+                    <div class="fw-semibold small text-dark" id="live-clock">--:--:--</div>
+                    <small class="text-muted" style="font-size: 0.78rem;"><?= date('l, d F Y') ?></small>
+                </div>
+                
+                <div class="vr mx-1"></div>
+
+                <!-- Tombol Transaksi Cepat -->
+                <a href="<?= base_url('pos') ?>" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-medium d-none d-sm-inline-block">
+                    <i class="bi bi-plus-circle me-1"></i> Transaksi Baru
+                </a>
+
+                <!-- User Profile & Status Area (Header Kanan) -->
+                <div class="dropdown">
+                    <button class="btn btn-light rounded-pill border d-flex align-items-center gap-2 py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <i class="bi bi-person-fill fs-6"></i>
+                        </div>
+                        <div class="text-start d-none d-sm-block">
+                            <div class="fw-bold small text-dark lh-1"><?= esc(session()->get('nama_user') ?? 'User Kasir') ?></div>
+                            <small class="text-success" style="font-size: 0.72rem;"><i class="bi bi-circle-fill" style="font-size: 7px;"></i> <?= esc(ucfirst(session()->get('role') ?? 'Kasir')) ?></small>
+                        </div>
+                        <i class="bi bi-chevron-down text-muted small ms-1"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg rounded-3 border-0 py-2" style="min-width: 210px;">
+                        <li class="px-3 py-2 border-bottom mb-1">
+                            <div class="fw-bold text-dark"><?= esc(session()->get('nama_user') ?? 'Pengguna') ?></div>
+                            <small class="text-muted">Kode: <?= esc(session()->get('kode_user') ?? 'KASIR') ?></small>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="<?= base_url('profile') ?>">
+                                <i class="bi bi-person-gear text-primary fs-5"></i>
+                                <span>Ubah Profil & Sandi</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" href="<?= base_url('logout') ?>" onclick="return confirm('Yakin ingin logout?')">
+                                <i class="bi bi-box-arrow-right fs-5"></i>
+                                <span>Keluar / Logout</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Content -->
+        <main class="main-content">
+            <?php if (session()->getFlashdata('success')): ?>
+                <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm border-0" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> <?= session()->getFlashdata('success') ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if (session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm border-0" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <?= session()->getFlashdata('error') ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+
+            <?= $this->renderSection('content') ?>
+        </main>
+    </div>
+
+    <!-- Modal Input Kas Awal Harian (Translasi SimpanUangKasHarian VB6) -->
+    <?php if (session()->getFlashdata('show_modal_kas_awal')): ?>
+    <div class="modal fade" id="modalKasAwal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <form action="<?= base_url('auth/simpan-kas-awal') ?>" method="POST">
+                    <div class="modal-header border-0 pb-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-primary text-white p-2 rounded-3">
+                                <i class="bi bi-wallet2 fs-5"></i>
+                            </div>
+                            <h5 class="modal-title fw-bold">Input Uang Kas Awal Hari Ini</h5>
+                        </div>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="text-muted small">
+                            Sebelum memulai transaksi penjualan hari ini, masukkan nominal uang kas / modal receh yang tersedia di laci kasir untuk uang kembalian.
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Nominal Kas Awal (Rp)</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-white">Rp</span>
+                                <input type="number" name="nominal_kas_awal" class="form-control text-end fw-bold fs-4 text-primary" placeholder="0" autofocus required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="submit" class="btn btn-primary rounded-pill w-100 py-2 fw-semibold">
+                            <i class="bi bi-check-circle me-1"></i> Simpan Kas Awal & Lanjutkan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Scripts -->
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const clockEl = document.getElementById('live-clock');
+            if (clockEl) clockEl.innerText = timeStr + ' WIB';
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Auto-show Modal Kas Awal saat login pertama hari ini
+        $(document).ready(function() {
+            if ($('#modalKasAwal').length) {
+                const modalKasAwalEl = new bootstrap.Modal(document.getElementById('modalKasAwal'), {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                modalKasAwalEl.show();
+                setTimeout(() => {
+                    $('#modalKasAwal input[name="nominal_kas_awal"]').focus().select();
+                }, 400);
+            }
+        });
+
+        // Inisialisasi Otomatis Select2 Searchable Dropdown untuk Semua Komponen Select
+        function initSearchableSelects(context) {
+            try {
+                if (!$.fn.select2) return;
+                const $ctx = context ? $(context) : $(document);
+                $ctx.find('select:not(.no-select2):not([name$="_length"])').each(function() {
+                    const $sel = $(this);
+                    // Jika sudah ada class select2-hidden-accessible, lewati agar tidak dobel
+                    if ($sel.hasClass('select2-hidden-accessible')) return;
+
+                    const $modal = $sel.closest('.modal');
+                    $sel.select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        dropdownParent: $modal.length ? $modal : $(document.body),
+                        language: {
+                            noResults: function() {
+                                return "Data tidak ditemukan";
+                            },
+                            searching: function() {
+                                return "Mencari...";
+                            }
+                        }
+                    });
+                });
+            } catch(e) {
+                console.warn('Select2 init notice:', e);
+            }
+        }
+
+        // Auto-Truncate Kolom Grid Panjang dengan Ellipsis (...) & Tooltip Lengkap
+        function applyGridTruncationAndTooltips(context) {
+            try {
+                const $ctx = context ? $(context) : $(document);
+                // Lewati tabel form input atau tabel yang memiliki class no-truncate / id table-input-sto
+                $ctx.find('table:not(.no-truncate):not(#table-input-sto) tbody tr td').each(function() {
+                    const $td = $(this);
+                    if ($td.closest('.no-truncate, #table-input-sto, form').length > 0) return;
+
+                    // Lewati jika kolom aksi atau memiliki tombol / input / select / badge tunggal
+                    if ($td.find('button, input, select, .btn, .btn-group').length > 0) {
+                        return;
+                    }
+
+                    // Periksa teks dalam cell
+                    const rawText = $td.text().trim().replace(/\s+/g, ' ');
+
+                    // Jika panjang teks lebih dari 24 karakter dan belum di-truncate
+                    if (rawText.length > 24 && !$td.hasClass('no-truncate')) {
+                        if ($td.find('.cell-truncate').length === 0) {
+                            if ($td.children().length > 0) {
+                                $td.children().each(function() {
+                                    const $child = $(this);
+                                    const childText = $child.text().trim().replace(/\s+/g, ' ');
+                                    if (childText.length > 24 && !$child.hasClass('badge')) {
+                                        $child.addClass('cell-truncate');
+                                        $child.attr('title', childText);
+                                        $child.attr('data-bs-toggle', 'tooltip');
+                                        $child.attr('data-bs-placement', 'top');
+                                    }
+                                });
+                            } else {
+                                $td.wrapInner('<span class="cell-truncate"></span>');
+                                const $span = $td.find('.cell-truncate');
+                                $span.attr('title', rawText);
+                                $span.attr('data-bs-toggle', 'tooltip');
+                                $span.attr('data-bs-placement', 'top');
+                            }
+                        }
+                    }
+                });
+
+                // Inisialisasi Tooltip Bootstrap 5 (Batasi maksimal 50 instansiasi aktif untuk mencegah UI freeze)
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                const maxTooltips = Math.min(tooltipTriggerList.length, 50);
+                for (let i = 0; i < maxTooltips; i++) {
+                    const tooltipTriggerEl = tooltipTriggerList[i];
+                    if (!bootstrap.Tooltip.getInstance(tooltipTriggerEl)) {
+                        new bootstrap.Tooltip(tooltipTriggerEl, {
+                            container: 'body',
+                            boundary: 'window'
+                        });
+                    }
+                }
+            } catch(err) {
+                console.warn('Grid tooltip init notice:', err);
+            }
+        }
+
+        // Fitur Drag & Move Seluruh Modal / Popup Agar Bisa Digeser
+        function initDraggablePopups() {
+            // 1. Draggable Bootstrap 5 Modals
+            $(document).on('mousedown', '.modal-header', function(e) {
+                // Abaikan jika user mengklik tombol close, dropdown, atau input di header
+                if ($(e.target).closest('button, a, input, select, .btn-close').length > 0) return;
+
+                const $header = $(this);
+                const $dialog = $header.closest('.modal-dialog');
+                if (!$dialog.length) return;
+
+                const rect = $dialog[0].getBoundingClientRect();
+                const startMouseX = e.clientX;
+                const startMouseY = e.clientY;
+                const initialLeft = rect.left;
+                const initialTop = rect.top;
+
+                $dialog.css({
+                    position: 'fixed',
+                    margin: '0',
+                    left: initialLeft + 'px',
+                    top: initialTop + 'px',
+                    width: rect.width + 'px',
+                    zIndex: 1060
+                });
+
+                $header.css('cursor', 'grabbing');
+
+                $(document).on('mousemove.modalDrag', function(ev) {
+                    const dx = ev.clientX - startMouseX;
+                    const dy = ev.clientY - startMouseY;
+                    let newLeft = initialLeft + dx;
+                    let newTop = initialTop + dy;
+
+                    // Batasan agar dialog tidak terlempar keluar layar
+                    newTop = Math.max(10, Math.min(window.innerHeight - 80, newTop));
+                    newLeft = Math.max(10 - rect.width + 120, Math.min(window.innerWidth - 120, newLeft));
+
+                    $dialog.css({
+                        left: newLeft + 'px',
+                        top: newTop + 'px'
+                    });
+                });
+
+                $(document).on('mouseup.modalDrag', function() {
+                    $header.css('cursor', 'grab');
+                    $(document).off('mousemove.modalDrag mouseup.modalDrag');
+                });
+
+                e.preventDefault();
+            });
+
+            // Reset posisi modal saat ditutup agar kembali rapi di posisi default
+            $(document).on('hidden.bs.modal', '.modal', function() {
+                const $dialog = $(this).find('.modal-dialog');
+                $dialog.css({
+                    position: '',
+                    margin: '',
+                    left: '',
+                    top: '',
+                    width: '',
+                    zIndex: ''
+                });
+            });
+
+            // 2. Draggable SweetAlert2 Popups
+            $(document).on('mousedown', '.swal2-title, .swal2-header', function(e) {
+                if ($(e.target).closest('button, a, input, select, .swal2-close').length > 0) return;
+
+                const $popup = $(this).closest('.swal2-popup');
+                if (!$popup.length) return;
+
+                const rect = $popup[0].getBoundingClientRect();
+                const startMouseX = e.clientX;
+                const startMouseY = e.clientY;
+                const initialLeft = rect.left;
+                const initialTop = rect.top;
+
+                $popup.css({
+                    position: 'fixed',
+                    margin: '0',
+                    left: initialLeft + 'px',
+                    top: initialTop + 'px',
+                    transform: 'none'
+                });
+
+                $(document).on('mousemove.swalDrag', function(ev) {
+                    const dx = ev.clientX - startMouseX;
+                    const dy = ev.clientY - startMouseY;
+                    $popup.css({
+                        left: (initialLeft + dx) + 'px',
+                        top: (initialTop + dy) + 'px'
+                    });
+                });
+
+                $(document).on('mouseup.swalDrag', function() {
+                    $(document).off('mousemove.swalDrag mouseup.swalDrag');
+                });
+
+                e.preventDefault();
+            });
+        }
+
+        $(document).ready(function() {
+            initSearchableSelects();
+            applyGridTruncationAndTooltips();
+            initDraggablePopups();
+
+            // Aktifkan otomatis saat DataTables melakukan draw / filter / pagination
+            $(document).on('draw.dt', function() {
+                applyGridTruncationAndTooltips();
+            });
+
+            // Aktifkan otomatis saat modal Bootstrap dibuka
+            $(document).on('shown.bs.modal', '.modal', function() {
+                initSearchableSelects(this);
+                applyGridTruncationAndTooltips(this);
+            });
+
+            // Aktifkan setelah ajax selesai (misal load data modal)
+            $(document).ajaxComplete(function() {
+                setTimeout(applyGridTruncationAndTooltips, 200);
+            });
+        });
+    </script>
+    <?= $this->renderSection('scripts') ?>
+</body>
+</html>
+
