@@ -364,8 +364,8 @@
         }
     });
 
-    // Event Klik Edit / Lihat Data Barang
-    $('.btn-edit-barang').on('click', function() {
+    // Event Klik Edit / Lihat Data Barang (Gunakan Delegasi Dokumen untuk Dukungan Penuh DataTables)
+    $(document).on('click', '.btn-edit-barang', function() {
         const b = $(this).data('barang');
         $('#form-barang-id').val(b.id);
         $('#modalBarangHeader').removeClass('bg-primary text-white').addClass('bg-warning text-dark');
@@ -413,6 +413,13 @@
         }
 
         $('#modalTambahBarang').modal('show');
+
+        // Pastikan seluruh input currency terformat dengan ribuan titik
+        setTimeout(() => {
+            $('#modalTambahBarang .input-currency').each(function() {
+                $(this).val(formatRupiah($(this).val()));
+            });
+        }, 150);
     });
 
     $('#modalTambahBarang').on('hidden.bs.modal', function () {
@@ -423,6 +430,7 @@
         $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
         $('#form-id_barang').prop('readonly', false);
         $('#formBarang')[0].reset();
+        $('#form-harga_beli, #form-harga_jual, #form-harga_grosir, #form-hrg_paket_a, #form-hrg_paket_b, #form-hrg_paket_c').val('0');
 
         // Saat Tambah Baru: SEMUA field harga beli, harga jual, grosir, dan paket A/B/C di-ENABLE bisa diinput
         $('#form-harga_beli').prop('disabled', false).prop('required', true).removeClass('bg-light text-muted');

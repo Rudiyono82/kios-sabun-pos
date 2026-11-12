@@ -1183,14 +1183,24 @@
         // UNIVERSAL CURRENCY (RUPIAH) FORMATTER
         // ==========================================
         function formatRupiah(val, prefix = '') {
-            if (val === null || val === undefined) return prefix ? prefix + '0' : '0';
-            let strVal = val.toString().replace(/[^0-9]/g, '');
-            if (!strVal) return prefix ? prefix + '0' : '0';
+            if (val === null || val === undefined || val === '') return prefix ? prefix + '0' : '0';
             
-            // Hilangkan leading zero kecuali jika nilainya memang "0"
-            strVal = strVal.replace(/^0+/, '');
-            if (!strVal) return prefix ? prefix + '0' : '0';
+            // Konversi ke integer bulat jika berupa angka / desimal
+            let num = 0;
+            if (typeof val === 'number') {
+                num = Math.round(val);
+            } else {
+                let str = val.toString().trim();
+                // Jika memiliki format desimal seperti "25000.00"
+                if (str.includes('.') && str.indexOf('.') === str.lastIndexOf('.') && str.split('.')[1].length <= 2) {
+                    num = Math.round(parseFloat(str) || 0);
+                } else {
+                    let clean = str.replace(/[^0-9]/g, '');
+                    num = parseInt(clean, 10) || 0;
+                }
+            }
 
+            let strVal = Math.abs(num).toString();
             let sisa = strVal.length % 3,
                 rupiah = strVal.substr(0, sisa),
                 ribuan = strVal.substr(sisa).match(/\d{3}/g);
@@ -1199,7 +1209,9 @@
                 let separator = sisa ? '.' : '';
                 rupiah += separator + ribuan.join('.');
             }
-            return prefix ? prefix + rupiah : rupiah;
+            let res = rupiah ? rupiah : '0';
+            if (num < 0) res = '-' + res;
+            return prefix ? prefix + res : res;
         }
 
         function unformatRupiah(val) {
@@ -1217,7 +1229,7 @@
             if (clean === '') {
                 this.value = '';
             } else {
-                let formatted = formatRupiah(clean);
+                let formatted = formatRupiah(parseInt(clean, 10) || 0);
                 this.value = formatted;
                 
                 // Pertahankan posisi kursor agar nyaman saat mengetik

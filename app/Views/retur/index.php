@@ -603,17 +603,17 @@
         });
 
         $('#input-qty-retur').on('input', function() {
-            const qty = $(this).val();
+            const qty = parseFloat($(this).val()) || 0;
             $('#input-qty-ganti').val(qty);
             
-            const harga = $('#select-barang-retur option:selected').data('harga') || 0;
-            $('#input-nilai-ganti').val(qty * harga);
+            const harga = parseFloat($('#select-barang-retur option:selected').data('harga')) || 0;
+            $('#input-nilai-ganti').val(formatRupiah(qty * harga));
         });
 
         $('#select-barang-retur').on('change', function() {
-            const harga = $(this).find('option:selected').data('harga') || 0;
-            const qty = $('#input-qty-retur').val() || 1;
-            $('#input-nilai-ganti').val(qty * harga);
+            const harga = parseFloat($(this).find('option:selected').data('harga')) || 0;
+            const qty = parseFloat($('#input-qty-retur').val()) || 1;
+            $('#input-nilai-ganti').val(formatRupiah(qty * harga));
         });
 
         // 2. Event Tombol "Terima Penggantian / Selesaikan Retur" (Setelah beberapa hari)
@@ -633,7 +633,7 @@
 
             $('#modal2-qty-sama').val(qty);
             $('#modal2-qty-lain').val(qty);
-            $('#modal2-input-nilai-uang').val(nilai);
+            $('#modal2-input-nilai-uang').val(formatRupiah(nilai));
 
             // Reset ke pilihan pertama (Ganti Barang Sama)
             $('#modal2-solusi1').prop('checked', true).trigger('change');
