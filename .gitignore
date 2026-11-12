@@ -10,3 +10,4 @@
 !/writable/database.db
 *.tmp
 .phpunit.result.cache
+
