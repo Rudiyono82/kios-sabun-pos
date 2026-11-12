@@ -10,9 +10,6 @@ RUN apt-get update && apt-get install -y \
     git \
     && docker-php-ext-install \
     intl \
-    pdo_sqlite \
-    sqlite3 \
-    mbstring \
     zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
