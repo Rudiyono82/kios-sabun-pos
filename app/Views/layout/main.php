@@ -611,7 +611,7 @@
         <?php
             $uri = uri_string();
             $isMasterActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'barang') || str_contains($uri, 'kategori') || str_contains($uri, 'satuan') || str_contains($uri, 'supplier') || str_contains($uri, 'member') || str_contains($uri, 'barcode')));
-            $isTransaksiActive = (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || (str_contains($uri, 'stok-opname') && !str_contains($uri, 'laporan')));
+            $isTransaksiActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || str_contains($uri, 'stok-opname')));
             $isLaporanActive = (str_contains($uri, 'laporan'));
             $isConfigActive = (str_contains($uri, 'karyawan') || str_contains($uri, 'cabang') || str_contains($uri, 'profile'));
         ?>
@@ -701,13 +701,13 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="<?= base_url('penjualan') ?>" class="nav-link <?= str_contains($uri, 'penjualan') ? 'active' : '' ?>">
+                                <a href="<?= base_url('penjualan') ?>" class="nav-link <?= ($uri === 'penjualan' || (str_contains($uri, 'penjualan') && !str_contains($uri, 'laporan'))) ? 'active' : '' ?>">
                                     <i class="bi bi-receipt-cutoff text-info"></i>
                                     <span>Faktur Penjualan</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="<?= base_url('pembelian') ?>" class="nav-link <?= str_contains($uri, 'pembelian') ? 'active' : '' ?>">
+                                <a href="<?= base_url('pembelian') ?>" class="nav-link <?= ($uri === 'pembelian' || (str_contains($uri, 'pembelian') && !str_contains($uri, 'laporan'))) ? 'active' : '' ?>">
                                     <i class="bi bi-truck text-primary"></i>
                                     <span>Pembelian / Restock</span>
                                 </a>
@@ -758,6 +758,18 @@
                                 <a href="<?= base_url('laporan/barang') ?>" class="nav-link <?= str_contains($uri, 'laporan/barang') ? 'active' : '' ?>">
                                     <i class="bi bi-file-earmark-spreadsheet-fill text-success"></i>
                                     <span>Katalog &amp; Daftar Harga</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/penjualan') ?>" class="nav-link <?= str_contains($uri, 'laporan/penjualan') ? 'active' : '' ?>">
+                                    <i class="bi bi-cart-check-fill text-info"></i>
+                                    <span>Laporan Penjualan (Periode)</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/pembelian') ?>" class="nav-link <?= str_contains($uri, 'laporan/pembelian') ? 'active' : '' ?>">
+                                    <i class="bi bi-bag-plus-fill text-primary"></i>
+                                    <span>Laporan Pembelian (Periode)</span>
                                 </a>
                             </li>
                             <li class="nav-item">

@@ -582,5 +582,668 @@ class Laporan extends BaseController
 
         return view('laporan/excel_barang', $data);
     }
+
+    // =========================================================================
+    // 6. LAPORAN PENJUALAN PER PERIODE
+    // =========================================================================
+    public function penjualan()
+    {
+        $db = \Config\Database::connect();
+
+        $tglMulai     = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai   = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $metodeBayar  = $this->request->getGet('metode_bayar') ?: 'semua';
+        $kasir        = $this->request->getGet('kasir') ?: 'semua';
+        $tipeTampilan = $this->request->getGet('tipe') ?: 'transaksi'; // 'transaksi' (per faktur) atau 'barang' (per item produk)
+        $q            = trim($this->request->getGet('q') ?: '');
+
+        $isAdmin = (session()->get('role') === 'admin');
+
+        // Daftar Kasir untuk Dropdown Filter
+        $kasirList = $db->table('penjualan')
+            ->select('kode_user, nama_kasir')
+            ->groupBy('kode_user')
+            ->get()->getResultArray();
+
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+
+        if ($tipeTampilan === 'barang') {
+            // Rekap Penjualan Berdasarkan Produk Terjual
+            $builder = $db->table('penjualan_detail pd')
+                ->select('pd.id_barang, pd.nama_barang, b.satuan, b.kategori_id, k.nama_kategori,
+                          SUM(pd.qty) as total_qty, 
+                          SUM(pd.subtotal) as total_omzet, 
+                          SUM(pd.profit) as total_profit, 
+                          (SUM(pd.subtotal) / SUM(pd.qty)) as avg_harga_jual')
+                ->join('penjualan p', 'p.no_faktur = pd.no_faktur', 'inner')
+                ->join('barang b', 'b.id_barang = pd.id_barang', 'left')
+                ->join('kategori k', 'k.id = b.kategori_id', 'left')
+                ->where("DATE(p.tanggal) >=", $tglMulai)
+                ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if ($metodeBayar !== 'semua' && !empty($metodeBayar)) {
+                $builder->where('p.metode_bayar', $metodeBayar);
+            }
+            if ($kasir !== 'semua' && !empty($kasir)) {
+                $builder->where('p.kode_user', $kasir);
+            }
+            if (!empty($q)) {
+                $builder->groupStart()
+                    ->like('pd.nama_barang', $q)
+                    ->orLike('pd.id_barang', $q)
+                    ->groupEnd();
+            }
+
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+                ->orderBy('total_omzet', 'DESC')
+                ->get()->getResultArray();
+
+            $totalOmzet = 0;
+            $totalQty = 0;
+            $totalProfit = 0;
+            foreach ($listBarang as $b) {
+                $totalOmzet += (float)$b['total_omzet'];
+                $totalQty += (float)$b['total_qty'];
+                $totalProfit += (float)$b['total_profit'];
+            }
+
+            $data = [
+                'title'         => 'Laporan Penjualan per Periode (Per Item Produk)',
+                'tgl_mulai'     => $tglMulai,
+                'tgl_selesai'   => $tglSelesai,
+                'metode_bayar'  => $metodeBayar,
+                'kasir'         => $kasir,
+                'tipe'          => $tipeTampilan,
+                'q'             => $q,
+                'kasir_list'    => $kasirList,
+                'list_barang'   => $listBarang,
+                'total_omzet'   => $totalOmzet,
+                'total_qty'     => $totalQty,
+                'total_profit'  => $isAdmin ? $totalProfit : 0,
+                'profil'        => $profil,
+                'is_admin'      => $isAdmin
+            ];
+
+            return view('laporan/penjualan', $data);
+        }
+
+        // Default: Rekap Penjualan Berdasarkan Transaksi / Faktur
+        $builder = $db->table('penjualan')
+            ->where("DATE(tanggal) >=", $tglMulai)
+            ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if ($metodeBayar !== 'semua' && !empty($metodeBayar)) {
+            $builder->where('metode_bayar', $metodeBayar);
+        }
+        if ($kasir !== 'semua' && !empty($kasir)) {
+            $builder->where('kode_user', $kasir);
+        }
+        if (!empty($q)) {
+            $builder->groupStart()
+                ->like('no_faktur', $q)
+                ->orLike('nama_kasir', $q)
+                ->orLike('kode_member', $q)
+                ->groupEnd();
+        }
+
+        $list = $builder->orderBy('tanggal', 'DESC')->orderBy('id', 'DESC')->get()->getResultArray();
+
+        // Rekapitulasi Metrik
+        $totalOmzet = 0;
+        $totalQty = 0;
+        $totalProfit = 0;
+        $totalDiskon = 0;
+        $totalTukarJerigen = 0;
+        $totalVoucher = 0;
+        $totalTunai = 0;
+        $totalQris = 0;
+        $totalTransfer = 0;
+
+        foreach ($list as $p) {
+            $grand = (float)$p['grand_total'];
+            $totalOmzet += $grand;
+            $totalQty += (float)$p['total_qty'];
+            $totalProfit += (float)($p['total_profit'] ?? 0);
+            $totalDiskon += (float)($p['diskon'] ?? 0);
+            $totalTukarJerigen += (float)($p['potongan_tukar_jerigen'] ?? 0);
+            $totalVoucher += (float)($p['potongan_voucher'] ?? 0);
+
+            $m = strtolower(trim($p['metode_bayar'] ?? 'cash'));
+            if (str_contains($m, 'qris')) {
+                $totalQris += $grand;
+            } elseif (str_contains($m, 'trf') || str_contains($m, 'transfer')) {
+                $totalTransfer += $grand;
+            } else {
+                $totalTunai += $grand;
+            }
+        }
+
+        $data = [
+            'title'               => 'Laporan Penjualan Kasir per Periode',
+            'tgl_mulai'           => $tglMulai,
+            'tgl_selesai'         => $tglSelesai,
+            'metode_bayar'        => $metodeBayar,
+            'kasir'               => $kasir,
+            'tipe'                => $tipeTampilan,
+            'q'                   => $q,
+            'kasir_list'          => $kasirList,
+            'list'                => $list,
+            'total_omzet'         => $totalOmzet,
+            'total_transaksi'     => count($list),
+            'total_qty'           => $totalQty,
+            'total_profit'        => $isAdmin ? $totalProfit : 0,
+            'total_diskon'        => $totalDiskon,
+            'total_tukar_jerigen' => $totalTukarJerigen,
+            'total_voucher'       => $totalVoucher,
+            'total_tunai'         => $totalTunai,
+            'total_qris'          => $totalQris,
+            'total_transfer'      => $totalTransfer,
+            'profil'              => $profil,
+            'is_admin'            => $isAdmin
+        ];
+
+        return view('laporan/penjualan', $data);
+    }
+
+    public function detailPenjualan($noFaktur)
+    {
+        $db = \Config\Database::connect();
+        $penjualan = $db->table('penjualan')->where('no_faktur', $noFaktur)->get()->getRowArray();
+
+        if (!$penjualan) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Faktur tidak ditemukan']);
+        }
+
+        $items = $db->table('penjualan_detail pd')
+            ->select('pd.*, b.satuan')
+            ->join('barang b', 'b.id_barang = pd.id_barang', 'left')
+            ->where('pd.no_faktur', $noFaktur)
+            ->get()->getResultArray();
+
+        return $this->response->setJSON([
+            'status'    => 'success',
+            'penjualan' => $penjualan,
+            'items'     => $items
+        ]);
+    }
+
+    public function cetakPenjualan()
+    {
+        $db = \Config\Database::connect();
+
+        $tglMulai     = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai   = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $metodeBayar  = $this->request->getGet('metode_bayar') ?: 'semua';
+        $kasir        = $this->request->getGet('kasir') ?: 'semua';
+        $tipeTampilan = $this->request->getGet('tipe') ?: 'transaksi';
+        $q            = trim($this->request->getGet('q') ?: '');
+
+        $isAdmin = (session()->get('role') === 'admin');
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+
+        if ($tipeTampilan === 'barang') {
+            $builder = $db->table('penjualan_detail pd')
+                ->select('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori,
+                          SUM(pd.qty) as total_qty, 
+                          SUM(pd.subtotal) as total_omzet, 
+                          SUM(pd.profit) as total_profit, 
+                          (SUM(pd.subtotal) / SUM(pd.qty)) as avg_harga_jual')
+                ->join('penjualan p', 'p.no_faktur = pd.no_faktur', 'inner')
+                ->join('barang b', 'b.id_barang = pd.id_barang', 'left')
+                ->join('kategori k', 'k.id = b.kategori_id', 'left')
+                ->where("DATE(p.tanggal) >=", $tglMulai)
+                ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if ($metodeBayar !== 'semua' && !empty($metodeBayar)) $builder->where('p.metode_bayar', $metodeBayar);
+            if ($kasir !== 'semua' && !empty($kasir)) $builder->where('p.kode_user', $kasir);
+            if (!empty($q)) {
+                $builder->groupStart()->like('pd.nama_barang', $q)->orLike('pd.id_barang', $q)->groupEnd();
+            }
+
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+                ->orderBy('total_omzet', 'DESC')
+                ->get()->getResultArray();
+
+            $data = [
+                'title'       => 'Cetak Laporan Penjualan (Per Produk)',
+                'tgl_mulai'   => $tglMulai,
+                'tgl_selesai' => $tglSelesai,
+                'metode_bayar'=> $metodeBayar,
+                'kasir'       => $kasir,
+                'tipe'        => $tipeTampilan,
+                'list_barang' => $listBarang,
+                'profil'      => $profil,
+                'is_admin'    => $isAdmin
+            ];
+            return view('laporan/cetak_penjualan', $data);
+        }
+
+        $builder = $db->table('penjualan')
+            ->where("DATE(tanggal) >=", $tglMulai)
+            ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if ($metodeBayar !== 'semua' && !empty($metodeBayar)) $builder->where('metode_bayar', $metodeBayar);
+        if ($kasir !== 'semua' && !empty($kasir)) $builder->where('kode_user', $kasir);
+        if (!empty($q)) {
+            $builder->groupStart()->like('no_faktur', $q)->orLike('nama_kasir', $q)->groupEnd();
+        }
+
+        $list = $builder->orderBy('tanggal', 'ASC')->get()->getResultArray();
+
+        $data = [
+            'title'       => 'Cetak Laporan Penjualan (Per Faktur)',
+            'tgl_mulai'   => $tglMulai,
+            'tgl_selesai' => $tglSelesai,
+            'metode_bayar'=> $metodeBayar,
+            'kasir'       => $kasir,
+            'tipe'        => $tipeTampilan,
+            'list'        => $list,
+            'profil'      => $profil,
+            'is_admin'    => $isAdmin
+        ];
+        return view('laporan/cetak_penjualan', $data);
+    }
+
+    public function excelPenjualan()
+    {
+        $db = \Config\Database::connect();
+
+        $tglMulai     = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai   = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $metodeBayar  = $this->request->getGet('metode_bayar') ?: 'semua';
+        $kasir        = $this->request->getGet('kasir') ?: 'semua';
+        $tipeTampilan = $this->request->getGet('tipe') ?: 'transaksi';
+        $q            = trim($this->request->getGet('q') ?: '');
+
+        $isAdmin = (session()->get('role') === 'admin');
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+        $namaToko = $profil['nama_toko'] ?? 'Kios Sabun & Parfum';
+
+        if ($tipeTampilan === 'barang') {
+            $builder = $db->table('penjualan_detail pd')
+                ->select('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori,
+                          SUM(pd.qty) as total_qty, 
+                          SUM(pd.subtotal) as total_omzet, 
+                          SUM(pd.profit) as total_profit, 
+                          (SUM(pd.subtotal) / SUM(pd.qty)) as avg_harga_jual')
+                ->join('penjualan p', 'p.no_faktur = pd.no_faktur', 'inner')
+                ->join('barang b', 'b.id_barang = pd.id_barang', 'left')
+                ->join('kategori k', 'k.id = b.kategori_id', 'left')
+                ->where("DATE(p.tanggal) >=", $tglMulai)
+                ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if ($metodeBayar !== 'semua' && !empty($metodeBayar)) $builder->where('p.metode_bayar', $metodeBayar);
+            if ($kasir !== 'semua' && !empty($kasir)) $builder->where('p.kode_user', $kasir);
+            if (!empty($q)) {
+                $builder->groupStart()->like('pd.nama_barang', $q)->orLike('pd.id_barang', $q)->groupEnd();
+            }
+
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+                ->orderBy('total_omzet', 'DESC')
+                ->get()->getResultArray();
+
+            $filename = 'Laporan_Penjualan_Produk_' . str_replace('-', '', $tglMulai) . '_' . str_replace('-', '', $tglSelesai) . '.xls';
+
+            $data = [
+                'nama_toko'   => $namaToko,
+                'profil'      => $profil,
+                'tgl_mulai'   => $tglMulai,
+                'tgl_selesai' => $tglSelesai,
+                'metode_bayar'=> $metodeBayar,
+                'kasir'       => $kasir,
+                'tipe'        => $tipeTampilan,
+                'list_barang' => $listBarang,
+                'is_admin'    => $isAdmin
+            ];
+
+            header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+            return view('laporan/excel_penjualan', $data);
+        }
+
+        $builder = $db->table('penjualan')
+            ->where("DATE(tanggal) >=", $tglMulai)
+            ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if ($metodeBayar !== 'semua' && !empty($metodeBayar)) $builder->where('metode_bayar', $metodeBayar);
+        if ($kasir !== 'semua' && !empty($kasir)) $builder->where('kode_user', $kasir);
+        if (!empty($q)) {
+            $builder->groupStart()->like('no_faktur', $q)->orLike('nama_kasir', $q)->groupEnd();
+        }
+
+        $list = $builder->orderBy('tanggal', 'ASC')->get()->getResultArray();
+
+        $filename = 'Laporan_Penjualan_Faktur_' . str_replace('-', '', $tglMulai) . '_' . str_replace('-', '', $tglSelesai) . '.xls';
+
+        $data = [
+            'nama_toko'   => $namaToko,
+            'profil'      => $profil,
+            'tgl_mulai'   => $tglMulai,
+            'tgl_selesai' => $tglSelesai,
+            'metode_bayar'=> $metodeBayar,
+            'kasir'       => $kasir,
+            'tipe'        => $tipeTampilan,
+            'list'        => $list,
+            'is_admin'    => $isAdmin
+        ];
+
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        return view('laporan/excel_penjualan', $data);
+    }
+
+    // =========================================================================
+    // 7. LAPORAN PEMBELIAN PER PERIODE
+    // =========================================================================
+    public function pembelian()
+    {
+        $db = \Config\Database::connect();
+
+        $tglMulai     = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai   = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $kodeSupplier = $this->request->getGet('kode_supplier') ?: 'semua';
+        $statusBayar  = $this->request->getGet('status_bayar') ?: 'semua';
+        $tipeTampilan = $this->request->getGet('tipe') ?: 'transaksi'; // 'transaksi' (per nota) atau 'barang' (per item produk kulakan)
+        $q            = trim($this->request->getGet('q') ?: '');
+
+        $suppliers = $db->table('supplier')->orderBy('nama_supplier', 'ASC')->get()->getResultArray();
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+
+        if ($tipeTampilan === 'barang') {
+            $builder = $db->table('pembelian_detail pd')
+                ->select('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori,
+                          SUM(pd.qty) as total_qty, 
+                          SUM(pd.subtotal) as total_biaya, 
+                          (SUM(pd.subtotal) / SUM(pd.qty)) as avg_harga_beli')
+                ->join('pembelian p', 'p.no_beli = pd.no_beli', 'inner')
+                ->join('barang b', 'b.id_barang = pd.id_barang', 'left')
+                ->join('kategori k', 'k.id = b.kategori_id', 'left')
+                ->where("DATE(p.tanggal) >=", $tglMulai)
+                ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if ($kodeSupplier !== 'semua' && !empty($kodeSupplier)) {
+                $builder->where('p.kode_supplier', $kodeSupplier);
+            }
+            if ($statusBayar !== 'semua' && !empty($statusBayar)) {
+                $builder->where('p.status_bayar', $statusBayar);
+            }
+            if (!empty($q)) {
+                $builder->groupStart()
+                    ->like('pd.nama_barang', $q)
+                    ->orLike('pd.id_barang', $q)
+                    ->groupEnd();
+            }
+
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+                ->orderBy('total_biaya', 'DESC')
+                ->get()->getResultArray();
+
+            $totalBiaya = 0;
+            $totalQty = 0;
+            foreach ($listBarang as $b) {
+                $totalBiaya += (float)$b['total_biaya'];
+                $totalQty += (float)$b['total_qty'];
+            }
+
+            $data = [
+                'title'         => 'Laporan Pembelian per Periode (Per Item Produk Kulakan)',
+                'tgl_mulai'     => $tglMulai,
+                'tgl_selesai'   => $tglSelesai,
+                'kode_supplier' => $kodeSupplier,
+                'status_bayar'  => $statusBayar,
+                'tipe'          => $tipeTampilan,
+                'q'             => $q,
+                'suppliers'     => $suppliers,
+                'list_barang'   => $listBarang,
+                'total_biaya'   => $totalBiaya,
+                'total_qty'     => $totalQty,
+                'profil'        => $profil
+            ];
+
+            return view('laporan/pembelian', $data);
+        }
+
+        // Default: Rekap Pembelian Berdasarkan Transaksi / Nota
+        $builder = $db->table('pembelian')
+            ->where("DATE(tanggal) >=", $tglMulai)
+            ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if ($kodeSupplier !== 'semua' && !empty($kodeSupplier)) {
+            $builder->where('kode_supplier', $kodeSupplier);
+        }
+        if ($statusBayar !== 'semua' && !empty($statusBayar)) {
+            $builder->where('status_bayar', $statusBayar);
+        }
+        if (!empty($q)) {
+            $builder->groupStart()
+                ->like('no_beli', $q)
+                ->orLike('nama_supplier', $q)
+                ->orLike('catatan', $q)
+                ->groupEnd();
+        }
+
+        $list = $builder->orderBy('tanggal', 'DESC')->orderBy('id', 'DESC')->get()->getResultArray();
+
+        $totalBiaya = 0;
+        $totalLunas = 0;
+        $totalHutang = 0;
+        $suppliersCount = [];
+
+        foreach ($list as $b) {
+            $biaya = (float)$b['total_biaya'];
+            $totalBiaya += $biaya;
+            if (strtolower(trim($b['status_bayar'] ?? '')) === 'lunas') {
+                $totalLunas += $biaya;
+            } else {
+                $totalHutang += $biaya;
+            }
+            if (!empty($b['kode_supplier'])) {
+                $suppliersCount[$b['kode_supplier']] = true;
+            }
+        }
+
+        $data = [
+            'title'           => 'Laporan Pembelian Supplier & Restock per Periode',
+            'tgl_mulai'       => $tglMulai,
+            'tgl_selesai'     => $tglSelesai,
+            'kode_supplier'   => $kodeSupplier,
+            'status_bayar'    => $statusBayar,
+            'tipe'            => $tipeTampilan,
+            'q'               => $q,
+            'suppliers'       => $suppliers,
+            'list'            => $list,
+            'total_biaya'     => $totalBiaya,
+            'total_nota'      => count($list),
+            'total_lunas'     => $totalLunas,
+            'total_hutang'    => $totalHutang,
+            'total_supplier'  => count($suppliersCount),
+            'profil'          => $profil
+        ];
+
+        return view('laporan/pembelian', $data);
+    }
+
+    public function detailPembelian($noBeli)
+    {
+        $db = \Config\Database::connect();
+        $pembelian = $db->table('pembelian')->where('no_beli', $noBeli)->get()->getRowArray();
+
+        if (!$pembelian) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Nota pembelian tidak ditemukan']);
+        }
+
+        $items = $db->table('pembelian_detail pd')
+            ->select('pd.*, b.satuan')
+            ->join('barang b', 'b.id_barang = pd.id_barang', 'left')
+            ->where('pd.no_beli', $noBeli)
+            ->get()->getResultArray();
+
+        return $this->response->setJSON([
+            'status'    => 'success',
+            'pembelian' => $pembelian,
+            'items'     => $items
+        ]);
+    }
+
+    public function cetakPembelian()
+    {
+        $db = \Config\Database::connect();
+
+        $tglMulai     = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai   = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $kodeSupplier = $this->request->getGet('kode_supplier') ?: 'semua';
+        $statusBayar  = $this->request->getGet('status_bayar') ?: 'semua';
+        $tipeTampilan = $this->request->getGet('tipe') ?: 'transaksi';
+        $q            = trim($this->request->getGet('q') ?: '');
+
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+
+        if ($tipeTampilan === 'barang') {
+            $builder = $db->table('pembelian_detail pd')
+                ->select('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori,
+                          SUM(pd.qty) as total_qty, 
+                          SUM(pd.subtotal) as total_biaya, 
+                          (SUM(pd.subtotal) / SUM(pd.qty)) as avg_harga_beli')
+                ->join('pembelian p', 'p.no_beli = pd.no_beli', 'inner')
+                ->join('barang b', 'b.id_barang = pd.id_barang', 'left')
+                ->join('kategori k', 'k.id = b.kategori_id', 'left')
+                ->where("DATE(p.tanggal) >=", $tglMulai)
+                ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if ($kodeSupplier !== 'semua' && !empty($kodeSupplier)) $builder->where('p.kode_supplier', $kodeSupplier);
+            if ($statusBayar !== 'semua' && !empty($statusBayar)) $builder->where('p.status_bayar', $statusBayar);
+            if (!empty($q)) {
+                $builder->groupStart()->like('pd.nama_barang', $q)->orLike('pd.id_barang', $q)->groupEnd();
+            }
+
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+                ->orderBy('total_biaya', 'DESC')
+                ->get()->getResultArray();
+
+            $data = [
+                'title'         => 'Cetak Laporan Pembelian (Per Item Produk)',
+                'tgl_mulai'     => $tglMulai,
+                'tgl_selesai'   => $tglSelesai,
+                'kode_supplier' => $kodeSupplier,
+                'status_bayar'  => $statusBayar,
+                'tipe'          => $tipeTampilan,
+                'list_barang'   => $listBarang,
+                'profil'        => $profil
+            ];
+            return view('laporan/cetak_pembelian', $data);
+        }
+
+        $builder = $db->table('pembelian')
+            ->where("DATE(tanggal) >=", $tglMulai)
+            ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if ($kodeSupplier !== 'semua' && !empty($kodeSupplier)) $builder->where('kode_supplier', $kodeSupplier);
+        if ($statusBayar !== 'semua' && !empty($statusBayar)) $builder->where('status_bayar', $statusBayar);
+        if (!empty($q)) {
+            $builder->groupStart()->like('no_beli', $q)->orLike('nama_supplier', $q)->groupEnd();
+        }
+
+        $list = $builder->orderBy('tanggal', 'ASC')->get()->getResultArray();
+
+        $data = [
+            'title'         => 'Cetak Laporan Pembelian Supplier & Restock',
+            'tgl_mulai'     => $tglMulai,
+            'tgl_selesai'   => $tglSelesai,
+            'kode_supplier' => $kodeSupplier,
+            'status_bayar'  => $statusBayar,
+            'tipe'          => $tipeTampilan,
+            'list'          => $list,
+            'profil'        => $profil
+        ];
+        return view('laporan/cetak_pembelian', $data);
+    }
+
+    public function excelPembelian()
+    {
+        $db = \Config\Database::connect();
+
+        $tglMulai     = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai   = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $kodeSupplier = $this->request->getGet('kode_supplier') ?: 'semua';
+        $statusBayar  = $this->request->getGet('status_bayar') ?: 'semua';
+        $tipeTampilan = $this->request->getGet('tipe') ?: 'transaksi';
+        $q            = trim($this->request->getGet('q') ?: '');
+
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+        $namaToko = $profil['nama_toko'] ?? 'Kios Sabun & Parfum';
+
+        if ($tipeTampilan === 'barang') {
+            $builder = $db->table('pembelian_detail pd')
+                ->select('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori,
+                          SUM(pd.qty) as total_qty, 
+                          SUM(pd.subtotal) as total_biaya, 
+                          (SUM(pd.subtotal) / SUM(pd.qty)) as avg_harga_beli')
+                ->join('pembelian p', 'p.no_beli = pd.no_beli', 'inner')
+                ->join('barang b', 'b.id_barang = pd.id_barang', 'left')
+                ->join('kategori k', 'k.id = b.kategori_id', 'left')
+                ->where("DATE(p.tanggal) >=", $tglMulai)
+                ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if ($kodeSupplier !== 'semua' && !empty($kodeSupplier)) $builder->where('p.kode_supplier', $kodeSupplier);
+            if ($statusBayar !== 'semua' && !empty($statusBayar)) $builder->where('p.status_bayar', $statusBayar);
+            if (!empty($q)) {
+                $builder->groupStart()->like('pd.nama_barang', $q)->orLike('pd.id_barang', $q)->groupEnd();
+            }
+
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+                ->orderBy('total_biaya', 'DESC')
+                ->get()->getResultArray();
+
+            $filename = 'Laporan_Pembelian_Produk_' . str_replace('-', '', $tglMulai) . '_' . str_replace('-', '', $tglSelesai) . '.xls';
+
+            $data = [
+                'nama_toko'     => $namaToko,
+                'profil'        => $profil,
+                'tgl_mulai'     => $tglMulai,
+                'tgl_selesai'   => $tglSelesai,
+                'kode_supplier' => $kodeSupplier,
+                'status_bayar'  => $statusBayar,
+                'tipe'          => $tipeTampilan,
+                'list_barang'   => $listBarang
+            ];
+
+            header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+            return view('laporan/excel_pembelian', $data);
+        }
+
+        $builder = $db->table('pembelian')
+            ->where("DATE(tanggal) >=", $tglMulai)
+            ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if ($kodeSupplier !== 'semua' && !empty($kodeSupplier)) $builder->where('kode_supplier', $kodeSupplier);
+        if ($statusBayar !== 'semua' && !empty($statusBayar)) $builder->where('status_bayar', $statusBayar);
+        if (!empty($q)) {
+            $builder->groupStart()->like('no_beli', $q)->orLike('nama_supplier', $q)->groupEnd();
+        }
+
+        $list = $builder->orderBy('tanggal', 'ASC')->get()->getResultArray();
+
+        $filename = 'Laporan_Pembelian_Nota_' . str_replace('-', '', $tglMulai) . '_' . str_replace('-', '', $tglSelesai) . '.xls';
+
+        $data = [
+            'nama_toko'     => $namaToko,
+            'profil'        => $profil,
+            'tgl_mulai'     => $tglMulai,
+            'tgl_selesai'   => $tglSelesai,
+            'kode_supplier' => $kodeSupplier,
+            'status_bayar'  => $statusBayar,
+            'tipe'          => $tipeTampilan,
+            'list'          => $list
+        ];
+
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        return view('laporan/excel_pembelian', $data);
+    }
 }
 

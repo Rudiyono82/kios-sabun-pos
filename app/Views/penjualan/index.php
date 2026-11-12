@@ -6,7 +6,10 @@
         <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-receipt-cutoff text-primary me-2"></i>Daftar Faktur Penjualan Kasir</h4>
         <p class="text-muted small mb-0">Monitoring seluruh transaksi kasir, rincian produk terjual, cetak ulang struk, dan otorisasi hapus transaksi.</p>
     </div>
-    <div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="<?= base_url('laporan/penjualan') ?>" class="btn btn-outline-info rounded-pill px-3 fw-bold shadow-sm">
+            <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Laporan &amp; Export
+        </a>
         <a href="<?= base_url('pos') ?>" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
             <i class="bi bi-cart-check-fill me-2"></i> Buka Kasir (POS)
         </a>

@@ -141,6 +141,14 @@ $routes->group('laporan', ['filter' => 'auth'], function($routes) {
     $routes->get('barang', 'Laporan::barang');
     $routes->get('barang/cetak', 'Laporan::cetakBarang');
     $routes->get('barang/excel', 'Laporan::excelBarang');
+    $routes->get('penjualan', 'Laporan::penjualan');
+    $routes->get('penjualan/cetak', 'Laporan::cetakPenjualan');
+    $routes->get('penjualan/excel', 'Laporan::excelPenjualan');
+    $routes->get('penjualan/detail/(:segment)', 'Laporan::detailPenjualan/$1');
+    $routes->get('pembelian', 'Laporan::pembelian');
+    $routes->get('pembelian/cetak', 'Laporan::cetakPembelian');
+    $routes->get('pembelian/excel', 'Laporan::excelPembelian');
+    $routes->get('pembelian/detail/(:segment)', 'Laporan::detailPembelian/$1');
     $routes->get('kartu-stok', 'Laporan::kartuStok', ['filter' => 'admin']);
     $routes->get('stok-opname', 'Laporan::stokOpname', ['filter' => 'admin']);
 });

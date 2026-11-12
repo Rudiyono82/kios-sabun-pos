@@ -6,7 +6,10 @@
         <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-truck text-primary me-2"></i>Daftar Pembelian Supplier & Restock</h4>
         <p class="text-muted small mb-0">Riwayat faktur pembelian barang masuk dari supplier dengan rincian item barang dan otorisasi hapus transaksi.</p>
     </div>
-    <div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="<?= base_url('laporan/pembelian') ?>" class="btn btn-outline-primary rounded-pill px-3 fw-bold shadow-sm">
+            <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Laporan &amp; Export
+        </a>
         <a href="<?= base_url('pembelian/tambah') ?>" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
             <i class="bi bi-plus-circle-fill me-2"></i> Input Pembelian Supplier Baru
         </a>
