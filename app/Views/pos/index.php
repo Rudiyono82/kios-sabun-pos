@@ -102,17 +102,26 @@
                     </button>
                 </div>
 
-                <!-- Box Pemakaian Voucher Poin Member (Jika Ada Voucher Aktif) -->
+                <!-- Box Pemakaian Voucher Poin Member Sesuai Kuota Member -->
                 <div id="voucher-member-container" class="mt-2 p-2 bg-warning bg-opacity-10 rounded border border-warning-subtle d-none">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <label class="small fw-bold text-dark mb-0">
-                            <i class="bi bi-ticket-perforated-fill text-warning me-1"></i> Gunakan Voucher Belanja <kbd class="bg-warning text-dark font-monospace" style="font-size: 0.7rem;">[F7]</kbd>:
+                            <i class="bi bi-ticket-perforated-fill text-warning me-1"></i> Voucher Poin Member <kbd class="bg-warning text-dark font-monospace" style="font-size: 0.7rem;">[F7]</kbd>:
                         </label>
-                        <span class="badge bg-warning text-dark font-monospace" id="label-voucher-tersedia">0 Voucher</span>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-warning text-dark font-monospace" id="label-voucher-tersedia">0 Voucher</span>
+                            <button type="button" class="btn btn-xs btn-outline-warning text-dark bg-white border-warning fw-bold py-0 px-2 rounded-pill shadow-sm" id="btn-modal-tukar-poin" title="Tukar Poin Member Jadi Voucher Belanja">
+                                <i class="bi bi-arrow-repeat text-primary me-1"></i>Tukar Poin
+                            </button>
+                        </div>
                     </div>
-                    <select id="select-voucher-pos" class="form-select form-select-sm">
+                    <select id="select-voucher-pos" class="form-select form-select-sm fw-semibold">
                         <option value="" data-potongan="0">-- Jangan Gunakan Voucher --</option>
                     </select>
+                    <div id="voucher-point-notice" class="small text-muted mt-1 d-flex justify-content-between align-items-center" style="font-size: 0.72rem;">
+                        <span><i class="bi bi-star-fill text-warning me-1"></i>Kuota Poin: <strong id="notice-kuota-poin" class="text-dark">0 Poin</strong></span>
+                        <span>Senilai Kuota: <strong class="text-success" id="notice-kuota-rp">Rp 0</strong></span>
+                    </div>
                 </div>
             </div>
 
@@ -249,6 +258,10 @@
             <div class="modal-body p-4">
                 <!-- Display Total Tagihan Besar di Popup -->
                 <div class="text-center p-3 rounded-4 mb-3" style="background-color: #f0fdf4; border: 2px dashed #86efac;">
+                    <div class="d-flex justify-content-between text-success small pb-1 mb-1 border-bottom d-none" id="popup-row-voucher">
+                        <span><i class="bi bi-ticket-perforated-fill me-1"></i>Voucher Member (<span id="popup-voucher-code"></span>):</span>
+                        <strong id="popup-voucher-discount">-Rp 0</strong>
+                    </div>
                     <span class="text-muted small text-uppercase fw-bold">TOTAL HARUS DIBAYAR</span>
                     <h1 class="display-5 fw-bold text-success mb-0" id="popup-display-total">Rp 0</h1>
                 </div>
@@ -310,6 +323,79 @@
                 </button>
                 <button type="button" id="btn-proses-transaksi" class="btn btn-success flex-fill rounded-pill py-2 fw-bold shadow">
                     <i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI <kbd class="bg-white text-success font-monospace px-2 py-0 ms-1">[Enter]</kbd>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL TUKAR POIN MEMBER MENJADI VOUCHER BELANJA (F7 / POPUP POS)           -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="modalTukarPoinPOS" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header bg-warning text-dark py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-white p-2 rounded-3 shadow-sm text-warning">
+                        <i class="bi bi-ticket-perforated-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0">Tukar Poin Member Jadi Voucher</h5>
+                        <small class="text-dark text-opacity-75">Konversi poin belanja member menjadi voucher diskon langsung</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <!-- Info Member & Saldo Poin -->
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small fw-bold text-uppercase">Nama Member:</span>
+                        <strong class="text-dark" id="pos-tukar-nama-member">-</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                        <span class="text-muted small fw-bold text-uppercase">Saldo Poin Belanja:</span>
+                        <span class="badge bg-warning text-dark fs-6" id="pos-tukar-saldo-poin">0 Poin</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span class="text-muted small">Maks. Potongan Kuota:</span>
+                        <strong class="text-success small" id="pos-tukar-kuota-rp">Rp 0</strong>
+                    </div>
+                </div>
+
+                <!-- Input Poin Yang Ingin Ditukar -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small fw-bold text-dark mb-0">Jumlah Poin Yang Ditukar:</label>
+                        <span class="text-muted small">Kurs: <strong>1 Poin = Rp 50</strong></span>
+                    </div>
+                    <div class="input-group input-group-lg">
+                        <input type="number" id="pos-input-poin-tukar" class="form-control text-center fw-bold fs-3 text-warning font-monospace" min="1" step="1" value="0" placeholder="0">
+                        <span class="input-group-text bg-light fw-bold text-secondary">Poin</span>
+                    </div>
+                </div>
+
+                <!-- Preset Cepat Tukar Poin -->
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-secondary btn-sm flex-fill rounded-pill btn-quick-poin" data-poin="50">50 Poin (Rp 2.500)</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm flex-fill rounded-pill btn-quick-poin" data-poin="100">100 Poin (Rp 5.000)</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm flex-fill rounded-pill" id="pos-btn-tukar-semua-poin">Tukar Semua</button>
+                </div>
+
+                <!-- Preview Nilai Potongan Voucher Belanja -->
+                <div class="p-3 rounded-4 text-center mb-0" style="background-color: #f0fdf4; border: 2px dashed #86efac;">
+                    <span class="small text-uppercase text-muted fw-bold">NILAI POTONGAN VOUCHER BELANJA:</span>
+                    <h2 class="display-6 fw-bold text-success mb-0" id="pos-display-nilai-voucher">Rp 0</h2>
+                    <small class="text-muted d-block mt-1">Voucher akan langsung aktif dan otomatis diterapkan pada transaksi ini.</small>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 pt-0 d-flex gap-2">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="pos-btn-konfirmasi-tukar-poin" class="btn btn-warning flex-fill rounded-pill py-2 fw-bold text-dark shadow">
+                    <i class="bi bi-check2-circle fs-5 me-1"></i> Konfirmasi & Gunakan Voucher
                 </button>
             </div>
         </div>
@@ -595,35 +681,25 @@
         $('#member-dropdown').addClass('d-none').empty();
         $('#member-search-input').val('');
         
-        const nilaiRupiah = m.nilai_rupiah_poin || (parseFloat(m.point) * 50);
+        const poin = parseFloat(m.point) || 0;
+        const nilaiRupiah = m.nilai_rupiah_poin || (poin * 50);
 
         $('#selected-member-nama').text(m.nama + ' (' + m.kode_member + ')');
         $('#selected-member-detail').html(`
             <i class="bi bi-whatsapp text-success me-1"></i>${m.telepon || 'Tidak ada WA'} &bull; 
-            <i class="bi bi-star-fill text-warning me-1"></i>${m.point} Poin (Senilai Voucher Rp ${new Intl.NumberFormat('id-ID').format(nilaiRupiah)})
+            <i class="bi bi-star-fill text-warning me-1"></i>${new Intl.NumberFormat('id-ID').format(poin)} Poin (Senilai Voucher Rp ${new Intl.NumberFormat('id-ID').format(nilaiRupiah)})
         `);
         $('#selected-member-badge').removeClass('d-none');
         
-        // Cek apakah member memiliki voucher aktif yang siap memotong belanja
-        const $selectVch = $('#select-voucher-pos');
-        $selectVch.empty().append('<option value="" data-potongan="0">-- Jangan Gunakan Voucher --</option>');
+        // Update kuota poin & nilai rupiah di voucher container
+        $('#notice-kuota-poin').text(new Intl.NumberFormat('id-ID').format(poin) + ' Poin');
+        $('#notice-kuota-rp').text('Rp ' + new Intl.NumberFormat('id-ID').format(nilaiRupiah));
+        
+        // Selalu tampilkan voucher-member-container untuk member agar kasir bisa lihat kuota & tukar poin
+        $('#voucher-member-container').removeClass('d-none');
 
-        if (m.vouchers && m.vouchers.length > 0) {
-            m.vouchers.forEach(v => {
-                const opt = $(`
-                    <option value="${v.kode_voucher}" data-potongan="${v.nilai_voucher}">
-                        ${v.kode_voucher} - Potongan Rp ${new Intl.NumberFormat('id-ID').format(v.nilai_voucher)}
-                    </option>
-                `);
-                $selectVch.append(opt);
-            });
-            $selectVch.trigger('change');
-            $('#label-voucher-tersedia').text(m.vouchers.length + ' Voucher Tersedia');
-            $('#voucher-member-container').removeClass('d-none');
-        } else {
-            $selectVch.trigger('change');
-            $('#voucher-member-container').addClass('d-none');
-        }
+        // Ambil data voucher terbaru member dari server via AJAX
+        loadMemberVouchers(m.kode_member);
 
         updateSummary();
 
@@ -631,23 +707,183 @@
         $('#barcode-input').focus();
     }
 
+    function loadMemberVouchers(kodeMember, autoSelectKode = null) {
+        $.get('<?= base_url('pos/get-member-vouchers') ?>/' + kodeMember, function(res) {
+            if (res.status === 'success') {
+                const poin = parseFloat(res.point) || 0;
+                const kuotaRp = parseFloat(res.kuota_voucher_rp) || (poin * 50);
+                
+                if (selectedMember) {
+                    selectedMember.point = poin;
+                    selectedMember.nilai_rupiah_poin = kuotaRp;
+                }
+
+                $('#notice-kuota-poin').text(new Intl.NumberFormat('id-ID').format(poin) + ' Poin');
+                $('#notice-kuota-rp').text('Rp ' + new Intl.NumberFormat('id-ID').format(kuotaRp));
+
+                const vouchers = res.vouchers || [];
+                $('#label-voucher-tersedia').text(vouchers.length + ' Voucher Tersedia');
+
+                const $selectVch = $('#select-voucher-pos');
+                $selectVch.empty().append('<option value="" data-potongan="0">-- Jangan Gunakan Voucher --</option>');
+
+                vouchers.forEach(v => {
+                    const opt = $(`
+                        <option value="${v.kode_voucher}" data-potongan="${v.nilai_voucher}">
+                            ${v.kode_voucher} - Potongan Rp ${new Intl.NumberFormat('id-ID').format(v.nilai_voucher)}
+                        </option>
+                    `);
+                    $selectVch.append(opt);
+                });
+
+                if (autoSelectKode) {
+                    $selectVch.val(autoSelectKode);
+                } else if (vouchers.length > 0) {
+                    // Auto select voucher pertama yang paling baru
+                    $selectVch.val(vouchers[0].kode_voucher);
+                }
+
+                $selectVch.trigger('change');
+            }
+        });
+    }
+
+    // Modal Tukar Poin POS
+    $('#btn-modal-tukar-poin').on('click', function() {
+        if (!selectedMember) {
+            Swal.fire('Pilih Member', 'Silakan pilih Member terlebih dahulu sebelum menukar poin!', 'info');
+            return;
+        }
+
+        const poin = parseFloat(selectedMember.point) || 0;
+        if (poin <= 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Poin Belum Mencukupi',
+                text: 'Member ' + selectedMember.nama + ' belum memiliki saldo poin belanja (0 Poin).'
+            });
+            return;
+        }
+
+        const nilaiRupiah = poin * 50;
+        $('#pos-tukar-nama-member').text(selectedMember.nama + ' (' + selectedMember.kode_member + ')');
+        $('#pos-tukar-saldo-poin').text(new Intl.NumberFormat('id-ID').format(poin) + ' Poin');
+        $('#pos-tukar-kuota-rp').text('Rp ' + new Intl.NumberFormat('id-ID').format(nilaiRupiah));
+
+        let subtotal = 0;
+        cart.forEach(i => subtotal += (i.qty * i.harga_jual));
+        const maxPoinNeeded = Math.ceil(subtotal / 50);
+        const defaultTukar = Math.min(poin, maxPoinNeeded > 0 ? maxPoinNeeded : poin);
+
+        $('#pos-input-poin-tukar').val(defaultTukar).attr('max', poin);
+        hitungNilaiVoucherPOS();
+
+        $('#modalTukarPoinPOS').modal('show');
+    });
+
+    function hitungNilaiVoucherPOS() {
+        const poin = parseFloat($('#pos-input-poin-tukar').val()) || 0;
+        const nilai = poin * 50;
+        $('#pos-display-nilai-voucher').text('Rp ' + new Intl.NumberFormat('id-ID').format(nilai));
+    }
+
+    $('#pos-input-poin-tukar').on('input', hitungNilaiVoucherPOS);
+
+    $('.btn-quick-poin').on('click', function() {
+        const val = parseFloat($(this).data('poin')) || 0;
+        const maxPoin = parseFloat(selectedMember ? selectedMember.point : 0) || 0;
+        $('#pos-input-poin-tukar').val(Math.min(val, maxPoin));
+        hitungNilaiVoucherPOS();
+    });
+
+    $('#pos-btn-tukar-semua-poin').on('click', function() {
+        const maxPoin = parseFloat(selectedMember ? selectedMember.point : 0) || 0;
+        $('#pos-input-poin-tukar').val(maxPoin);
+        hitungNilaiVoucherPOS();
+    });
+
+    $('#pos-btn-konfirmasi-tukar-poin').on('click', function() {
+        if (!selectedMember) return;
+        const poin = parseInt($('#pos-input-poin-tukar').val(), 10) || 0;
+        const maxPoin = parseFloat(selectedMember.point) || 0;
+
+        if (poin <= 0) {
+            Swal.fire('Perhatian', 'Jumlah poin yang ditukar harus lebih dari 0!', 'warning');
+            return;
+        }
+
+        if (poin > maxPoin) {
+            Swal.fire('Poin Kurang', `Saldo poin member hanya ${maxPoin} poin!`, 'error');
+            return;
+        }
+
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menukar Poin...');
+
+        $.post('<?= base_url('pos/tukar-poin-member') ?>', {
+            kode_member: selectedMember.kode_member,
+            point: poin
+        }, function(res) {
+            $btn.prop('disabled', false).html('<i class="bi bi-check2-circle fs-5 me-1"></i> Konfirmasi & Gunakan Voucher');
+            if (res.status === 'success') {
+                $('#modalTukarPoinPOS').modal('hide');
+                
+                // Update poin member
+                selectedMember.point = res.sisa_poin;
+                selectedMember.nilai_rupiah_poin = res.sisa_poin * 50;
+                
+                $('#selected-member-detail').html(`
+                    <i class="bi bi-whatsapp text-success me-1"></i>${selectedMember.telepon || 'Tidak ada WA'} &bull; 
+                    <i class="bi bi-star-fill text-warning me-1"></i>${new Intl.NumberFormat('id-ID').format(res.sisa_poin)} Poin (Senilai Voucher Rp ${new Intl.NumberFormat('id-ID').format(res.sisa_poin * 50)})
+                `);
+
+                // Reload member vouchers dan auto-select voucher baru
+                loadMemberVouchers(selectedMember.kode_member, res.voucher.kode_voucher);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Voucher Berhasil Dibuat!',
+                    html: `Berhasil menukar <b>${res.voucher.point_ditukar} Poin</b> menjadi Voucher <b>${res.voucher.kode_voucher}</b> senilai <b>Rp ${new Intl.NumberFormat('id-ID').format(res.voucher.nilai_voucher)}</b>. Voucher langsung diterapkan ke kasir!`,
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire('Gagal Tukar Poin', res.message || 'Terjadi kesalahan sistem.', 'error');
+            }
+        }).fail(function(xhr) {
+            $btn.prop('disabled', false).html('<i class="bi bi-check2-circle fs-5 me-1"></i> Konfirmasi & Gunakan Voucher');
+            const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal menghubungi server.';
+            Swal.fire('Error', err, 'error');
+        });
+    });
+
     function resetMember() {
         selectedMember = null;
         $('#selected-member-badge').addClass('d-none');
         $('#voucher-member-container').addClass('d-none');
-        $('#select-voucher-pos').val('').trigger('change');
+        $('#select-voucher-pos').empty().append('<option value="" data-potongan="0">-- Jangan Gunakan Voucher --</option>').trigger('change');
         $('#member-search-input').val('');
         $('#member-dropdown').addClass('d-none').empty();
+        $('#row-potongan-voucher').addClass('d-none');
+        $('#popup-row-voucher').addClass('d-none');
         updateSummary();
     }
 
     $('#select-voucher-pos').on('change', function() {
-        const potVch = parseFloat($(this).find('option:selected').data('potongan')) || 0;
-        if (potVch > 0) {
+        const opt = $(this).find('option:selected');
+        const potVch = parseFloat(opt.data('potongan')) || 0;
+        const kodeVch = $(this).val();
+
+        if (potVch > 0 && kodeVch) {
             $('#row-potongan-voucher').removeClass('d-none');
             $('#display-potongan-voucher').text('-Rp ' + new Intl.NumberFormat('id-ID').format(potVch));
+
+            $('#popup-row-voucher').removeClass('d-none');
+            $('#popup-voucher-code').text(kodeVch);
+            $('#popup-voucher-discount').text('-Rp ' + new Intl.NumberFormat('id-ID').format(potVch));
         } else {
             $('#row-potongan-voucher').addClass('d-none');
+            $('#popup-row-voucher').addClass('d-none');
         }
         updateSummary();
     });
@@ -998,7 +1234,8 @@
             cart.forEach(i => subtotal += (i.qty * i.harga_jual));
             const diskon = unformatRupiah($('#input-diskon').val()) || 0;
             const potJerigen = $('#chk-jerigen').is(':checked') ? (parseInt($('#input-qty-jerigen').val()) || 1) * HARGA_POTONGAN_JERIGEN : 0;
-            const grandTotal = Math.max(0, subtotal - diskon - potJerigen);
+            const potVoucher = parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0;
+            const grandTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
             $('#input-bayar').val(formatRupiah(grandTotal));
         } else {
             $('#alert-non-tunai').addClass('d-none');

@@ -24,6 +24,8 @@ $routes->group('pos', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Pos::index');
     $routes->get('search', 'Pos::search');
     $routes->get('search-member', 'Pos::searchMember');
+    $routes->get('get-member-vouchers/(:any)', 'Pos::getMemberVouchers/$1');
+    $routes->post('tukar-poin-member', 'Pos::tukarPoinMember');
     $routes->post('simpan-transaksi', 'Pos::simpanTransaksi');
     $routes->get('cetak-struk/(:any)', 'Pos::cetakStruk/$1');
 });

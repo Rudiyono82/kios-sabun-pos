@@ -92,7 +92,7 @@
         <?php endif; ?>
         <?php if (!empty($penjualan['potongan_voucher']) && $penjualan['potongan_voucher'] > 0): ?>
         <tr>
-            <td>Voucher Member</td>
+            <td>Voucher (<?= esc($penjualan['kode_voucher'] ?? 'Member') ?>)</td>
             <td class="text-end">-Rp <?= number_format($penjualan['potongan_voucher'], 0, ',', '.') ?></td>
         </tr>
         <?php endif; ?>
@@ -114,6 +114,18 @@
             <td>Kembalian</td>
             <td class="text-end">Rp <?= number_format($penjualan['kembalian'], 0, ',', '.') ?></td>
         </tr>
+        <?php if (!empty($penjualan['kode_member'])): ?>
+            <?php 
+                $mb = \Config\Database::connect()->table('member')->where('kode_member', $penjualan['kode_member'])->get()->getRowArray();
+            ?>
+            <?php if ($mb): ?>
+            <tr>
+                <td colspan="2" class="text-center" style="font-size: 9px; padding-top: 6px;">
+                    *** Saldo Poin Member: <b><?= number_format((float)($mb['point'] ?? 0), 0, ',', '.') ?> Poin</b> ***
+                </td>
+            </tr>
+            <?php endif; ?>
+        <?php endif; ?>
     </table>
 
     <div class="divider"></div>

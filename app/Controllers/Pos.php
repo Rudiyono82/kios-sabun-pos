@@ -94,6 +94,114 @@ class Pos extends BaseController
         return $this->response->setJSON($members);
     }
 
+    public function getMemberVouchers($kodeMember)
+    {
+        $db = \Config\Database::connect();
+        $member = $db->table('member')->where('kode_member', $kodeMember)->get()->getRowArray();
+        if (!$member) {
+            return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Member tidak ditemukan']);
+        }
+
+        $vouchers = $db->table('voucher')
+            ->where('kode_member', $kodeMember)
+            ->where('is_aktif', 1)
+            ->orderBy('nilai_voucher', 'DESC')
+            ->get()->getResultArray();
+
+        $point = (float)($member['point'] ?? 0);
+        $kuotaVoucherRp = $point * 50; // 1 Poin = Rp 50
+
+        return $this->response->setJSON([
+            'status'            => 'success',
+            'kode_member'       => $kodeMember,
+            'nama_member'       => $member['nama'],
+            'telepon'           => $member['telepon'],
+            'point'             => $point,
+            'kuota_voucher_rp'  => $kuotaVoucherRp,
+            'vouchers'          => $vouchers,
+            'voucher_count'     => count($vouchers)
+        ]);
+    }
+
+    public function tukarPoinMember()
+    {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $kodeMember = trim((string)($this->request->getPost('kode_member') ?? ''));
+        $pointTukar = (float)($this->request->getPost('point_tukar') ?? 0);
+
+        if (empty($kodeMember)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Member belum dipilih!'
+            ]);
+        }
+
+        if ($pointTukar <= 0) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Jumlah poin yang ditukar harus lebih dari 0!'
+            ]);
+        }
+
+        $member = $db->table('member')->where('kode_member', $kodeMember)->get()->getRowArray();
+        if (!$member) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Data member tidak ditemukan!'
+            ]);
+        }
+
+        $currentPoint = (float)($member['point'] ?? 0);
+        if ($currentPoint < $pointTukar) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => "Poin member tidak mencukupi! Saldo poin: " . number_format($currentPoint, 0, ',', '.') . " Poin."
+            ]);
+        }
+
+        $nilaiVoucher = $pointTukar * 50; // 1 Poin = Rp 50
+        $voucherModel = new \App\Models\VoucherModel();
+        $kodeVoucher = $voucherModel->generateKodeVoucher($kodeMember);
+        $namaVoucher = "Voucher Belanja POS " . date('d/m/Y') . " Member: " . $member['nama'];
+
+        // 1. Potong Poin Member
+        $sisaPoin = $currentPoint - $pointTukar;
+        $db->table('member')->where('kode_member', $kodeMember)->update(['point' => $sisaPoin]);
+
+        // 2. Terbitkan Voucher Baru untuk Member
+        $voucherData = [
+            'kode_voucher'   => $kodeVoucher,
+            'nama_voucher'   => $namaVoucher,
+            'tgl_voucher'    => date('Y-m-d'),
+            'kode_member'    => $kodeMember,
+            'nama_member'    => $member['nama'],
+            'point_ditukar'  => $pointTukar,
+            'nilai_voucher'  => $nilaiVoucher,
+            'is_aktif'       => 1,
+            'created_at'     => date('Y-m-d H:i:s')
+        ];
+        $voucherModel->insert($voucherData);
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menerbitkan voucher poin member!'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'status'            => 'success',
+            'message'           => "Voucher {$kodeVoucher} senilai Rp " . number_format($nilaiVoucher, 0, ',', '.') . " berhasil diterbitkan!",
+            'voucher'           => $voucherData,
+            'sisa_point'        => $sisaPoin,
+            'kuota_voucher_rp'  => $sisaPoin * 50
+        ]);
+    }
+
     public function simpanTransaksi()
     {
         // 1. Validasi Wajib Kas Awal Hari Ini (SOP Kasir & Alur FrmJual VB6)
@@ -172,8 +280,32 @@ class Pos extends BaseController
 
         $diskon = (float) str_replace(['.', ',', ' '], '', (string)($json['diskon'] ?? 0));
         $potonganJerigen = (float) ($json['potongan_tukar_jerigen'] ?? 0);
-        $kodeVoucher = $json['kode_voucher'] ?? null;
-        $potonganVoucher = (float) ($json['potongan_voucher'] ?? 0);
+        $kodeVoucher = !empty($json['kode_voucher']) ? trim((string)$json['kode_voucher']) : null;
+        $potonganVoucher = 0;
+
+        // Validasi Voucher Point Member
+        if (!empty($kodeVoucher)) {
+            $vch = $db->table('voucher')
+                ->where('kode_voucher', $kodeVoucher)
+                ->where('is_aktif', 1)
+                ->get()->getRowArray();
+
+            if ($vch) {
+                if (!empty($json['kode_member']) && !empty($vch['kode_member']) && $vch['kode_member'] !== $json['kode_member']) {
+                    return $this->response->setStatusCode(400)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Voucher ' . $kodeVoucher . ' bukan milik member yang dipilih!'
+                    ]);
+                }
+                $maxPotongan = max(0, $subtotal - $diskon - $potonganJerigen);
+                $potonganVoucher = min((float)$vch['nilai_voucher'], $maxPotongan);
+            } else {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Voucher ' . $kodeVoucher . ' tidak aktif atau sudah pernah digunakan!'
+                ]);
+            }
+        }
 
         $grandTotal = $subtotal - $diskon - $potonganJerigen - $potonganVoucher;
         if ($grandTotal < 0) $grandTotal = 0;
