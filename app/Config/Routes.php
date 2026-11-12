@@ -138,6 +138,9 @@ $routes->group('member', ['filter' => 'auth'], function($routes) {
 $routes->group('laporan', ['filter' => 'auth'], function($routes) {
     $routes->get('harian', 'Laporan::harian');
     $routes->get('cetak-struk-harian', 'Laporan::cetakStrukHarian');
+    $routes->get('barang', 'Laporan::barang');
+    $routes->get('barang/cetak', 'Laporan::cetakBarang');
+    $routes->get('barang/excel', 'Laporan::excelBarang');
     $routes->get('kartu-stok', 'Laporan::kartuStok', ['filter' => 'admin']);
     $routes->get('stok-opname', 'Laporan::stokOpname', ['filter' => 'admin']);
 });

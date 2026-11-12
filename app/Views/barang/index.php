@@ -8,9 +8,14 @@
             <h5 class="fw-bold mb-1">Katalog Barang &amp; Manajemen Stok</h5>
             <small class="text-muted">Daftar produk sabun, parfum laundry, harga jual eceran &amp; grosir bertingkat</small>
         </div>
-        <button type="button" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
-            <i class="bi bi-plus-lg me-1"></i> Tambah Barang Baru
-        </button>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="<?= base_url('laporan/barang') ?>" class="btn btn-outline-primary rounded-pill px-3 fw-medium shadow-sm">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Cetak / Export Laporan
+            </a>
+            <button type="button" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
+                <i class="bi bi-plus-lg me-1"></i> Tambah Barang Baru
+            </button>
+        </div>
     </div>
 
     <?php if (session()->getFlashdata('success')): ?>

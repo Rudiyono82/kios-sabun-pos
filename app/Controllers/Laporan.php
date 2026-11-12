@@ -395,5 +395,192 @@ class Laporan extends BaseController
 
         return view('laporan/stok_opname', $data);
     }
+
+    // =========================================================================
+    // 5. LAPORAN MASTER BARANG (FILTER, PREVIEW, CETAK/PDF & EXCEL)
+    // =========================================================================
+    public function barang()
+    {
+        $db = \Config\Database::connect();
+        
+        $kategoriId = $this->request->getGet('kategori_id') ?? '';
+        $satuan     = $this->request->getGet('satuan') ?? '';
+        $status     = $this->request->getGet('status') ?? 'Aktif';
+        $mode       = $this->request->getGet('mode') ?? 'eksternal'; // 'eksternal' (orang luar) atau 'internal' (lengkap)
+        $q          = trim($this->request->getGet('q') ?? '');
+
+        $builder = $db->table('barang b')
+            ->select('b.*, k.nama_kategori')
+            ->join('kategori k', 'k.id = b.kategori_id', 'left');
+
+        if (!empty($kategoriId) && $kategoriId !== 'semua') {
+            $builder->where('b.kategori_id', $kategoriId);
+        }
+
+        if (!empty($satuan) && $satuan !== 'semua') {
+            $builder->where('b.satuan', $satuan);
+        }
+
+        if (!empty($status) && $status !== 'semua') {
+            $builder->where('b.status', $status);
+        }
+
+        if (!empty($q)) {
+            $builder->groupStart()
+                ->like('b.nama_barang', $q)
+                ->orLike('b.id_barang', $q)
+                ->orLike('b.barcode', $q)
+                ->groupEnd();
+        }
+
+        // Diurutkan sesuai abjad nama barang (A-Z)
+        $builder->orderBy('b.nama_barang', 'ASC');
+
+        $barangList = $builder->get()->getResultArray();
+
+        $kategoriList = $db->table('kategori')->orderBy('nama_kategori', 'ASC')->get()->getResultArray();
+        $satuanList   = $db->table('satuan')->orderBy('nama_satuan', 'ASC')->get()->getResultArray();
+        $profil       = $db->table('profil_toko')->get()->getRowArray() ?? [];
+
+        $data = [
+            'title'         => 'Laporan Katalog & Harga Barang',
+            'barang_list'   => $barangList,
+            'kategori_list' => $kategoriList,
+            'satuan_list'   => $satuanList,
+            'kategori_id'   => $kategoriId,
+            'satuan'        => $satuan,
+            'status'        => $status,
+            'mode'          => $mode,
+            'q'             => $q,
+            'profil'        => $profil
+        ];
+
+        return view('laporan/barang', $data);
+    }
+
+    public function cetakBarang()
+    {
+        $db = \Config\Database::connect();
+        
+        $kategoriId = $this->request->getGet('kategori_id') ?? '';
+        $satuan     = $this->request->getGet('satuan') ?? '';
+        $status     = $this->request->getGet('status') ?? 'Aktif';
+        $mode       = $this->request->getGet('mode') ?? 'eksternal';
+        $q          = trim($this->request->getGet('q') ?? '');
+
+        $builder = $db->table('barang b')
+            ->select('b.*, k.nama_kategori')
+            ->join('kategori k', 'k.id = b.kategori_id', 'left');
+
+        if (!empty($kategoriId) && $kategoriId !== 'semua') {
+            $builder->where('b.kategori_id', $kategoriId);
+        }
+
+        if (!empty($satuan) && $satuan !== 'semua') {
+            $builder->where('b.satuan', $satuan);
+        }
+
+        if (!empty($status) && $status !== 'semua') {
+            $builder->where('b.status', $status);
+        }
+
+        if (!empty($q)) {
+            $builder->groupStart()
+                ->like('b.nama_barang', $q)
+                ->orLike('b.id_barang', $q)
+                ->orLike('b.barcode', $q)
+                ->groupEnd();
+        }
+
+        $builder->orderBy('b.nama_barang', 'ASC');
+        $barangList = $builder->get()->getResultArray();
+
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+
+        $kategoriNama = 'Semua Kategori';
+        if (!empty($kategoriId) && $kategoriId !== 'semua') {
+            $kat = $db->table('kategori')->where('id', $kategoriId)->get()->getRowArray();
+            if ($kat) $kategoriNama = $kat['nama_kategori'];
+        }
+
+        $data = [
+            'title'         => ($mode === 'eksternal' ? 'Daftar Harga & Katalog Produk (Pricelist)' : 'Laporan Master Data Barang Lengkap'),
+            'barang_list'   => $barangList,
+            'kategori_id'   => $kategoriId,
+            'kategori_nama' => $kategoriNama,
+            'satuan'        => $satuan,
+            'status'        => $status,
+            'mode'          => $mode,
+            'q'             => $q,
+            'profil'        => $profil
+        ];
+
+        return view('laporan/cetak_barang', $data);
+    }
+
+    public function excelBarang()
+    {
+        $db = \Config\Database::connect();
+        
+        $kategoriId = $this->request->getGet('kategori_id') ?? '';
+        $satuan     = $this->request->getGet('satuan') ?? '';
+        $status     = $this->request->getGet('status') ?? 'Aktif';
+        $mode       = $this->request->getGet('mode') ?? 'eksternal';
+        $q          = trim($this->request->getGet('q') ?? '');
+
+        $builder = $db->table('barang b')
+            ->select('b.*, k.nama_kategori')
+            ->join('kategori k', 'k.id = b.kategori_id', 'left');
+
+        if (!empty($kategoriId) && $kategoriId !== 'semua') {
+            $builder->where('b.kategori_id', $kategoriId);
+        }
+
+        if (!empty($satuan) && $satuan !== 'semua') {
+            $builder->where('b.satuan', $satuan);
+        }
+
+        if (!empty($status) && $status !== 'semua') {
+            $builder->where('b.status', $status);
+        }
+
+        if (!empty($q)) {
+            $builder->groupStart()
+                ->like('b.nama_barang', $q)
+                ->orLike('b.id_barang', $q)
+                ->orLike('b.barcode', $q)
+                ->groupEnd();
+        }
+
+        $builder->orderBy('b.nama_barang', 'ASC');
+        $barangList = $builder->get()->getResultArray();
+
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+        $namaToko = $profil['nama_toko'] ?? 'Kios Sabun & Parfum';
+
+        $kategoriNama = 'Semua Kategori';
+        if (!empty($kategoriId) && $kategoriId !== 'semua') {
+            $kat = $db->table('kategori')->where('id', $kategoriId)->get()->getRowArray();
+            if ($kat) $kategoriNama = $kat['nama_kategori'];
+        }
+
+        $filename = ($mode === 'eksternal' ? 'Pricelist_Katalog_Barang_' : 'Laporan_Master_Barang_') . date('Ymd_His') . '.xls';
+
+        $data = [
+            'nama_toko'     => $namaToko,
+            'profil'        => $profil,
+            'barang_list'   => $barangList,
+            'mode'          => $mode,
+            'kategori_nama' => $kategoriNama,
+            'satuan'        => $satuan,
+            'status'        => $status
+        ];
+
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        return view('laporan/excel_barang', $data);
+    }
 }
 

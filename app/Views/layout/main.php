@@ -610,7 +610,7 @@
 
         <?php
             $uri = uri_string();
-            $isMasterActive = (str_contains($uri, 'barang') || str_contains($uri, 'kategori') || str_contains($uri, 'satuan') || str_contains($uri, 'supplier') || str_contains($uri, 'member') || str_contains($uri, 'barcode'));
+            $isMasterActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'barang') || str_contains($uri, 'kategori') || str_contains($uri, 'satuan') || str_contains($uri, 'supplier') || str_contains($uri, 'member') || str_contains($uri, 'barcode')));
             $isTransaksiActive = (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || (str_contains($uri, 'stok-opname') && !str_contains($uri, 'laporan')));
             $isLaporanActive = (str_contains($uri, 'laporan'));
             $isConfigActive = (str_contains($uri, 'karyawan') || str_contains($uri, 'cabang') || str_contains($uri, 'profile'));
@@ -641,7 +641,7 @@
                     <div class="collapse <?= $isMasterActive ? 'show' : '' ?>" id="collapseMasterData">
                         <ul class="nav flex-column sub-menu">
                             <li class="nav-item">
-                                <a href="<?= base_url('barang') ?>" class="nav-link <?= str_contains($uri, 'barang') ? 'active' : '' ?>">
+                                <a href="<?= base_url('barang') ?>" class="nav-link <?= ($uri === 'barang' || (str_contains($uri, 'barang') && !str_contains($uri, 'laporan'))) ? 'active' : '' ?>">
                                     <i class="bi bi-boxes"></i>
                                     <span>Master Barang & Stok</span>
                                 </a>
@@ -754,6 +754,12 @@
                     </a>
                     <div class="collapse <?= $isLaporanActive ? 'show' : '' ?>" id="collapseLaporan">
                         <ul class="nav flex-column sub-menu">
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/barang') ?>" class="nav-link <?= str_contains($uri, 'laporan/barang') ? 'active' : '' ?>">
+                                    <i class="bi bi-file-earmark-spreadsheet-fill text-success"></i>
+                                    <span>Katalog &amp; Daftar Harga</span>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a href="<?= base_url('laporan/harian') ?>" class="nav-link <?= str_contains($uri, 'laporan/harian') ? 'active' : '' ?>">
                                     <i class="bi bi-graph-up-arrow text-warning"></i>
