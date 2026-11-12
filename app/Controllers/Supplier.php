@@ -59,11 +59,28 @@ class Supplier extends BaseController
 
     public function hapus($id)
     {
+        $role = session()->get('role');
+        if ($role !== 'admin') {
+            $adminPassword = trim($this->request->getPost('admin_password') ?? $this->request->getGet('admin_password') ?? '');
+            if (!$this->verifyAdminPassword($adminPassword)) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setStatusCode(403)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Otorisasi ditolak! Password Admin salah, supplier tidak dapat dihapus.'
+                    ]);
+                }
+                return redirect()->to('/supplier')->with('error', 'Otorisasi ditolak! Password Admin salah, supplier tidak dapat dihapus.');
+            }
+        }
+
         $db = \Config\Database::connect();
         $supplierModel = new SupplierModel();
 
         $sup = $supplierModel->find($id);
         if (!$sup) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Supplier tidak ditemukan!']);
+            }
             return redirect()->to('/supplier')->with('error', 'Supplier tidak ditemukan!');
         }
 
@@ -72,10 +89,23 @@ class Supplier extends BaseController
         $cekRetur = $db->table('retur_supplier')->where('kode_supplier', $sup['kode_supplier'])->countAllResults();
 
         if ($cekBeli > 0 || $cekRetur > 0) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Supplier tidak dapat dihapus karena sudah memiliki riwayat transaksi pembelian / retur!'
+                ]);
+            }
             return redirect()->to('/supplier')->with('error', 'Supplier tidak dapat dihapus karena sudah memiliki riwayat transaksi pembelian / retur!');
         }
 
         $supplierModel->delete($id);
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Data supplier berhasil dihapus!'
+            ]);
+        }
         return redirect()->to('/supplier')->with('success', 'Data supplier berhasil dihapus!');
     }
 }

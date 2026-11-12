@@ -53,16 +53,43 @@ class Kategori extends BaseController
 
     public function hapus($id)
     {
+        $role = session()->get('role');
+        if ($role !== 'admin') {
+            $adminPassword = trim($this->request->getPost('admin_password') ?? $this->request->getGet('admin_password') ?? '');
+            if (!$this->verifyAdminPassword($adminPassword)) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setStatusCode(403)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Otorisasi ditolak! Password Admin salah, kategori tidak dapat dihapus.'
+                    ]);
+                }
+                return redirect()->to('/kategori')->with('error', 'Otorisasi ditolak! Password Admin salah, kategori tidak dapat dihapus.');
+            }
+        }
+
         $db = \Config\Database::connect();
         $kategoriModel = new KategoriModel();
 
         // Cek apakah masih ada barang yang menggunakan kategori ini
         $cekBarang = $db->table('barang')->where('kategori_id', $id)->countAllResults();
         if ($cekBarang > 0) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => "Kategori tidak dapat dihapus karena masih digunakan oleh {$cekBarang} produk barang!"
+                ]);
+            }
             return redirect()->to('/kategori')->with('error', "Kategori tidak dapat dihapus karena masih digunakan oleh {$cekBarang} produk barang!");
         }
 
         $kategoriModel->delete($id);
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Kategori produk berhasil dihapus!'
+            ]);
+        }
         return redirect()->to('/kategori')->with('success', 'Kategori produk berhasil dihapus!');
     }
 }

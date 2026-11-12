@@ -59,11 +59,28 @@ class Satuan extends BaseController
 
     public function hapus($id)
     {
+        $role = session()->get('role');
+        if ($role !== 'admin') {
+            $adminPassword = trim($this->request->getPost('admin_password') ?? $this->request->getGet('admin_password') ?? '');
+            if (!$this->verifyAdminPassword($adminPassword)) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setStatusCode(403)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Otorisasi ditolak! Password Admin salah, satuan tidak dapat dihapus.'
+                    ]);
+                }
+                return redirect()->to('/satuan')->with('error', 'Otorisasi ditolak! Password Admin salah, satuan tidak dapat dihapus.');
+            }
+        }
+
         $db = \Config\Database::connect();
         $satuanModel = new SatuanModel();
 
         $sat = $satuanModel->find($id);
         if (!$sat) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Satuan tidak ditemukan!']);
+            }
             return redirect()->to('/satuan')->with('error', 'Satuan tidak ditemukan!');
         }
 
@@ -72,10 +89,23 @@ class Satuan extends BaseController
             ->countAllResults();
 
         if ($cekBarang > 0) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => "Satuan '{$sat['nama_satuan']}' tidak dapat dihapus karena sedang dipakai oleh {$cekBarang} produk!"
+                ]);
+            }
             return redirect()->to('/satuan')->with('error', "Satuan '{$sat['nama_satuan']}' tidak dapat dihapus karena sedang dipakai oleh {$cekBarang} produk!");
         }
 
         $satuanModel->delete($id);
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Satuan barang berhasil dihapus!'
+            ]);
+        }
         return redirect()->to('/satuan')->with('success', 'Satuan barang berhasil dihapus!');
     }
 }

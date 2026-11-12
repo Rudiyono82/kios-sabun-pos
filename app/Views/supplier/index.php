@@ -7,13 +7,11 @@
         <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-truck text-primary me-2"></i>Master Data Supplier</h4>
         <p class="text-muted small mb-0">Kelola daftar pemasok bahan baku, bibit parfum, botol/jerigen, dan produk sabun jadi untuk transaksi pembelian & restock toko.</p>
     </div>
-    <?php if (session()->get('role') === 'admin'): ?>
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahSupplier">
             <i class="bi bi-plus-circle-fill me-1"></i> Tambah Supplier Baru
         </button>
     </div>
-    <?php endif; ?>
 </div>
 
 <?php if (session()->getFlashdata('success')): ?>
@@ -68,9 +66,7 @@
                     <th>No. Telepon / WA</th>
                     <th>Kontak PIC</th>
                     <th class="text-center" style="width: 100px;">Transaksi</th>
-                    <?php if (session()->get('role') === 'admin'): ?>
                     <th style="width: 120px;" class="text-center">Aksi</th>
-                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -101,7 +97,6 @@
                     <td class="text-center">
                         <span class="badge bg-primary bg-opacity-10 text-primary fw-bold"><?= $s['total_pembelian'] ?> Faktur</span>
                     </td>
-                    <?php if (session()->get('role') === 'admin'): ?>
                     <td class="text-center text-nowrap">
                         <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-2 py-1 btn-edit-supplier"
                             data-id="<?= $s['id'] ?>"
@@ -110,7 +105,7 @@
                             data-alamat="<?= esc($s['alamat']) ?>"
                             data-telepon="<?= esc($s['telepon']) ?>"
                             data-pic="<?= esc($s['contact_person']) ?>"
-                            title="Edit Data Supplier">
+                            title="Edit / Lihat Data Supplier">
                             <i class="bi bi-pencil-square"></i>
                         </button>
                         <a href="<?= base_url('supplier/hapus/' . $s['id']) ?>" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 btn-hapus-supplier"
@@ -119,7 +114,6 @@
                             <i class="bi bi-trash3"></i>
                         </a>
                     </td>
-                    <?php endif; ?>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -243,25 +237,85 @@ $(document).ready(function() {
     });
 
     // Handle SweetAlert Delete
+    const isAdmin = <?= (session()->get('role') === 'admin') ? 'true' : 'false' ?>;
+
     $('.btn-hapus-supplier').on('click', function(e) {
         e.preventDefault();
         const url = $(this).attr('href');
         const nama = $(this).data('nama');
 
-        Swal.fire({
-            title: 'Konfirmasi Hapus Supplier',
-            html: `Apakah Anda yakin ingin menghapus data supplier <strong>${nama}</strong>?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = url;
-            }
-        });
+        if (isAdmin) {
+            Swal.fire({
+                title: 'Konfirmasi Hapus Supplier',
+                html: `Apakah Anda yakin ingin menghapus data supplier <strong>${nama}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = url;
+                }
+            });
+        } else {
+            // Kasir: Wajib Input Password Admin
+            Swal.fire({
+                title: 'Otorisasi Supervisor',
+                html: `Penghapusan supplier <b>${nama}</b> oleh kasir memerlukan otorisasi Supervisor.<br><small class="text-muted">Silakan masukkan Password Admin:</small>`,
+                input: 'password',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocomplete: 'new-password',
+                    placeholder: 'Masukkan Password Admin...'
+                },
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-shield-check me-1"></i> Verifikasi &amp; Hapus',
+                confirmButtonColor: '#dc3545',
+                cancelButtonText: 'Batal',
+                showLoaderOnConfirm: true,
+                preConfirm: (adminPassword) => {
+                    if (!adminPassword) {
+                        Swal.showValidationMessage('Password Admin wajib diisi!');
+                        return false;
+                    }
+                    return fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new URLSearchParams({ admin_password: adminPassword })
+                    })
+                    .then(async (response) => {
+                        const data = await response.json().catch(() => null);
+                        if (!response.ok || (data && data.status === 'error')) {
+                            const msg = (data && data.message) ? data.message : 'Password Admin salah atau otorisasi ditolak!';
+                            throw new Error(msg);
+                        }
+                        return data;
+                    })
+                    .catch((error) => {
+                        Swal.showValidationMessage(error.message || 'Gagal memproses otorisasi admin!');
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    Swal.fire({
+                        title: 'Berhasil Terhapus!',
+                        text: result.value.message || 'Supplier berhasil dihapus.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+        }
     });
 });
 </script>

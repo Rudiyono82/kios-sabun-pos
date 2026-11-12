@@ -38,26 +38,82 @@ class Barang extends BaseController
     {
         $barangModel = new BarangModel();
         $id = $this->request->getPost('id');
+        $isAdmin = (session()->get('role') === 'admin');
+
+        $idBarang = strtoupper(trim((string)$this->request->getPost('id_barang')));
+        $namaBarang = trim((string)$this->request->getPost('nama_barang'));
+
+        if (empty($idBarang) || empty($namaBarang)) {
+            return redirect()->back()->withInput()->with('error', 'Kode Barang dan Nama Barang wajib diisi!');
+        }
+
+        $existing = $id ? $barangModel->find($id) : null;
 
         $data = [
-            'id_barang' => strtoupper(trim($this->request->getPost('id_barang'))),
-            'barcode' => trim($this->request->getPost('barcode')),
-            'nama_barang' => trim($this->request->getPost('nama_barang')),
-            'kategori_id' => $this->request->getPost('kategori_id'),
-            'satuan' => $this->request->getPost('satuan'),
-            'harga_beli' => (float) $this->request->getPost('harga_beli'),
-            'harga_jual' => (float) $this->request->getPost('harga_jual'),
-            'harga_grosir' => (float) $this->request->getPost('harga_grosir'),
-            'stok' => (float) $this->request->getPost('stok'),
-            'min_stok' => (float) $this->request->getPost('min_stok'),
-            'is_jerigen' => $this->request->getPost('is_jerigen') ? 1 : 0,
-            'status' => $this->request->getPost('status') ?? 'Aktif',
+            'id_barang'   => $idBarang,
+            'barcode'     => trim((string)$this->request->getPost('barcode')),
+            'nama_barang' => $namaBarang,
+            'kategori_id' => $this->request->getPost('kategori_id') ?: null,
+            'satuan'      => $this->request->getPost('satuan') ?: 'PCS',
+            'is_jerigen'  => $this->request->getPost('is_jerigen') ? 1 : 0,
+            'status'      => $this->request->getPost('status') ?? 'Aktif',
         ];
+
+        // Pengaturan harga, paket grosir, dan stok:
+        // Jika Admin: Bebas menentukan dan mengubah seluruh harga & stok
+        // Jika Kasir:
+        //   - Pada Edit: Pertahankan harga lama dari database agar tidak berubah
+        //   - Pada Tambah Baru: Harga dan stok awal default 0 (diisi oleh Admin atau saat restock/pembelian)
+        if ($isAdmin) {
+            $data['harga_beli']   = (float) $this->request->getPost('harga_beli');
+            $data['harga_jual']   = (float) $this->request->getPost('harga_jual');
+            $data['harga_grosir'] = (float) $this->request->getPost('harga_grosir');
+            $data['qty_paket_a']  = (float) $this->request->getPost('qty_paket_a');
+            $data['hrg_paket_a']  = (float) $this->request->getPost('hrg_paket_a');
+            $data['qty_paket_b']  = (float) $this->request->getPost('qty_paket_b');
+            $data['hrg_paket_b']  = (float) $this->request->getPost('hrg_paket_b');
+            $data['qty_paket_c']  = (float) $this->request->getPost('qty_paket_c');
+            $data['hrg_paket_c']  = (float) $this->request->getPost('hrg_paket_c');
+            $data['stok']         = (float) $this->request->getPost('stok');
+            $data['min_stok']     = (float) $this->request->getPost('min_stok');
+        } else {
+            // Role Kasir
+            if ($existing) {
+                $data['harga_beli']   = (float) ($existing['harga_beli'] ?? 0);
+                $data['harga_jual']   = (float) ($existing['harga_jual'] ?? 0);
+                $data['harga_grosir'] = (float) ($existing['harga_grosir'] ?? 0);
+                $data['qty_paket_a']  = (float) ($existing['qty_paket_a'] ?? 0);
+                $data['hrg_paket_a']  = (float) ($existing['hrg_paket_a'] ?? 0);
+                $data['qty_paket_b']  = (float) ($existing['qty_paket_b'] ?? 0);
+                $data['hrg_paket_b']  = (float) ($existing['hrg_paket_b'] ?? 0);
+                $data['qty_paket_c']  = (float) ($existing['qty_paket_c'] ?? 0);
+                $data['hrg_paket_c']  = (float) ($existing['hrg_paket_c'] ?? 0);
+                $data['stok']         = (float) ($existing['stok'] ?? 0);
+                $data['min_stok']     = (float) ($existing['min_stok'] ?? 5);
+            } else {
+                $data['harga_beli']   = 0;
+                $data['harga_jual']   = 0;
+                $data['harga_grosir'] = 0;
+                $data['qty_paket_a']  = 0;
+                $data['hrg_paket_a']  = 0;
+                $data['qty_paket_b']  = 0;
+                $data['hrg_paket_b']  = 0;
+                $data['qty_paket_c']  = 0;
+                $data['hrg_paket_c']  = 0;
+                $data['stok']         = 0;
+                $data['min_stok']     = 5;
+            }
+        }
 
         if ($id) {
             $barangModel->update($id, $data);
             return redirect()->to('/barang')->with('success', 'Data barang berhasil diperbarui!');
         } else {
+            // Cek duplikasi kode barang
+            $cekKode = $barangModel->where('id_barang', $idBarang)->first();
+            if ($cekKode) {
+                return redirect()->back()->withInput()->with('error', "Kode Barang '{$idBarang}' sudah ada di database!");
+            }
             $barangModel->insert($data);
             return redirect()->to('/barang')->with('success', 'Barang baru berhasil ditambahkan!');
         }
@@ -65,8 +121,40 @@ class Barang extends BaseController
 
     public function hapus($id)
     {
+        $role = session()->get('role');
+        if ($role !== 'admin') {
+            $adminPassword = trim($this->request->getPost('admin_password') ?? $this->request->getGet('admin_password') ?? '');
+            if (!$this->verifyAdminPassword($adminPassword)) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setStatusCode(403)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Otorisasi ditolak! Password Admin salah, data barang tidak dapat dihapus.'
+                    ]);
+                }
+                return redirect()->to('/barang')->with('error', 'Otorisasi ditolak! Password Admin salah, data barang tidak dapat dihapus.');
+            }
+        }
+
         $barangModel = new BarangModel();
+        $barang = $barangModel->find($id);
+        if (!$barang) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Barang tidak ditemukan!'
+                ]);
+            }
+            return redirect()->to('/barang')->with('error', 'Barang tidak ditemukan!');
+        }
+
         $barangModel->delete($id);
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Barang "' . esc($barang['nama_barang']) . '" berhasil dihapus!'
+            ]);
+        }
         return redirect()->to('/barang')->with('success', 'Barang berhasil dihapus!');
     }
 
@@ -101,4 +189,3 @@ class Barang extends BaseController
         return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Barang tidak ditemukan']);
     }
 }
-

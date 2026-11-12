@@ -31,30 +31,30 @@ $routes->group('pos', ['filter' => 'auth'], function($routes) {
 // Master Barang
 $routes->group('barang', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Barang::index');
-    $routes->post('simpan', 'Barang::simpan', ['filter' => 'admin']);
-    $routes->get('hapus/(:num)', 'Barang::hapus/$1', ['filter' => 'admin']);
+    $routes->post('simpan', 'Barang::simpan');
+    $routes->match(['get', 'post'], 'hapus/(:num)', 'Barang::hapus/$1');
     $routes->post('update-stok-cepat', 'Barang::updateStokCepat', ['filter' => 'admin']);
 });
 
 // Master Kategori Barang
 $routes->group('kategori', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Kategori::index');
-    $routes->post('simpan', 'Kategori::simpan', ['filter' => 'admin']);
-    $routes->get('hapus/(:num)', 'Kategori::hapus/$1', ['filter' => 'admin']);
+    $routes->post('simpan', 'Kategori::simpan');
+    $routes->match(['get', 'post'], 'hapus/(:num)', 'Kategori::hapus/$1');
 });
 
 // Master Satuan Barang
 $routes->group('satuan', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Satuan::index');
-    $routes->post('simpan', 'Satuan::simpan', ['filter' => 'admin']);
-    $routes->get('hapus/(:num)', 'Satuan::hapus/$1', ['filter' => 'admin']);
+    $routes->post('simpan', 'Satuan::simpan');
+    $routes->match(['get', 'post'], 'hapus/(:num)', 'Satuan::hapus/$1');
 });
 
 // Master Data Supplier
 $routes->group('supplier', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Supplier::index');
-    $routes->post('simpan', 'Supplier::simpan', ['filter' => 'admin']);
-    $routes->get('hapus/(:num)', 'Supplier::hapus/$1', ['filter' => 'admin']);
+    $routes->post('simpan', 'Supplier::simpan');
+    $routes->match(['get', 'post'], 'hapus/(:num)', 'Supplier::hapus/$1');
 });
 
 // Master Cabang & Profil Toko

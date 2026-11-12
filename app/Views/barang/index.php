@@ -6,14 +6,26 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <h5 class="fw-bold mb-1">Katalog Barang &amp; Manajemen Stok</h5>
-            <small class="text-muted">Daftar produk sabun, parfum laundry, harga jual eceran &amp; grosir</small>
+            <small class="text-muted">Daftar produk sabun, parfum laundry, harga jual eceran &amp; grosir bertingkat</small>
         </div>
-        <?php if ($is_admin): ?>
-        <button type="button" class="btn btn-primary rounded-pill px-4 fw-medium" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
+        <button type="button" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
             <i class="bi bi-plus-lg me-1"></i> Tambah Barang Baru
         </button>
-        <?php endif; ?>
     </div>
+
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><?= session()->getFlashdata('success') ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><?= session()->getFlashdata('error') ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
 
     <div class="table-responsive">
         <table class="table table-hover align-middle" id="table-barang">
@@ -31,9 +43,7 @@
                     <th class="text-center">Stok</th>
                     <?php endif; ?>
                     <th>Status</th>
-                    <?php if ($is_admin): ?>
-                    <th class="text-center">Aksi</th>
-                    <?php endif; ?>
+                    <th class="text-center" style="width: 110px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,7 +55,7 @@
                         </td>
                         <td>
                             <div class="fw-semibold text-dark"><?= esc($b['nama_barang']) ?></div>
-                            <?php if ($b['is_jerigen']): ?>
+                            <?php if (!empty($b['is_jerigen'])): ?>
                                 <span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-recycle"></i> Tukar Jerigen 5L</span>
                             <?php endif; ?>
                         </td>
@@ -54,7 +64,7 @@
                         <?php if ($is_admin): ?>
                         <td class="text-end text-muted">Rp <?= number_format((float)$b['harga_beli'], 0, ',', '.') ?></td>
                         <?php endif; ?>
-                        <td class="text-end fw-bold text-primary">Rp <?= number_format($b['harga_jual'], 0, ',', '.') ?></td>
+                        <td class="text-end fw-bold text-primary">Rp <?= number_format((float)$b['harga_jual'], 0, ',', '.') ?></td>
                         <?php if ($is_admin): ?>
                         <td class="text-center">
                             <span class="badge <?= (float)$b['stok'] <= (float)$b['min_stok'] ? 'bg-danger' : 'bg-success' ?> fs-6 px-3 py-2">
@@ -67,20 +77,21 @@
                                 <?= esc($b['status']) ?>
                             </span>
                         </td>
-                        <?php if ($is_admin): ?>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="btn btn-outline-secondary btn-edit-barang" 
-                                    data-barang='<?= json_encode($b) ?>' title="Edit">
-                                    <i class="bi bi-pencil-fill"></i>
+                                    data-barang='<?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>' 
+                                    title="<?= $is_admin ? 'Edit Data Barang' : 'Lihat / Edit Barang' ?>">
+                                    <i class="bi <?= $is_admin ? 'bi-pencil-fill' : 'bi-eye-fill' ?>"></i>
                                 </button>
-                                <a href="<?= base_url('barang/hapus/' . $b['id']) ?>" class="btn btn-outline-danger" 
-                                    onclick="return confirm('Yakin ingin menghapus barang ini?')" title="Hapus">
+                                <button type="button" class="btn btn-outline-danger btn-hapus" 
+                                    data-url="<?= base_url('barang/hapus/' . $b['id']) ?>" 
+                                    data-nama="<?= esc($b['nama_barang']) ?>"
+                                    title="Hapus Barang">
                                     <i class="bi bi-trash-fill"></i>
-                                </a>
+                                </button>
                             </div>
                         </td>
-                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -88,35 +99,54 @@
     </div>
 </div>
 
-<?php if ($is_admin): ?>
-<!-- Modal Tambah / Edit Barang -->
+<!-- Modal Tambah / Edit / Lihat Barang -->
 <div class="modal fade" id="modalTambahBarang" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
-            <form action="<?= base_url('barang/simpan') ?>" method="POST">
+            <form action="<?= base_url('barang/simpan') ?>" method="POST" id="formBarang">
                 <input type="hidden" name="id" id="form-barang-id">
                 
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="modalBarangTitle">Tambah Barang Baru</h5>
+                    <div>
+                        <h5 class="modal-title fw-bold" id="modalBarangTitle">Tambah Barang Baru</h5>
+                        <small class="text-muted" id="modalBarangSubtitle">Lengkapi data produk, kategori, satuan, serta harga grosir paket</small>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body p-4">
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Kode Barang (ID Unique)</label>
-                            <input type="text" name="id_barang" id="form-id_barang" class="form-control" placeholder="Contoh: B2020400" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Barcode Scanner</label>
-                            <input type="text" name="barcode" id="form-barcode" class="form-control" placeholder="Scan Barcode EAN/UPC">
-                        </div>
+                        <!-- Informasi Dasar -->
                         <div class="col-12">
-                            <label class="form-label small fw-semibold text-muted">Nama Barang & Kemasan</label>
-                            <input type="text" name="nama_barang" id="form-nama_barang" class="form-control" placeholder="Contoh: Sabun Cuci Piring Lemon 600ml" required>
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2">
+                                <i class="bi bi-info-circle text-primary me-2"></i>Informasi Umum Produk
+                            </h6>
                         </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">Kode Barang (ID Unique) <span class="text-danger">*</span></label>
+                            <input type="text" name="id_barang" id="form-id_barang" class="form-control text-uppercase fw-bold" placeholder="Contoh: B2020400" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">Barcode Scanner</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-upc"></i></span>
+                                <input type="text" name="barcode" id="form-barcode" class="form-control" placeholder="Scan Barcode EAN/UPC">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">Status Produk</label>
+                            <select name="status" id="form-status" class="form-select">
+                                <option value="Aktif">Aktif</option>
+                                <option value="Nonaktif">Nonaktif</option>
+                            </select>
+                        </div>
+
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Kategori</label>
+                            <label class="form-label small fw-semibold text-muted">Nama Barang &amp; Kemasan <span class="text-danger">*</span></label>
+                            <input type="text" name="nama_barang" id="form-nama_barang" class="form-control fw-semibold" placeholder="Contoh: Sabun Cuci Piring Lemon 600ml" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-muted">Kategori Produk</label>
                             <select name="kategori_id" id="form-kategori_id" class="form-select">
                                 <option value="">-- Pilih Kategori --</option>
                                 <?php foreach ($kategori as $k): ?>
@@ -124,75 +154,210 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Satuan</label>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-muted">Satuan Kemasan</label>
                             <select name="satuan" id="form-satuan" class="form-select">
                                 <?php foreach ($satuan as $s): ?>
                                     <option value="<?= esc($s['nama_satuan']) ?>"><?= esc($s['nama_satuan']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-semibold text-muted">Harga Modal (Beli)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="number" name="harga_beli" id="form-harga_beli" class="form-control" value="0" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-semibold text-muted">Harga Jual Eceran</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="number" name="harga_jual" id="form-harga_jual" class="form-control" value="0" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-semibold text-muted">Harga Grosir / Reseller</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="number" name="harga_grosir" id="form-harga_grosir" class="form-control" value="0">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-semibold text-muted">Jumlah Stok Awal</label>
-                            <input type="number" name="stok" id="form-stok" class="form-control" value="0" step="any" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-semibold text-muted">Minimum Stok (Peringatan)</label>
-                            <input type="number" name="min_stok" id="form-min_stok" class="form-control" value="5" step="any">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-semibold text-muted">Status</label>
-                            <select name="status" id="form-status" class="form-select">
-                                <option value="Aktif">Aktif</option>
-                                <option value="Nonaktif">Nonaktif</option>
-                            </select>
-                        </div>
+
                         <div class="col-12">
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" name="is_jerigen" id="form-is_jerigen" value="1">
+                            <div class="form-check form-switch p-2 bg-light rounded-3 border">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" name="is_jerigen" id="form-is_jerigen" value="1">
                                 <label class="form-check-label fw-semibold text-dark" for="form-is_jerigen">
-                                    Termasuk Produk Refill / Tukar Jerigen 5 Liter
+                                    <i class="bi bi-recycle text-success me-1"></i> Termasuk Produk Refill / Tukar Jerigen 5 Liter
                                 </label>
                             </div>
                         </div>
+
+                        <!-- Struktur Harga Pokok & Eceran -->
+                        <div class="col-12 mt-4">
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <i class="bi bi-cash-stack text-success me-2"></i>Harga Pokok &amp; Harga Jual Standar
+                                </h6>
+                                <?php if (!$is_admin): ?>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">
+                                    <i class="bi bi-lock-fill me-1"></i>Harga Terkunci (Hanya Admin)
+                                </span>
+                                <?php else: ?>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                                    <i class="bi bi-unlock-fill me-1"></i>Admin Enabled
+                                </span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">
+                                Harga Modal (Beli)
+                                <?php if (!$is_admin): ?> <span class="badge bg-secondary small">Locked</span><?php endif; ?>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <?php if ($is_admin): ?>
+                                <input type="number" step="any" min="0" name="harga_beli" id="form-harga_beli" class="form-control" value="0" required>
+                                <?php else: ?>
+                                <input type="text" class="form-control bg-light text-muted" value="*** Terkunci (Hanya Admin) ***" disabled>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">
+                                Harga Jual Eceran <span class="text-danger">*</span>
+                                <?php if (!$is_admin): ?> <span class="badge bg-secondary small">Locked</span><?php endif; ?>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary-subtle text-primary fw-bold">Rp</span>
+                                <input type="number" step="any" min="0" name="harga_jual" id="form-harga_jual" class="form-control fw-bold <?= !$is_admin ? 'bg-light text-muted' : '' ?>" value="0" <?= !$is_admin ? 'disabled' : 'required' ?>>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">
+                                Harga Grosir Standar / Reseller
+                                <?php if (!$is_admin): ?> <span class="badge bg-secondary small">Locked</span><?php endif; ?>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" step="any" min="0" name="harga_grosir" id="form-harga_grosir" class="form-control <?= !$is_admin ? 'bg-light text-muted' : '' ?>" value="0" <?= !$is_admin ? 'disabled' : '' ?>>
+                            </div>
+                        </div>
+
+                        <!-- Konfigurasi Harga Jual Grosir Bertingkat (Paket A, B, C) -->
+                        <div class="col-12 mt-4">
+                            <div class="card border rounded-3 bg-light p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="fw-bold mb-0 text-dark">
+                                        <i class="bi bi-boxes text-primary me-2"></i>Konfigurasi Harga Jual Grosir Bertingkat (Paket A, B, C)
+                                    </h6>
+                                    <?php if (!$is_admin): ?>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">
+                                        <i class="bi bi-lock-fill me-1"></i>Hanya Admin (Kasir Read-Only)
+                                    </span>
+                                    <?php else: ?>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                                        <i class="bi bi-unlock-fill me-1"></i>Admin Enabled
+                                    </span>
+                                    <?php endif; ?>
+                                </div>
+                                <p class="text-muted small mb-3">
+                                    Atur harga promo/grosir otomatis yang langsung berlaku saat kasir menginput jumlah belanja item tertentu di POS.
+                                </p>
+                                
+                                <div class="row g-3">
+                                    <!-- Paket A -->
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 bg-white shadow-sm h-100">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="fw-bold text-primary small"><i class="bi bi-tag-fill me-1"></i>Paket Grosir A</span>
+                                                <span class="badge bg-primary-subtle text-primary small">Tier 1</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small text-muted mb-1">Min. Qty Belanja (Item)</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" step="any" min="0" name="qty_paket_a" id="form-qty_paket_a" class="form-control text-center fw-bold <?= !$is_admin ? 'bg-light' : '' ?>" value="0" placeholder="0" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                    <span class="input-group-text">Item</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="form-label small text-muted mb-1">Harga Satuan Paket A</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">Rp</span>
+                                                    <input type="number" step="any" min="0" name="hrg_paket_a" id="form-hrg_paket_a" class="form-control text-end fw-bold text-primary <?= !$is_admin ? 'bg-light' : '' ?>" value="0" placeholder="0" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Paket B -->
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 bg-white shadow-sm h-100">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="fw-bold text-success small"><i class="bi bi-tag-fill me-1"></i>Paket Grosir B</span>
+                                                <span class="badge bg-success-subtle text-success small">Tier 2</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small text-muted mb-1">Min. Qty Belanja (Item)</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" step="any" min="0" name="qty_paket_b" id="form-qty_paket_b" class="form-control text-center fw-bold <?= !$is_admin ? 'bg-light' : '' ?>" value="0" placeholder="0" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                    <span class="input-group-text">Item</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="form-label small text-muted mb-1">Harga Satuan Paket B</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">Rp</span>
+                                                    <input type="number" step="any" min="0" name="hrg_paket_b" id="form-hrg_paket_b" class="form-control text-end fw-bold text-success <?= !$is_admin ? 'bg-light' : '' ?>" value="0" placeholder="0" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Paket C -->
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 bg-white shadow-sm h-100">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="fw-bold text-info small"><i class="bi bi-tag-fill me-1"></i>Paket Grosir C</span>
+                                                <span class="badge bg-info-subtle text-info small">Tier 3</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small text-muted mb-1">Min. Qty Belanja (Item)</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" step="any" min="0" name="qty_paket_c" id="form-qty_paket_c" class="form-control text-center fw-bold <?= !$is_admin ? 'bg-light' : '' ?>" value="0" placeholder="0" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                    <span class="input-group-text">Item</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="form-label small text-muted mb-1">Harga Satuan Paket C</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">Rp</span>
+                                                    <input type="number" step="any" min="0" name="hrg_paket_c" id="form-hrg_paket_c" class="form-control text-end fw-bold text-info <?= !$is_admin ? 'bg-light' : '' ?>" value="0" placeholder="0" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stok Awal & Min Stok (Admin Only) -->
+                        <?php if ($is_admin): ?>
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label small fw-semibold text-muted">Jumlah Stok Saat Ini</label>
+                            <input type="number" name="stok" id="form-stok" class="form-control" value="0" step="any" required>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label small fw-semibold text-muted">Minimum Stok (Peringatan Habis)</label>
+                            <input type="number" name="min_stok" id="form-min_stok" class="form-control" value="5" step="any">
+                        </div>
+                        <?php else: ?>
+                        <input type="hidden" name="stok" id="form-stok" value="0">
+                        <input type="hidden" name="min_stok" id="form-min_stok" value="5">
+                        <?php endif; ?>
                     </div>
                 </div>
 
                 <div class="modal-footer border-0 pt-0 d-flex gap-2">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-medium">Simpan Data Barang</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm">
+                        <i class="bi bi-save me-1"></i> Simpan Data Barang
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-<?php endif; ?>
 
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script>
+    const isAdmin = <?= $is_admin ? 'true' : 'false' ?>;
+
     $('#table-barang').DataTable({
         language: {
             search: "Cari Barang:",
@@ -202,31 +367,143 @@
         }
     });
 
+    // Event Klik Edit / Lihat Data Barang
     $('.btn-edit-barang').on('click', function() {
         const b = $(this).data('barang');
         $('#form-barang-id').val(b.id);
-        $('#modalBarangTitle').text('Edit Barang: ' + b.nama_barang);
+        $('#modalBarangTitle').text(isAdmin ? ('Edit Barang: ' + b.nama_barang) : ('Lihat / Edit Detail: ' + b.nama_barang));
+        $('#modalBarangSubtitle').text(isAdmin ? 'Perbarui informasi produk, harga jual, dan paket grosir' : 'Detail informasi produk (Harga dan Paket hanya dapat diubah oleh Admin)');
+        
         $('#form-id_barang').val(b.id_barang).prop('readonly', true);
-        $('#form-barcode').val(b.barcode);
-        $('#form-nama_barang').val(b.nama_barang);
-        $('#form-kategori_id').val(b.kategori_id);
-        $('#form-satuan').val(b.satuan);
-        $('#form-harga_beli').val(b.harga_beli);
-        $('#form-harga_jual').val(b.harga_jual);
-        $('#form-harga_grosir').val(b.harga_grosir);
-        $('#form-stok').val(b.stok);
-        $('#form-min_stok').val(b.min_stok);
-        $('#form-status').val(b.status);
+        $('#form-barcode').val(b.barcode || '');
+        $('#form-nama_barang').val(b.nama_barang || '');
+        $('#form-kategori_id').val(b.kategori_id || '');
+        $('#form-satuan').val(b.satuan || 'PCS');
+        $('#form-status').val(b.status || 'Aktif');
         $('#form-is_jerigen').prop('checked', b.is_jerigen == 1);
+
+        if (isAdmin) {
+            $('#form-harga_beli').val(b.harga_beli || 0);
+            $('#form-stok').val(b.stok || 0);
+            $('#form-min_stok').val(b.min_stok || 5);
+        }
+
+        $('#form-harga_jual').val(b.harga_jual || 0);
+        $('#form-harga_grosir').val(b.harga_grosir || 0);
+        $('#form-qty_paket_a').val(b.qty_paket_a || 0);
+        $('#form-hrg_paket_a').val(b.hrg_paket_a || 0);
+        $('#form-qty_paket_b').val(b.qty_paket_b || 0);
+        $('#form-hrg_paket_b').val(b.hrg_paket_b || 0);
+        $('#form-qty_paket_c').val(b.qty_paket_c || 0);
+        $('#form-hrg_paket_c').val(b.hrg_paket_c || 0);
+
         $('#modalTambahBarang').modal('show');
     });
 
     $('#modalTambahBarang').on('hidden.bs.modal', function () {
         $('#form-barang-id').val('');
         $('#modalBarangTitle').text('Tambah Barang Baru');
+        $('#modalBarangSubtitle').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
         $('#form-id_barang').prop('readonly', false);
-        $('form')[0].reset();
+        $('#formBarang')[0].reset();
     });
+
+    // Event Klik Hapus Data (Validasi Password Admin untuk Kasir)
+    $(document).on('click', '.btn-hapus', function(e) {
+        e.preventDefault();
+        const url = $(this).data('url');
+        const nama = $(this).data('nama') || 'barang ini';
+
+        if (isAdmin) {
+            Swal.fire({
+                title: 'Hapus Barang?',
+                html: `Yakin ingin menghapus <b>${nama}</b> dari katalog?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-trash-fill me-1"></i> Ya, Hapus',
+                confirmButtonColor: '#dc3545',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeDelete(url, null);
+                }
+            });
+        } else {
+            // Kasir: Wajib Input Password Admin!
+            Swal.fire({
+                title: 'Otorisasi Supervisor',
+                html: `Akses Kasir memerlukan otorisasi Supervisor untuk menghapus data <b>${nama}</b>.<br><small class="text-muted">Silakan masukkan Password Admin:</small>`,
+                input: 'password',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocomplete: 'new-password',
+                    placeholder: 'Masukkan Password Admin...'
+                },
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-shield-check me-1"></i> Verifikasi &amp; Hapus',
+                confirmButtonColor: '#dc3545',
+                cancelButtonText: 'Batal',
+                showLoaderOnConfirm: true,
+                preConfirm: (adminPassword) => {
+                    if (!adminPassword) {
+                        Swal.showValidationMessage('Password Admin wajib diisi!');
+                        return false;
+                    }
+                    return executeDeletePromise(url, adminPassword);
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed && result.value && result.value.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: result.value.message || 'Barang berhasil dihapus!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                }
+            });
+        }
+    });
+
+    function executeDeletePromise(url, adminPassword) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: new URLSearchParams({ admin_password: adminPassword })
+        })
+        .then(async (response) => {
+            const data = await response.json().catch(() => null);
+            if (!response.ok || (data && data.status === 'error')) {
+                const msg = (data && data.message) ? data.message : 'Password Admin salah atau otorisasi ditolak!';
+                throw new Error(msg);
+            }
+            return data;
+        })
+        .catch((error) => {
+            Swal.showValidationMessage(error.message || 'Gagal memproses otorisasi admin!');
+        });
+    }
+
+    function executeDelete(url, adminPassword) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        if (adminPassword) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'admin_password';
+            input.value = adminPassword;
+            form.appendChild(input);
+        }
+        document.body.appendChild(form);
+        form.submit();
+    }
 </script>
 <?= $this->endSection() ?>
-

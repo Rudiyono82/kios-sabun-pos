@@ -7,13 +7,11 @@
         <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-tag-fill text-info me-2"></i>Master Kategori Produk</h4>
         <p class="text-muted small mb-0">Klasifikasi kelompok produk (Deterjen, Karbol Lantai, Cuci Piring, Bibit Parfum, Kemasan Jerigen) untuk mempermudah pencarian dan filter kasir.</p>
     </div>
-    <?php if (session()->get('role') === 'admin'): ?>
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahKategori">
             <i class="bi bi-plus-circle-fill me-1"></i> Tambah Kategori Baru
         </button>
     </div>
-    <?php endif; ?>
 </div>
 
 <?php if (session()->getFlashdata('success')): ?>
@@ -65,9 +63,7 @@
                     <th>Nama Kategori Produk</th>
                     <th>Keterangan / Deskripsi</th>
                     <th class="text-center" style="width: 150px;">Jumlah Produk</th>
-                    <?php if (session()->get('role') === 'admin'): ?>
                     <th style="width: 130px;" class="text-center">Aksi</th>
-                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -85,7 +81,6 @@
                             <i class="bi bi-boxes me-1"></i><?= $k['total_barang'] ?> Produk
                         </span>
                     </td>
-                    <?php if (session()->get('role') === 'admin'): ?>
                     <td class="text-center text-nowrap">
                         <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-2 py-1 btn-edit-kategori"
                             data-id="<?= $k['id'] ?>"
@@ -101,7 +96,6 @@
                             <i class="bi bi-trash3"></i>
                         </a>
                     </td>
-                    <?php endif; ?>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -192,6 +186,8 @@ $(document).ready(function() {
     });
 
     // Handle SweetAlert Delete
+    const isAdmin = <?= (session()->get('role') === 'admin') ? 'true' : 'false' ?>;
+
     $('.btn-hapus-kategori').on('click', function(e) {
         e.preventDefault();
         const url = $(this).attr('href');
@@ -207,20 +203,78 @@ $(document).ready(function() {
             return;
         }
 
-        Swal.fire({
-            title: 'Konfirmasi Hapus Kategori',
-            html: `Apakah Anda yakin ingin menghapus kategori <strong>${nama}</strong>?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = url;
-            }
-        });
+        if (isAdmin) {
+            Swal.fire({
+                title: 'Konfirmasi Hapus Kategori',
+                html: `Apakah Anda yakin ingin menghapus kategori <strong>${nama}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = url;
+                }
+            });
+        } else {
+            // Kasir: Wajib Input Password Admin
+            Swal.fire({
+                title: 'Otorisasi Supervisor',
+                html: `Penghapusan kategori <b>${nama}</b> oleh kasir memerlukan otorisasi Supervisor.<br><small class="text-muted">Silakan masukkan Password Admin:</small>`,
+                input: 'password',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocomplete: 'new-password',
+                    placeholder: 'Masukkan Password Admin...'
+                },
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-shield-check me-1"></i> Verifikasi &amp; Hapus',
+                confirmButtonColor: '#dc3545',
+                cancelButtonText: 'Batal',
+                showLoaderOnConfirm: true,
+                preConfirm: (adminPassword) => {
+                    if (!adminPassword) {
+                        Swal.showValidationMessage('Password Admin wajib diisi!');
+                        return false;
+                    }
+                    return fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new URLSearchParams({ admin_password: adminPassword })
+                    })
+                    .then(async (response) => {
+                        const data = await response.json().catch(() => null);
+                        if (!response.ok || (data && data.status === 'error')) {
+                            const msg = (data && data.message) ? data.message : 'Password Admin salah atau otorisasi ditolak!';
+                            throw new Error(msg);
+                        }
+                        return data;
+                    })
+                    .catch((error) => {
+                        Swal.showValidationMessage(error.message || 'Gagal memproses otorisasi admin!');
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed && result.value && result.value.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: result.value.message || 'Kategori berhasil dihapus!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                }
+            });
+        }
     });
 });
 </script>

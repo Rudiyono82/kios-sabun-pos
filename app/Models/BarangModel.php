@@ -11,7 +11,9 @@ class BarangModel extends Model
     protected $allowedFields = [
         'id_barang', 'barcode', 'nama_barang', 'kategori_id', 'satuan',
         'harga_beli', 'harga_jual', 'harga_grosir', 'stok', 'min_stok',
-        'is_jerigen', 'status', 'created_at', 'updated_at'
+        'is_jerigen', 'status', 'qty_paket_a', 'hrg_paket_a',
+        'qty_paket_b', 'hrg_paket_b', 'qty_paket_c', 'hrg_paket_c',
+        'created_at', 'updated_at'
     ];
     protected $useTimestamps = true;
 
