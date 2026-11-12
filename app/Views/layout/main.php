@@ -773,6 +773,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href="<?= base_url('laporan/arus-kas') ?>" class="nav-link <?= str_contains($uri, 'laporan/arus-kas') ? 'active' : '' ?>">
+                                    <i class="bi bi-cash-coin text-success"></i>
+                                    <span>Arus Kas &amp; Valuasi Aset</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="<?= base_url('laporan/harian') ?>" class="nav-link <?= str_contains($uri, 'laporan/harian') ? 'active' : '' ?>">
                                     <i class="bi bi-graph-up-arrow text-warning"></i>
                                     <span>Laporan Toko Harian</span>

@@ -7,7 +7,10 @@
         <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-wallet2 text-success me-2"></i>Buku Kas & Biaya Operasional Toko</h4>
         <p class="text-muted small mb-0">Catat dan pantau seluruh pengeluaran rutin toko (listrik, plastik, lakban, jerigen, konsumsi, bensin) serta saldo kas riil toko.</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="<?= base_url('laporan/arus-kas') ?>" class="btn btn-outline-success rounded-pill px-3 shadow-sm fw-bold">
+            <i class="bi bi-cash-coin me-1"></i> Laporan Arus Kas &amp; Aset
+        </a>
         <button type="button" class="btn btn-danger rounded-pill px-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalBiayaKeluar">
             <i class="bi bi-dash-circle me-1"></i> Catat Biaya Pengeluaran
         </button>

@@ -1245,5 +1245,382 @@ class Laporan extends BaseController
         header('Cache-Control: max-age=0');
         return view('laporan/excel_pembelian', $data);
     }
+
+    // =========================================================================
+    // 8. LAPORAN ARUS KAS (CASH FLOW) & VALUASI KEKAYAAN / ASET TOKO
+    // =========================================================================
+    public function arusKas()
+    {
+        $db = \Config\Database::connect();
+
+        $modePeriode = $this->request->getGet('mode_periode') ?: 'bulan'; // 'bulan' atau 'rentang'
+        $bulanParam  = $this->request->getGet('bulan') ?: date('Y-m');
+        $tglMulai    = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai  = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $jenisFilter = $this->request->getGet('jenis') ?: 'semua';
+        $q           = trim($this->request->getGet('q') ?: '');
+
+        if ($modePeriode === 'bulan') {
+            $startDate = date('Y-m-01 00:00:00', strtotime($bulanParam . '-01'));
+            $endDate   = date('Y-m-t 23:59:59', strtotime($bulanParam . '-01'));
+
+            $namaBulan = [
+                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            ];
+            $parts = explode('-', $bulanParam);
+            $thn = $parts[0] ?? date('Y');
+            $bln = $parts[1] ?? date('m');
+            $periodeLabel = ($namaBulan[$bln] ?? $bln) . ' ' . $thn;
+        } else {
+            $startDate = $tglMulai . ' 00:00:00';
+            $endDate   = $tglSelesai . ' 23:59:59';
+            $periodeLabel = date('d/m/Y', strtotime($tglMulai)) . ' s/d ' . date('d/m/Y', strtotime($tglSelesai));
+        }
+
+        // 1. Profil Toko
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+
+        // 2. Saldo Awal Kas (Sebelum Periode Ini Dimulai)
+        $saldoAwalRow = $db->query("
+            SELECT COALESCE(SUM(CASE 
+                WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
+                WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
+                ELSE 0 END), 0) as saldo_awal
+            FROM data_keuangan
+            WHERE tanggal < ?
+        ", [$startDate])->getRowArray();
+
+        $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
+
+        // 3. Mutasi Transaksi Arus Kas dalam Periode
+        $builder = $db->table('data_keuangan')
+            ->where('tanggal >=', $startDate)
+            ->where('tanggal <=', $endDate);
+
+        if ($jenisFilter !== 'semua' && !empty($jenisFilter)) {
+            $builder->where('jenis_keuangan', $jenisFilter);
+        }
+
+        if (!empty($q)) {
+            $builder->groupStart()
+                ->like('nama_keuangan', $q)
+                ->orLike('keterangan', $q)
+                ->orLike('kode_user', $q)
+                ->groupEnd();
+        }
+
+        $rawList = $builder->orderBy('tanggal', 'ASC')->orderBy('id', 'ASC')->get()->getResultArray();
+
+        // 4. Hitung Saldo Kas Berjalan & Kategori Arus Kas
+        $runningBalance = $saldoAwal;
+        $totalPemasukan = 0;
+        $totalPengeluaran = 0;
+        $totalKasAwal = 0;
+        $totalPenjualanPOS = 0;
+        $totalPemasukanLain = 0;
+        $totalBelanjaRestock = 0;
+        $totalBiayaOperasional = 0;
+
+        $transaksiList = [];
+        foreach ($rawList as $r) {
+            $nom = (float)$r['total'];
+            $masuk = 0;
+            $keluar = 0;
+
+            if ($r['jenis_keuangan'] === 'Pemasukan' || $r['jenis_keuangan'] === 'Kas Awal') {
+                $masuk = $nom;
+                $totalPemasukan += $masuk;
+
+                if ($r['jenis_keuangan'] === 'Kas Awal') {
+                    $totalKasAwal += $nom;
+                } else {
+                    if (stripos($r['nama_keuangan'], 'Penjualan') !== false) {
+                        $totalPenjualanPOS += $nom;
+                    } else {
+                        $totalPemasukanLain += $nom;
+                    }
+                }
+            } elseif ($r['jenis_keuangan'] === 'Pengeluaran') {
+                $keluar = $nom;
+                $totalPengeluaran += $keluar;
+
+                if (stripos($r['nama_keuangan'], 'Belanja') !== false || stripos($r['nama_keuangan'], 'Restock') !== false) {
+                    $totalBelanjaRestock += $nom;
+                } else {
+                    $totalBiayaOperasional += $nom;
+                }
+            }
+
+            $runningBalance = $runningBalance + $masuk - $keluar;
+            $r['kas_masuk'] = $masuk;
+            $r['kas_keluar'] = $keluar;
+            $r['saldo_berjalan'] = $runningBalance;
+            $transaksiList[] = $r;
+        }
+
+        $netCashFlow = $totalPemasukan - $totalPengeluaran;
+        $saldoAkhirKas = $runningBalance;
+
+        // 5. Valuasi Nilai Persediaan Barang Dagang (Inventory Asset)
+        $asetBarang = $db->table('barang')
+            ->select('COUNT(*) as total_sku, 
+                      SUM(stok) as total_unit, 
+                      SUM(stok * harga_beli) as total_hpp, 
+                      SUM(stok * harga_jual) as total_jual')
+            ->get()->getRowArray() ?? [];
+
+        $totalSku = (int)($asetBarang['total_sku'] ?? 0);
+        $totalUnit = (float)($asetBarang['total_unit'] ?? 0);
+        $nilaiAsetHpp = (float)($asetBarang['total_hpp'] ?? 0);
+        $nilaiAsetJual = (float)($asetBarang['total_jual'] ?? 0);
+
+        // 6. Total Valuasi Kekayaan / Aset Toko
+        $totalKekayaanToko = $saldoAkhirKas + $nilaiAsetHpp;
+
+        $data = [
+            'title'                 => 'Laporan Arus Kas (Cash Flow) & Valuasi Kekayaan Toko',
+            'mode_periode'          => $modePeriode,
+            'bulan'                 => $bulanParam,
+            'tgl_mulai'             => $tglMulai,
+            'tgl_selesai'           => $tglSelesai,
+            'periode_label'         => $periodeLabel,
+            'jenis'                 => $jenisFilter,
+            'q'                     => $q,
+            'saldo_awal'            => $saldoAwal,
+            'transaksi_list'        => $transaksiList,
+            'total_pemasukan'       => $totalPemasukan,
+            'total_pengeluaran'     => $totalPengeluaran,
+            'net_cash_flow'         => $netCashFlow,
+            'saldo_akhir_kas'       => $saldoAkhirKas,
+            'total_penjualan_pos'   => $totalPenjualanPOS,
+            'total_pemasukan_lain'  => $totalPemasukanLain,
+            'total_kas_awal'        => $totalKasAwal,
+            'total_belanja_restock' => $totalBelanjaRestock,
+            'total_biaya_operasional'=> $totalBiayaOperasional,
+            'total_sku'             => $totalSku,
+            'total_unit'            => $totalUnit,
+            'nilai_aset_hpp'        => $nilaiAsetHpp,
+            'nilai_aset_jual'       => $nilaiAsetJual,
+            'total_kekayaan_toko'   => $totalKekayaanToko,
+            'profil'                => $profil,
+            'is_admin'              => (session()->get('role') === 'admin')
+        ];
+
+        return view('laporan/arus_kas', $data);
+    }
+
+    public function cetakArusKas()
+    {
+        $db = \Config\Database::connect();
+
+        $modePeriode = $this->request->getGet('mode_periode') ?: 'bulan';
+        $bulanParam  = $this->request->getGet('bulan') ?: date('Y-m');
+        $tglMulai    = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai  = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $jenisFilter = $this->request->getGet('jenis') ?: 'semua';
+        $q           = trim($this->request->getGet('q') ?: '');
+
+        if ($modePeriode === 'bulan') {
+            $startDate = date('Y-m-01 00:00:00', strtotime($bulanParam . '-01'));
+            $endDate   = date('Y-m-t 23:59:59', strtotime($bulanParam . '-01'));
+
+            $namaBulan = [
+                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            ];
+            $parts = explode('-', $bulanParam);
+            $thn = $parts[0] ?? date('Y');
+            $bln = $parts[1] ?? date('m');
+            $periodeLabel = ($namaBulan[$bln] ?? $bln) . ' ' . $thn;
+        } else {
+            $startDate = $tglMulai . ' 00:00:00';
+            $endDate   = $tglSelesai . ' 23:59:59';
+            $periodeLabel = date('d/m/Y', strtotime($tglMulai)) . ' s/d ' . date('d/m/Y', strtotime($tglSelesai));
+        }
+
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+
+        $saldoAwalRow = $db->query("
+            SELECT COALESCE(SUM(CASE 
+                WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
+                WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
+                ELSE 0 END), 0) as saldo_awal
+            FROM data_keuangan
+            WHERE tanggal < ?
+        ", [$startDate])->getRowArray();
+
+        $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
+
+        $builder = $db->table('data_keuangan')
+            ->where('tanggal >=', $startDate)
+            ->where('tanggal <=', $endDate);
+
+        if ($jenisFilter !== 'semua' && !empty($jenisFilter)) {
+            $builder->where('jenis_keuangan', $jenisFilter);
+        }
+        if (!empty($q)) {
+            $builder->groupStart()->like('nama_keuangan', $q)->orLike('keterangan', $q)->groupEnd();
+        }
+
+        $rawList = $builder->orderBy('tanggal', 'ASC')->orderBy('id', 'ASC')->get()->getResultArray();
+
+        $runningBalance = $saldoAwal;
+        $totalPemasukan = 0;
+        $totalPengeluaran = 0;
+        $transaksiList = [];
+
+        foreach ($rawList as $r) {
+            $nom = (float)$r['total'];
+            $masuk = 0;
+            $keluar = 0;
+
+            if ($r['jenis_keuangan'] === 'Pemasukan' || $r['jenis_keuangan'] === 'Kas Awal') {
+                $masuk = $nom;
+                $totalPemasukan += $masuk;
+            } elseif ($r['jenis_keuangan'] === 'Pengeluaran') {
+                $keluar = $nom;
+                $totalPengeluaran += $keluar;
+            }
+
+            $runningBalance = $runningBalance + $masuk - $keluar;
+            $r['kas_masuk'] = $masuk;
+            $r['kas_keluar'] = $keluar;
+            $r['saldo_berjalan'] = $runningBalance;
+            $transaksiList[] = $r;
+        }
+
+        $asetBarang = $db->table('barang')
+            ->select('COUNT(*) as total_sku, SUM(stok) as total_unit, SUM(stok * harga_beli) as total_hpp')
+            ->get()->getRowArray() ?? [];
+
+        $nilaiAsetHpp = (float)($asetBarang['total_hpp'] ?? 0);
+        $totalKekayaanToko = $runningBalance + $nilaiAsetHpp;
+
+        $data = [
+            'title'               => 'Cetak Laporan Arus Kas & Valuasi Kekayaan Toko',
+            'periode_label'       => $periodeLabel,
+            'saldo_awal'          => $saldoAwal,
+            'transaksi_list'      => $transaksiList,
+            'total_pemasukan'     => $totalPemasukan,
+            'total_pengeluaran'   => $totalPengeluaran,
+            'net_cash_flow'       => $totalPemasukan - $totalPengeluaran,
+            'saldo_akhir_kas'     => $runningBalance,
+            'nilai_aset_hpp'      => $nilaiAsetHpp,
+            'total_kekayaan_toko' => $totalKekayaanToko,
+            'profil'              => $profil,
+            'mode_periode'        => $modePeriode,
+            'bulan'               => $bulanParam,
+            'tgl_mulai'           => $tglMulai,
+            'tgl_selesai'         => $tglSelesai,
+            'jenis'               => $jenisFilter
+        ];
+
+        return view('laporan/cetak_arus_kas', $data);
+    }
+
+    public function excelArusKas()
+    {
+        $db = \Config\Database::connect();
+
+        $modePeriode = $this->request->getGet('mode_periode') ?: 'bulan';
+        $bulanParam  = $this->request->getGet('bulan') ?: date('Y-m');
+        $tglMulai    = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglSelesai  = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
+        $jenisFilter = $this->request->getGet('jenis') ?: 'semua';
+        $q           = trim($this->request->getGet('q') ?: '');
+
+        if ($modePeriode === 'bulan') {
+            $startDate = date('Y-m-01 00:00:00', strtotime($bulanParam . '-01'));
+            $endDate   = date('Y-m-t 23:59:59', strtotime($bulanParam . '-01'));
+            $periodeLabel = 'Bulan ' . $bulanParam;
+        } else {
+            $startDate = $tglMulai . ' 00:00:00';
+            $endDate   = $tglSelesai . ' 23:59:59';
+            $periodeLabel = $tglMulai . ' s/d ' . $tglSelesai;
+        }
+
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+        $namaToko = $profil['nama_toko'] ?? 'Kios Sabun & Parfum';
+
+        $saldoAwalRow = $db->query("
+            SELECT COALESCE(SUM(CASE 
+                WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
+                WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
+                ELSE 0 END), 0) as saldo_awal
+            FROM data_keuangan
+            WHERE tanggal < ?
+        ", [$startDate])->getRowArray();
+
+        $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
+
+        $builder = $db->table('data_keuangan')
+            ->where('tanggal >=', $startDate)
+            ->where('tanggal <=', $endDate);
+
+        if ($jenisFilter !== 'semua' && !empty($jenisFilter)) $builder->where('jenis_keuangan', $jenisFilter);
+        if (!empty($q)) {
+            $builder->groupStart()->like('nama_keuangan', $q)->orLike('keterangan', $q)->groupEnd();
+        }
+
+        $rawList = $builder->orderBy('tanggal', 'ASC')->orderBy('id', 'ASC')->get()->getResultArray();
+
+        $runningBalance = $saldoAwal;
+        $totalPemasukan = 0;
+        $totalPengeluaran = 0;
+        $transaksiList = [];
+
+        foreach ($rawList as $r) {
+            $nom = (float)$r['total'];
+            $masuk = 0;
+            $keluar = 0;
+
+            if ($r['jenis_keuangan'] === 'Pemasukan' || $r['jenis_keuangan'] === 'Kas Awal') {
+                $masuk = $nom;
+                $totalPemasukan += $masuk;
+            } elseif ($r['jenis_keuangan'] === 'Pengeluaran') {
+                $keluar = $nom;
+                $totalPengeluaran += $keluar;
+            }
+
+            $runningBalance = $runningBalance + $masuk - $keluar;
+            $r['kas_masuk'] = $masuk;
+            $r['kas_keluar'] = $keluar;
+            $r['saldo_berjalan'] = $runningBalance;
+            $transaksiList[] = $r;
+        }
+
+        $asetBarang = $db->table('barang')
+            ->select('COUNT(*) as total_sku, SUM(stok) as total_unit, SUM(stok * harga_beli) as total_hpp')
+            ->get()->getRowArray() ?? [];
+
+        $nilaiAsetHpp = (float)($asetBarang['total_hpp'] ?? 0);
+        $totalKekayaanToko = $runningBalance + $nilaiAsetHpp;
+
+        $filename = 'Laporan_Arus_Kas_' . str_replace(['-', ' ', '/'], '_', $periodeLabel) . '.xls';
+
+        $data = [
+            'nama_toko'           => $namaToko,
+            'profil'              => $profil,
+            'periode_label'       => $periodeLabel,
+            'saldo_awal'          => $saldoAwal,
+            'transaksi_list'      => $transaksiList,
+            'total_pemasukan'     => $totalPemasukan,
+            'total_pengeluaran'   => $totalPengeluaran,
+            'net_cash_flow'       => $totalPemasukan - $totalPengeluaran,
+            'saldo_akhir_kas'     => $runningBalance,
+            'nilai_aset_hpp'      => $nilaiAsetHpp,
+            'total_kekayaan_toko' => $totalKekayaanToko
+        ];
+
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        return view('laporan/excel_arus_kas', $data);
+    }
 }
 
