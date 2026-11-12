@@ -283,9 +283,9 @@
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" id="form-member-id">
                 
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="modalMemberTitle">Daftar Member Baru</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-primary text-white py-3 px-4" id="modalMemberHeader">
+                    <h5 class="modal-title fw-bold text-white mb-0" id="modalMemberTitle"><i class="bi bi-person-badge-fill me-2"></i>Daftar Member Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body p-4">
@@ -384,13 +384,17 @@
             $('#form-nama_member').val(data.nama);
             $('#form-telepon').val(data.telepon);
             $('#form-alamat').val(data.alamat);
-            $('#modalMemberTitle').text('Edit Data Member');
+            $('#modalMemberHeader').removeClass('bg-primary text-white').addClass('bg-warning text-dark');
+            $('#modalMemberHeader .btn-close').removeClass('btn-close-white');
+            $('#modalMemberTitle').removeClass('text-white').addClass('text-dark').html('<i class="bi bi-pencil-square me-2"></i>Edit Data Member: ' + data.nama);
             $('#modalTambahMember').modal('show');
         });
 
         $('#modalTambahMember').on('hidden.bs.modal', function() {
             $('#form-member-id').val('');
-            $('#modalMemberTitle').text('Daftar Member Baru');
+            $('#modalMemberHeader').removeClass('bg-warning text-dark').addClass('bg-primary text-white');
+            $('#modalMemberHeader .btn-close').addClass('btn-close-white');
+            $('#modalMemberTitle').removeClass('text-dark').addClass('text-white').html('<i class="bi bi-person-badge-fill me-2"></i>Daftar Member Baru');
         });
     });
 </script>

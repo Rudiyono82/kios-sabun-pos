@@ -106,12 +106,12 @@
             <form action="<?= base_url('barang/simpan') ?>" method="POST" id="formBarang">
                 <input type="hidden" name="id" id="form-barang-id">
                 
-                <div class="modal-header border-0 pb-0">
+                <div class="modal-header bg-primary text-white py-3 px-4" id="modalBarangHeader">
                     <div>
-                        <h5 class="modal-title fw-bold" id="modalBarangTitle">Tambah Barang Baru</h5>
-                        <small class="text-muted" id="modalBarangSubtitle">Lengkapi data produk, kategori, satuan, serta harga grosir paket</small>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="modalBarangTitle"><i class="bi bi-box-seam me-2"></i>Tambah Barang Baru</h5>
+                        <small class="text-white text-opacity-75" id="modalBarangSubtitle">Lengkapi data produk, kategori, satuan, serta harga grosir paket</small>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body p-4">
@@ -371,8 +371,10 @@
     $('.btn-edit-barang').on('click', function() {
         const b = $(this).data('barang');
         $('#form-barang-id').val(b.id);
-        $('#modalBarangTitle').text(isAdmin ? ('Edit Barang: ' + b.nama_barang) : ('Lihat / Edit Detail: ' + b.nama_barang));
-        $('#modalBarangSubtitle').text(isAdmin ? 'Perbarui informasi produk, harga jual, dan paket grosir' : 'Detail informasi produk (Harga dan Paket hanya dapat diubah oleh Admin)');
+        $('#modalBarangHeader').removeClass('bg-primary text-white').addClass('bg-warning text-dark');
+        $('#modalBarangHeader .btn-close').removeClass('btn-close-white');
+        $('#modalBarangTitle').removeClass('text-white').addClass('text-dark').html('<i class="bi bi-pencil-square me-2"></i>' + (isAdmin ? ('Edit Barang: ' + b.nama_barang) : ('Lihat / Edit Detail: ' + b.nama_barang)));
+        $('#modalBarangSubtitle').removeClass('text-white text-opacity-75').addClass('text-dark text-opacity-75').text(isAdmin ? 'Perbarui informasi produk, harga jual, dan paket grosir' : 'Detail informasi produk (Harga dan Paket hanya dapat diubah oleh Admin)');
         
         $('#form-id_barang').val(b.id_barang).prop('readonly', true);
         $('#form-barcode').val(b.barcode || '');
@@ -402,8 +404,10 @@
 
     $('#modalTambahBarang').on('hidden.bs.modal', function () {
         $('#form-barang-id').val('');
-        $('#modalBarangTitle').text('Tambah Barang Baru');
-        $('#modalBarangSubtitle').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
+        $('#modalBarangHeader').removeClass('bg-warning text-dark').addClass('bg-primary text-white');
+        $('#modalBarangHeader .btn-close').addClass('btn-close-white');
+        $('#modalBarangTitle').removeClass('text-dark').addClass('text-white').html('<i class="bi bi-box-seam me-2"></i>Tambah Barang Baru');
+        $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
         $('#form-id_barang').prop('readonly', false);
         $('#formBarang')[0].reset();
     });

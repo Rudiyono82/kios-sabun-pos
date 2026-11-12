@@ -83,9 +83,9 @@
             <form action="<?= base_url('karyawan/simpan') ?>" method="POST">
                 <input type="hidden" name="id" id="form-user-id">
 
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="modalUserTitle">Tambah Karyawan Baru</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-primary text-white py-3 px-4" id="modalKaryawanHeader">
+                    <h5 class="modal-title fw-bold text-white mb-0" id="modalUserTitle"><i class="bi bi-person-plus-fill me-2"></i>Tambah Karyawan Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body p-4">
@@ -149,7 +149,9 @@
     $('.btn-edit-user').on('click', function() {
         const u = $(this).data('user');
         $('#form-user-id').val(u.id);
-        $('#modalUserTitle').text('Edit Karyawan: ' + u.nama_user);
+        $('#modalKaryawanHeader').removeClass('bg-primary text-white').addClass('bg-warning text-dark');
+        $('#modalKaryawanHeader .btn-close').removeClass('btn-close-white');
+        $('#modalUserTitle').removeClass('text-white').addClass('text-dark').html('<i class="bi bi-pencil-square me-2"></i>Edit Karyawan: ' + u.nama_user);
         $('#form-kode_user').val(u.kode_user).prop('readonly', true);
         $('#form-nip').val(u.nip);
         $('#form-nama_user').val(u.nama_user);
@@ -164,7 +166,9 @@
 
     $('#modalKaryawan').on('hidden.bs.modal', function() {
         $('#form-user-id').val('');
-        $('#modalUserTitle').text('Tambah Karyawan Baru');
+        $('#modalKaryawanHeader').removeClass('bg-warning text-dark').addClass('bg-primary text-white');
+        $('#modalKaryawanHeader .btn-close').addClass('btn-close-white');
+        $('#modalUserTitle').removeClass('text-dark').addClass('text-white').html('<i class="bi bi-person-plus-fill me-2"></i>Tambah Karyawan Baru');
         $('#form-kode_user').prop('readonly', false);
         $('#label-pass').text('Password');
         $('#help-pass').html('Password default: <code>123456</code> (jika dikosongkan untuk user baru)');

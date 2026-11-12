@@ -397,18 +397,47 @@
         }
 
         /* ============================================================ */
-        /* DRAGGABLE POPUP / MODAL (BISA DIGESER-GESER BEBAS)           */
+        /* DRAGGABLE POPUP / MODAL & HEADER DISTINCT COLOR              */
         /* ============================================================ */
+        .modal-content {
+            border-radius: 1rem !important;
+            overflow: hidden !important;
+            border: none !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        /* Default Header: Kontras Elegan berbeda dari putihnya isi popup */
         .modal-header {
             cursor: grab;
             user-select: none;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff !important;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+            padding: 1.1rem 1.5rem !important;
         }
         .modal-header:active {
             cursor: grabbing;
         }
+        .modal-header .modal-title,
+        .modal-header h4,
+        .modal-header h5,
+        .modal-header h6 {
+            color: #ffffff !important;
+            font-weight: 700;
+        }
+        .modal-header .text-muted,
+        .modal-header small {
+            color: rgba(255, 255, 255, 0.75) !important;
+        }
         .modal-header .btn-close {
             cursor: pointer !important;
+            filter: invert(1) grayscale(100%) brightness(200%);
+            opacity: 0.85;
         }
+        .modal-header .btn-close:hover {
+            opacity: 1;
+        }
+
         /* Indikator visual pegangan (grip) bahwa header modal bisa digeser */
         .modal-header .modal-title::before {
             content: "⋮⋮ ";
@@ -420,6 +449,52 @@
             vertical-align: middle;
             cursor: grab;
         }
+
+        /* Variasi Warna Khusus Header Modal */
+        .modal-header.bg-primary {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+            color: #ffffff !important;
+        }
+        .modal-header.bg-success {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+            color: #ffffff !important;
+        }
+        .modal-header.bg-danger {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+            color: #ffffff !important;
+        }
+        .modal-header.bg-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+            color: #0f172a !important;
+        }
+        .modal-header.bg-warning .modal-title,
+        .modal-header.bg-warning h4,
+        .modal-header.bg-warning h5,
+        .modal-header.bg-warning h6 {
+            color: #0f172a !important;
+        }
+        .modal-header.bg-warning .text-muted,
+        .modal-header.bg-warning small {
+            color: rgba(15, 23, 42, 0.75) !important;
+        }
+        .modal-header.bg-warning .btn-close {
+            filter: none !important;
+        }
+        .modal-header.bg-dark {
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%) !important;
+            color: #ffffff !important;
+        }
+
+        /* Modal Body tetap bersih & kontras terang */
+        .modal-body {
+            background-color: #ffffff !important;
+            color: #1e293b !important;
+        }
+        .modal-footer {
+            background-color: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+        }
+
         /* Backdrop lebih transparan & tidak pekat agar konten belakang tetap terlihat jelas saat modal digeser */
         .modal-backdrop.show {
             opacity: 0.3 !important;
@@ -427,12 +502,45 @@
         .swal2-container.swal2-backdrop-show {
             background: rgba(15, 23, 42, 0.35) !important;
         }
+
+        /* SweetAlert2 Popup Header Styling (Beda warna header dan isi popup) */
+        .swal2-popup {
+            display: flex !important;
+            flex-direction: column !important;
+            border-radius: 1.25rem !important;
+            overflow: hidden !important;
+            padding: 0 0 1.5rem 0 !important;
+            border: none !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+        }
         .swal2-title {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+            color: #ffffff !important;
+            padding: 1.15rem 1.5rem !important;
+            margin: 0 !important;
+            width: 100% !important;
+            font-size: 1.25rem !important;
+            border-bottom: 2px solid #0284c7 !important;
             cursor: grab !important;
+            order: -1 !important; /* Posisikan judul sebagai Header di bagian paling atas */
             user-select: none;
         }
         .swal2-title:active {
             cursor: grabbing !important;
+        }
+        .swal2-icon {
+            margin: 1.5rem auto 0.5rem auto !important;
+        }
+        .swal2-html-container {
+            padding: 0.5rem 1.5rem 1rem 1.5rem !important;
+            color: #334155 !important;
+            font-size: 0.95rem !important;
+        }
+        .swal2-close {
+            color: #ffffff !important;
+            top: 12px !important;
+            right: 12px !important;
+            z-index: 10 !important;
         }
     </style>
 </head>
@@ -774,12 +882,10 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0 shadow-lg">
                 <form action="<?= base_url('auth/simpan-kas-awal') ?>" method="POST">
-                    <div class="modal-header border-0 pb-0">
+                    <div class="modal-header bg-primary text-white py-3 px-4">
                         <div class="d-flex align-items-center gap-2">
-                            <div class="bg-primary text-white p-2 rounded-3">
-                                <i class="bi bi-wallet2 fs-5"></i>
-                            </div>
-                            <h5 class="modal-title fw-bold">Input Uang Kas Awal Hari Ini</h5>
+                            <i class="bi bi-wallet2 fs-4 text-white"></i>
+                            <h5 class="modal-title fw-bold text-white mb-0">Input Uang Kas Awal Hari Ini</h5>
                         </div>
                     </div>
                     <div class="modal-body p-4">

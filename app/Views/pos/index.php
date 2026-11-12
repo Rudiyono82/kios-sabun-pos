@@ -322,12 +322,12 @@
 <div class="modal fade" id="modalStruk" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
         <div class="modal-content rounded-4 border-0 shadow-lg">
-            <div class="modal-header border-0 pb-0">
+            <div class="modal-header bg-success text-white py-3 px-4">
                 <div>
-                    <h5 class="modal-title fw-bold text-success mb-0"><i class="bi bi-check-circle-fill me-1"></i> Transaksi Berhasil!</h5>
-                    <small class="text-muted" id="modal-faktur-label"></small>
+                    <h5 class="modal-title fw-bold text-white mb-0"><i class="bi bi-check-circle-fill me-1"></i> Transaksi Berhasil!</h5>
+                    <small class="text-white text-opacity-75" id="modal-faktur-label"></small>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             
             <div class="modal-body py-2">
