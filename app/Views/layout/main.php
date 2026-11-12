@@ -490,9 +490,53 @@
             background-color: #ffffff !important;
             color: #1e293b !important;
         }
+        /* Sticky Modal Footer: Selalu terlihat & mudah diklik di bagian bawah popup */
         .modal-footer {
+            position: sticky;
+            bottom: 0;
+            z-index: 1050;
             background-color: #f8fafc !important;
             border-top: 1px solid #e2e8f0 !important;
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* ============================================================ */
+        /* SCROLL VERTIKAL JENDELA / MODAL SAAT POPUP MELEBIHI LAYAR    */
+        /* ============================================================ */
+        body.modal-open {
+            overflow-y: scroll !important; /* Selalu ada scroll vertikal di bagian kanan window */
+            padding-right: 0px !important;
+        }
+
+        .modal {
+            overflow-x: hidden !important;
+            overflow-y: auto !important; /* Scroll vertikal selalu aktif di sisi kanan saat tinggi popup melebihi window */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-dialog {
+            margin-top: 1.5rem !important;
+            margin-bottom: 3.5rem !important; /* Ruang lega di bagian bawah agar footer leluasa diklik */
+        }
+
+        /* Scrollbar visual di sisi kanan window saat modal terbuka */
+        .modal::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            width: 12px;
+        }
+        .modal::-webkit-scrollbar-track,
+        body::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .modal::-webkit-scrollbar-thumb,
+        body::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 6px;
+            border: 3px solid #f1f5f9;
+        }
+        .modal::-webkit-scrollbar-thumb:hover,
+        body::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
         }
 
         /* Backdrop lebih transparan & tidak pekat agar konten belakang tetap terlihat jelas saat modal digeser */
@@ -1037,6 +1081,13 @@
                 if (!$dialog.length) return;
 
                 const rect = $dialog[0].getBoundingClientRect();
+
+                // Jika tinggi popup modal melebihi tinggi layar, jangan gunakan position: fixed
+                // agar scroll vertikal alami ke footer tetap berfungsi 100% lancar
+                if (rect.height > (window.innerHeight - 80)) {
+                    return;
+                }
+
                 const startMouseX = e.clientX;
                 const startMouseY = e.clientY;
                 const initialLeft = rect.left;
