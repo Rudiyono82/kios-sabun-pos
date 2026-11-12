@@ -108,7 +108,7 @@
                     </div>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light text-muted">Rp</span>
-                        <input type="number" id="input-harga-beli" class="form-control form-control-sm text-end fw-bold bg-light" placeholder="0" readonly title="Terkunci dari Master Barang. Klik 'Ubah Harga' jika ada perubahan dari supplier.">
+                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control form-control-sm text-end fw-bold bg-light input-currency" placeholder="0" readonly title="Terkunci dari Master Barang. Klik 'Ubah Harga' jika ada perubahan dari supplier.">
                     </div>
                     <small class="text-muted d-block" style="font-size: 0.70rem;"><i class="bi bi-lock-fill text-secondary me-1"></i>Terkunci dari Master Barang</small>
                 </div>
@@ -200,7 +200,7 @@
                                     <label class="form-label small fw-bold text-dark mb-1">Harga Beli Baru (Rp) <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white">Rp</span>
-                                        <input type="number" id="modal-harga-beli-baru" class="form-control fw-bold text-end fs-6" placeholder="0" min="1" step="any" required>
+                                        <input type="text" inputmode="numeric" id="modal-harga-beli-baru" class="form-control fw-bold text-end fs-6 input-currency" placeholder="0" required>
                                     </div>
                                     <small class="text-muted" style="font-size: 0.72rem;">Nominal faktur beli baru dari supplier</small>
                                 </div>
@@ -221,7 +221,7 @@
                                     <label class="form-label small fw-bold text-dark mb-1">Harga Jual Baru (Rp)</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white">Rp</span>
-                                        <input type="number" id="modal-harga-jual-baru" class="form-control fw-bold text-end fs-6 text-success" placeholder="Kosongkan jika tetap" min="1" step="any">
+                                        <input type="text" inputmode="numeric" id="modal-harga-jual-baru" class="form-control fw-bold text-end fs-6 text-success input-currency" placeholder="Kosongkan jika tetap">
                                     </div>
                                     <small class="text-muted" style="font-size: 0.72rem;">Sesuaikan agar margin laba toko tetap terjaga</small>
                                 </div>
@@ -245,7 +245,7 @@
                                     <div class="col-md-6">
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text bg-white">Baru Rp</span>
-                                            <input type="number" id="modal-harga-grosir-baru" class="form-control text-end fw-semibold" placeholder="Kosongkan jika tetap">
+                                            <input type="text" inputmode="numeric" id="modal-harga-grosir-baru" class="form-control text-end fw-semibold input-currency" placeholder="Kosongkan jika tetap">
                                         </div>
                                     </div>
                                 </div>
@@ -261,7 +261,7 @@
                                                 </div>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">Rp</span>
-                                                    <input type="number" id="modal-hrg-paket-a" class="form-control text-end" placeholder="0">
+                                                    <input type="text" inputmode="numeric" id="modal-hrg-paket-a" class="form-control text-end input-currency" placeholder="0">
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
@@ -272,7 +272,7 @@
                                                 </div>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">Rp</span>
-                                                    <input type="number" id="modal-hrg-paket-b" class="form-control text-end" placeholder="0">
+                                                    <input type="text" inputmode="numeric" id="modal-hrg-paket-b" class="form-control text-end input-currency" placeholder="0">
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
@@ -283,7 +283,7 @@
                                                 </div>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">Rp</span>
-                                                    <input type="number" id="modal-hrg-paket-c" class="form-control text-end" placeholder="0">
+                                                    <input type="text" inputmode="numeric" id="modal-hrg-paket-c" class="form-control text-end input-currency" placeholder="0">
                                                 </div>
                                             </div>
                                         </div>
@@ -329,7 +329,7 @@
             const $opt = $(this).find(':selected');
             if ($opt.val()) {
                 const harga = parseFloat($opt.data('hargabeli')) || 0;
-                $('#input-harga-beli').val(harga);
+                $('#input-harga-beli').val(formatRupiah(harga));
                 $('#input-qty-beli').focus().select();
             } else {
                 $('#input-harga-beli').val('');
@@ -365,20 +365,20 @@
             $('#modal-info-namabarang').text(nama);
 
             $('#display-harga-beli-lama').text('Rp ' + new Intl.NumberFormat('id-ID').format(hargabeli));
-            $('#modal-harga-beli-baru').val(hargabeli);
+            $('#modal-harga-beli-baru').val(hargabeli > 0 ? formatRupiah(hargabeli) : '');
 
             $('#display-harga-jual-lama').text('Rp ' + new Intl.NumberFormat('id-ID').format(hargajual));
-            $('#modal-harga-jual-baru').val(hargajual > 0 ? hargajual : '');
+            $('#modal-harga-jual-baru').val(hargajual > 0 ? formatRupiah(hargajual) : '');
 
             $('#display-harga-grosir-lama').text('Rp ' + new Intl.NumberFormat('id-ID').format(hargagrosir));
-            $('#modal-harga-grosir-baru').val(hargagrosir > 0 ? hargagrosir : '');
+            $('#modal-harga-grosir-baru').val(hargagrosir > 0 ? formatRupiah(hargagrosir) : '');
 
             $('#modal-qty-paket-a').val(qtypaketa > 0 ? qtypaketa : '');
-            $('#modal-hrg-paket-a').val(hrgpaketa > 0 ? hrgpaketa : '');
+            $('#modal-hrg-paket-a').val(hrgpaketa > 0 ? formatRupiah(hrgpaketa) : '');
             $('#modal-qty-paket-b').val(qtypaketb > 0 ? qtypaketb : '');
-            $('#modal-hrg-paket-b').val(hrgpaketb > 0 ? hrgpaketb : '');
+            $('#modal-hrg-paket-b').val(hrgpaketb > 0 ? formatRupiah(hrgpaketb) : '');
             $('#modal-qty-paket-c').val(qtypaketc > 0 ? qtypaketc : '');
-            $('#modal-hrg-paket-c').val(hrgpaketc > 0 ? hrgpaketc : '');
+            $('#modal-hrg-paket-c').val(hrgpaketc > 0 ? formatRupiah(hrgpaketc) : '');
 
             $('#modalUbahHargaBarang').modal('show');
             setTimeout(() => { $('#modal-harga-beli-baru').focus().select(); }, 400);
@@ -387,15 +387,15 @@
         // 2. Klik Simpan Perubahan Harga pada Modal
         $('#btn-simpan-ubah-harga').on('click', function() {
             const idBarang = $('#modal-id-barang').val();
-            const hargaBeliBaru = parseFloat($('#modal-harga-beli-baru').val()) || 0;
-            const hargaJualBaru = parseFloat($('#modal-harga-jual-baru').val()) || 0;
-            const hargaGrosirBaru = parseFloat($('#modal-harga-grosir-baru').val()) || 0;
+            const hargaBeliBaru = unformatRupiah($('#modal-harga-beli-baru').val()) || 0;
+            const hargaJualBaru = unformatRupiah($('#modal-harga-jual-baru').val()) || 0;
+            const hargaGrosirBaru = unformatRupiah($('#modal-harga-grosir-baru').val()) || 0;
             const qtyPaketA = parseFloat($('#modal-qty-paket-a').val()) || 0;
-            const hrgPaketA = parseFloat($('#modal-hrg-paket-a').val()) || 0;
+            const hrgPaketA = unformatRupiah($('#modal-hrg-paket-a').val()) || 0;
             const qtyPaketB = parseFloat($('#modal-qty-paket-b').val()) || 0;
-            const hrgPaketB = parseFloat($('#modal-hrg-paket-b').val()) || 0;
+            const hrgPaketB = unformatRupiah($('#modal-hrg-paket-b').val()) || 0;
             const qtyPaketC = parseFloat($('#modal-qty-paket-c').val()) || 0;
-            const hrgPaketC = parseFloat($('#modal-hrg-paket-c').val()) || 0;
+            const hrgPaketC = unformatRupiah($('#modal-hrg-paket-c').val()) || 0;
 
             if (hargaBeliBaru <= 0) {
                 Swal.fire('Input Tidak Valid', 'Harga Beli Baru harus diisi dan lebih besar dari 0.', 'warning');
@@ -497,7 +497,7 @@
                     }
 
                     // Update nilai input harga beli di form restock
-                    $('#input-harga-beli').val(res.data.harga_beli);
+                    $('#input-harga-beli').val(formatRupiah(res.data.harga_beli));
                 },
                 error: function(xhr) {
                     const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal memperbarui harga barang!';
@@ -518,7 +518,7 @@
             const namaBarang = $opt.data('nama');
             const satuan = $opt.data('satuan');
             const qty = parseFloat($('#input-qty-beli').val()) || 0;
-            const hargaBeli = parseFloat($('#input-harga-beli').val()) || 0;
+            const hargaBeli = unformatRupiah($('#input-harga-beli').val()) || 0;
 
             if (qty <= 0) {
                 Swal.fire('Peringatan', 'Qty beli harus lebih dari 0.', 'warning');

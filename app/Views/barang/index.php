@@ -64,7 +64,15 @@
                         <?php if ($is_admin): ?>
                         <td class="text-end text-muted">Rp <?= number_format((float)$b['harga_beli'], 0, ',', '.') ?></td>
                         <?php endif; ?>
-                        <td class="text-end fw-bold text-primary">Rp <?= number_format((float)$b['harga_jual'], 0, ',', '.') ?></td>
+                        <td class="text-end fw-bold text-primary">
+                            <div>Rp <?= number_format((float)$b['harga_jual'], 0, ',', '.') ?></div>
+                            <?php if ((float)($b['harga_grosir'] ?? 0) > 0): ?>
+                                <small class="text-muted d-block fw-normal" style="font-size: 0.72rem;">Grosir: Rp <?= number_format((float)$b['harga_grosir'], 0, ',', '.') ?></small>
+                            <?php endif; ?>
+                            <?php if ((float)($b['hrg_paket_a'] ?? 0) > 0): ?>
+                                <small class="text-success d-block fw-normal" style="font-size: 0.70rem;">Pkt A (&ge;<?= (int)$b['qty_paket_a'] ?>): Rp <?= number_format((float)$b['hrg_paket_a'], 0, ',', '.') ?></small>
+                            <?php endif; ?>
+                        </td>
                         <?php if ($is_admin): ?>
                         <td class="text-center">
                             <span class="badge <?= (float)$b['stok'] <= (float)$b['min_stok'] ? 'bg-danger' : 'bg-success' ?> fs-6 px-3 py-2">
@@ -194,7 +202,7 @@
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="number" step="any" min="0" name="harga_beli" id="form-harga_beli" class="form-control" value="0" required placeholder="0">
+                                <input type="text" inputmode="numeric" name="harga_beli" id="form-harga_beli" class="form-control input-currency" value="0" required placeholder="0">
                             </div>
                         </div>
 
@@ -205,7 +213,7 @@
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text bg-primary-subtle text-primary fw-bold">Rp</span>
-                                <input type="number" step="any" min="0" name="harga_jual" id="form-harga_jual" class="form-control fw-bold" value="0" required placeholder="0">
+                                <input type="text" inputmode="numeric" name="harga_jual" id="form-harga_jual" class="form-control fw-bold input-currency" value="0" required placeholder="0">
                             </div>
                         </div>
 
@@ -216,7 +224,7 @@
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="number" step="any" min="0" name="harga_grosir" id="form-harga_grosir" class="form-control" value="0" placeholder="0">
+                                <input type="text" inputmode="numeric" name="harga_grosir" id="form-harga_grosir" class="form-control input-currency" value="0" placeholder="0">
                             </div>
                         </div>
 
@@ -256,7 +264,7 @@
                                                 <label class="form-label small text-muted mb-1">Harga Satuan Paket A</label>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">Rp</span>
-                                                    <input type="number" step="any" min="0" name="hrg_paket_a" id="form-hrg_paket_a" class="form-control text-end fw-bold text-primary" value="0" placeholder="0">
+                                                    <input type="text" inputmode="numeric" name="hrg_paket_a" id="form-hrg_paket_a" class="form-control text-end fw-bold text-primary input-currency" value="0" placeholder="0">
                                                 </div>
                                             </div>
                                         </div>
@@ -280,7 +288,7 @@
                                                 <label class="form-label small text-muted mb-1">Harga Satuan Paket B</label>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">Rp</span>
-                                                    <input type="number" step="any" min="0" name="hrg_paket_b" id="form-hrg_paket_b" class="form-control text-end fw-bold text-success" value="0" placeholder="0">
+                                                    <input type="text" inputmode="numeric" name="hrg_paket_b" id="form-hrg_paket_b" class="form-control text-end fw-bold text-success input-currency" value="0" placeholder="0">
                                                 </div>
                                             </div>
                                         </div>
@@ -304,7 +312,7 @@
                                                 <label class="form-label small text-muted mb-1">Harga Satuan Paket C</label>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">Rp</span>
-                                                    <input type="number" step="any" min="0" name="hrg_paket_c" id="form-hrg_paket_c" class="form-control text-end fw-bold text-info" value="0" placeholder="0">
+                                                    <input type="text" inputmode="numeric" name="hrg_paket_c" id="form-hrg_paket_c" class="form-control text-end fw-bold text-info input-currency" value="0" placeholder="0">
                                                 </div>
                                             </div>
                                         </div>
@@ -374,15 +382,15 @@
         $('#form-is_jerigen').prop('checked', b.is_jerigen == 1);
 
         if (isAdmin) {
-            $('#form-harga_beli').val(b.harga_beli || 0).prop('disabled', false).removeClass('bg-light text-muted');
-            $('#form-harga_jual').val(b.harga_jual || 0).prop('disabled', false).removeClass('bg-light text-muted');
-            $('#form-harga_grosir').val(b.harga_grosir || 0).prop('disabled', false).removeClass('bg-light text-muted');
+            $('#form-harga_beli').val(formatRupiah(b.harga_beli || 0)).prop('disabled', false).removeClass('bg-light text-muted');
+            $('#form-harga_jual').val(formatRupiah(b.harga_jual || 0)).prop('disabled', false).removeClass('bg-light text-muted');
+            $('#form-harga_grosir').val(formatRupiah(b.harga_grosir || 0)).prop('disabled', false).removeClass('bg-light text-muted');
             $('#form-qty_paket_a').val(b.qty_paket_a || 0).prop('disabled', false).removeClass('bg-light');
-            $('#form-hrg_paket_a').val(b.hrg_paket_a || 0).prop('disabled', false).removeClass('bg-light');
+            $('#form-hrg_paket_a').val(formatRupiah(b.hrg_paket_a || 0)).prop('disabled', false).removeClass('bg-light');
             $('#form-qty_paket_b').val(b.qty_paket_b || 0).prop('disabled', false).removeClass('bg-light');
-            $('#form-hrg_paket_b').val(b.hrg_paket_b || 0).prop('disabled', false).removeClass('bg-light');
+            $('#form-hrg_paket_b').val(formatRupiah(b.hrg_paket_b || 0)).prop('disabled', false).removeClass('bg-light');
             $('#form-qty_paket_c').val(b.qty_paket_c || 0).prop('disabled', false).removeClass('bg-light');
-            $('#form-hrg_paket_c').val(b.hrg_paket_c || 0).prop('disabled', false).removeClass('bg-light');
+            $('#form-hrg_paket_c').val(formatRupiah(b.hrg_paket_c || 0)).prop('disabled', false).removeClass('bg-light');
             $('#form-stok').val(b.stok || 0);
             $('#form-min_stok').val(b.min_stok || 5);
             $('#badge-header-harga').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-unlock-fill me-1"></i>Admin Enabled</span>');
@@ -390,15 +398,15 @@
             $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
         } else {
             // Kasir saat Edit: Harga dan Paket di-disabled / locked (hanya read-only)
-            $('#form-harga_beli').val(b.harga_beli || 0).prop('disabled', true).addClass('bg-light text-muted');
-            $('#form-harga_jual').val(b.harga_jual || 0).prop('disabled', true).addClass('bg-light text-muted');
-            $('#form-harga_grosir').val(b.harga_grosir || 0).prop('disabled', true).addClass('bg-light text-muted');
+            $('#form-harga_beli').val(formatRupiah(b.harga_beli || 0)).prop('disabled', true).addClass('bg-light text-muted');
+            $('#form-harga_jual').val(formatRupiah(b.harga_jual || 0)).prop('disabled', true).addClass('bg-light text-muted');
+            $('#form-harga_grosir').val(formatRupiah(b.harga_grosir || 0)).prop('disabled', true).addClass('bg-light text-muted');
             $('#form-qty_paket_a').val(b.qty_paket_a || 0).prop('disabled', true).addClass('bg-light');
-            $('#form-hrg_paket_a').val(b.hrg_paket_a || 0).prop('disabled', true).addClass('bg-light');
+            $('#form-hrg_paket_a').val(formatRupiah(b.hrg_paket_a || 0)).prop('disabled', true).addClass('bg-light');
             $('#form-qty_paket_b').val(b.qty_paket_b || 0).prop('disabled', true).addClass('bg-light');
-            $('#form-hrg_paket_b').val(b.hrg_paket_b || 0).prop('disabled', true).addClass('bg-light');
+            $('#form-hrg_paket_b').val(formatRupiah(b.hrg_paket_b || 0)).prop('disabled', true).addClass('bg-light');
             $('#form-qty_paket_c').val(b.qty_paket_c || 0).prop('disabled', true).addClass('bg-light');
-            $('#form-hrg_paket_c').val(b.hrg_paket_c || 0).prop('disabled', true).addClass('bg-light');
+            $('#form-hrg_paket_c').val(formatRupiah(b.hrg_paket_c || 0)).prop('disabled', true).addClass('bg-light');
             $('#badge-header-harga').html('<span class="badge bg-danger-subtle text-danger border border-danger-subtle small"><i class="bi bi-lock-fill me-1"></i>Harga Terkunci (Hanya Admin)</span>');
             $('#badge-header-paket').html('<span class="badge bg-warning-subtle text-warning border border-warning-subtle small"><i class="bi bi-lock-fill me-1"></i>Hanya Admin (Kasir Read-Only)</span>');
             $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').removeClass('d-none');

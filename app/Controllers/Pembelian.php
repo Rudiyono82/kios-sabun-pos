@@ -272,16 +272,21 @@ class Pembelian extends BaseController
     {
         $db = \Config\Database::connect();
 
+        $cleanNumber = function($val) {
+            if ($val === null || $val === '') return 0.0;
+            return (float) str_replace(['.', ',', ' '], '', (string)$val);
+        };
+
         $idBarang = trim($this->request->getPost('id_barang') ?? '');
-        $hargaBeliBaru = (float) $this->request->getPost('harga_beli');
-        $hargaJualBaru = (float) $this->request->getPost('harga_jual');
-        $hargaGrosirBaru = (float) $this->request->getPost('harga_grosir');
+        $hargaBeliBaru = $cleanNumber($this->request->getPost('harga_beli'));
+        $hargaJualBaru = $cleanNumber($this->request->getPost('harga_jual'));
+        $hargaGrosirBaru = $cleanNumber($this->request->getPost('harga_grosir'));
         $qtyPaketA = (float) ($this->request->getPost('qty_paket_a') ?? 0);
-        $hrgPaketA = (float) ($this->request->getPost('hrg_paket_a') ?? 0);
+        $hrgPaketA = $cleanNumber($this->request->getPost('hrg_paket_a'));
         $qtyPaketB = (float) ($this->request->getPost('qty_paket_b') ?? 0);
-        $hrgPaketB = (float) ($this->request->getPost('hrg_paket_b') ?? 0);
+        $hrgPaketB = $cleanNumber($this->request->getPost('hrg_paket_b'));
         $qtyPaketC = (float) ($this->request->getPost('qty_paket_c') ?? 0);
-        $hrgPaketC = (float) ($this->request->getPost('hrg_paket_c') ?? 0);
+        $hrgPaketC = $cleanNumber($this->request->getPost('hrg_paket_c'));
 
         if (empty($idBarang) || $hargaBeliBaru <= 0) {
             return $this->response->setStatusCode(400)->setJSON([

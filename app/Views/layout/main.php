@@ -939,8 +939,8 @@
                         <div class="mb-3">
                             <label class="form-label small fw-semibold text-muted">Nominal Kas Awal (Rp)</label>
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-white">Rp</span>
-                                <input type="number" name="nominal_kas_awal" class="form-control text-end fw-bold fs-4 text-primary" placeholder="0" autofocus required>
+                                <span class="input-group-text bg-white fw-bold">Rp</span>
+                                <input type="text" inputmode="numeric" name="nominal_kas_awal" class="form-control text-end fw-bold fs-4 text-primary input-currency" placeholder="0" autofocus required>
                             </div>
                         </div>
                     </div>
@@ -1179,25 +1179,119 @@
             });
         }
 
+        // ==========================================
+        // UNIVERSAL CURRENCY (RUPIAH) FORMATTER
+        // ==========================================
+        function formatRupiah(val, prefix = '') {
+            if (val === null || val === undefined) return prefix ? prefix + '0' : '0';
+            let strVal = val.toString().replace(/[^0-9]/g, '');
+            if (!strVal) return prefix ? prefix + '0' : '0';
+            
+            // Hilangkan leading zero kecuali jika nilainya memang "0"
+            strVal = strVal.replace(/^0+/, '');
+            if (!strVal) return prefix ? prefix + '0' : '0';
+
+            let sisa = strVal.length % 3,
+                rupiah = strVal.substr(0, sisa),
+                ribuan = strVal.substr(sisa).match(/\d{3}/g);
+
+            if (ribuan) {
+                let separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
+            return prefix ? prefix + rupiah : rupiah;
+        }
+
+        function unformatRupiah(val) {
+            if (val === null || val === undefined) return 0;
+            let clean = val.toString().replace(/[^0-9]/g, '');
+            return clean ? parseFloat(clean) : 0;
+        }
+
+        // Realtime Auto-formatting pada saat user mengetik angka mata uang
+        $(document).on('input', '.input-currency, input[data-type="currency"]', function(e) {
+            let cursorPosition = this.selectionStart;
+            let originalLength = this.value.length;
+            let clean = this.value.replace(/[^0-9]/g, '');
+            
+            if (clean === '') {
+                this.value = '';
+            } else {
+                let formatted = formatRupiah(clean);
+                this.value = formatted;
+                
+                // Pertahankan posisi kursor agar nyaman saat mengetik
+                let newLength = formatted.length;
+                cursorPosition = cursorPosition + (newLength - originalLength);
+                if (cursorPosition > 0 && this.setSelectionRange) {
+                    this.setSelectionRange(cursorPosition, cursorPosition);
+                }
+            }
+        });
+
+        // Format otomatis saat kehilangan fokus (blur)
+        $(document).on('blur', '.input-currency, input[data-type="currency"]', function() {
+            if ($(this).val().trim() !== '') {
+                $(this).val(formatRupiah($(this).val()));
+            }
+        });
+
+        // Format otomatis elemen label / badge dengan class .label-currency atau [data-format="currency"]
+        function applyCurrencyLabels(context) {
+            const $ctx = context ? $(context) : $(document);
+            $ctx.find('.label-currency, [data-format="currency"]').each(function() {
+                let raw = $(this).attr('data-val') || $(this).text().trim();
+                if (raw && !raw.startsWith('Rp')) {
+                    $(this).text('Rp ' + formatRupiah(raw));
+                }
+            });
+        }
+
+        // Otomatis bersihkan titik ribuan sebelum form POST dikirim ke backend
+        $(document).on('submit', 'form', function() {
+            $(this).find('.input-currency, input[data-type="currency"]').each(function() {
+                let clean = unformatRupiah($(this).val());
+                $(this).val(clean);
+            });
+        });
+
         $(document).ready(function() {
             initSearchableSelects();
             applyGridTruncationAndTooltips();
             initDraggablePopups();
+            applyCurrencyLabels();
+
+            // Format seluruh input-currency yang sudah memiliki initial value saat halaman dimuat
+            $('.input-currency, input[data-type="currency"]').each(function() {
+                if ($(this).val()) {
+                    $(this).val(formatRupiah($(this).val()));
+                }
+            });
 
             // Aktifkan otomatis saat DataTables melakukan draw / filter / pagination
             $(document).on('draw.dt', function() {
                 applyGridTruncationAndTooltips();
+                applyCurrencyLabels();
             });
 
             // Aktifkan otomatis saat modal Bootstrap dibuka
             $(document).on('shown.bs.modal', '.modal', function() {
                 initSearchableSelects(this);
                 applyGridTruncationAndTooltips(this);
+                applyCurrencyLabels(this);
+                $(this).find('.input-currency, input[data-type="currency"]').each(function() {
+                    if ($(this).val()) {
+                        $(this).val(formatRupiah($(this).val()));
+                    }
+                });
             });
 
             // Aktifkan setelah ajax selesai (misal load data modal)
             $(document).ajaxComplete(function() {
-                setTimeout(applyGridTruncationAndTooltips, 200);
+                setTimeout(() => {
+                    applyGridTruncationAndTooltips();
+                    applyCurrencyLabels();
+                }, 200);
             });
         });
     </script>

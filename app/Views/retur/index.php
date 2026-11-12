@@ -341,7 +341,7 @@
                                     <div id="sub-nilai-uang" class="row g-2 mt-2 d-none">
                                         <div class="col-md-12">
                                             <label class="form-label small fw-bold">Nominal Uang Penggantian (Rp)</label>
-                                            <input type="number" name="nilai_ganti" id="input-nilai-ganti" class="form-control" placeholder="0">
+                                            <input type="text" inputmode="numeric" name="nilai_ganti" id="input-nilai-ganti" class="form-control input-currency" placeholder="0">
                                             <small class="text-muted">Uang ini akan otomatis dicatat sebagai kas masuk di Buku Kas Toko.</small>
                                         </div>
                                     </div>
@@ -471,7 +471,7 @@
                     <!-- 3. Jika Nilai Uang -->
                     <div id="modal2-box-uang" class="p-3 bg-light rounded-3 border mb-3 d-none">
                         <label class="form-label small fw-bold text-dark">Nominal Penggantian Uang dari Supplier (Rp)</label>
-                        <input type="number" name="nilai_ganti" id="modal2-input-nilai-uang" class="form-control fw-bold fs-4 text-success" placeholder="0" disabled>
+                        <input type="text" inputmode="numeric" name="nilai_ganti" id="modal2-input-nilai-uang" class="form-control fw-bold fs-4 text-success input-currency" placeholder="0" disabled>
                         <small class="text-muted mt-1 d-block"><i class="bi bi-wallet2 me-1"></i>Uang ini otomatis masuk ke Buku Kas Pemasukan Toko.</small>
                     </div>
 

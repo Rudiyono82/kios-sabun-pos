@@ -77,7 +77,7 @@ class Keuangan extends BaseController
         
         $jenis = $this->request->getPost('jenis_keuangan');
         $nama = $this->request->getPost('nama_keuangan');
-        $total = (float) $this->request->getPost('total');
+        $total = (float) str_replace(['.', ',', ' '], '', (string)$this->request->getPost('total'));
         $keterangan = $this->request->getPost('keterangan');
         $isLocked = $this->request->getPost('is_locked') ? 1 : 0;
 

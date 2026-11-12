@@ -183,7 +183,7 @@
                 <!-- Diskon Manual -->
                 <div class="d-flex justify-content-between align-items-center mb-2 small">
                     <span class="text-muted">Potongan Diskon <kbd class="bg-secondary text-white font-monospace" style="font-size: 0.7rem;">[F6]</kbd></span>
-                    <input type="number" id="input-diskon" class="form-control form-control-sm text-end w-50" value="0" min="0">
+                    <input type="text" inputmode="numeric" id="input-diskon" class="form-control form-control-sm text-end w-50 input-currency" value="0">
                 </div>
 
                 <!-- Potongan Voucher Belanja Member -->
@@ -277,7 +277,7 @@
                 <!-- Input Uang Diterima (Rp) -->
                 <div class="mb-2">
                     <label class="small text-muted fw-bold mb-1 text-uppercase">Uang Diterima dari Pelanggan (Rp)</label>
-                    <input type="number" id="input-bayar" class="form-control form-control-lg text-end fw-bold fs-3 text-success font-monospace" placeholder="0">
+                    <input type="text" inputmode="numeric" id="input-bayar" class="form-control form-control-lg text-end fw-bold fs-3 text-success font-monospace input-currency" placeholder="0">
                 </div>
 
                 <!-- Shortcut Tombol Uang Cepat -->
@@ -886,7 +886,7 @@
             totalQty += i.qty;
         });
 
-        const diskon = parseFloat($('#input-diskon').val()) || 0;
+        const diskon = unformatRupiah($('#input-diskon').val()) || 0;
         let potonganJerigen = 0;
 
         if ($('#chk-jerigen').is(':checked')) {
@@ -908,7 +908,7 @@
         $('#display-total-qty').text(totalQty + ' Pcs/Liter');
 
         // Kembalian
-        const bayar = parseFloat($('#input-bayar').val()) || 0;
+        const bayar = unformatRupiah($('#input-bayar').val()) || 0;
         const kembalian = bayar - grandTotal;
         $('#display-kembalian').text('Rp ' + new Intl.NumberFormat('id-ID').format(kembalian > 0 ? kembalian : 0));
     }
@@ -949,10 +949,14 @@
         // Default uang pas jika belum terisi
         let subtotal = 0;
         cart.forEach(i => subtotal += (i.qty * i.harga_jual));
-        const diskon = parseFloat($('#input-diskon').val()) || 0;
+        const diskon = unformatRupiah($('#input-diskon').val()) || 0;
         const potJerigen = $('#chk-jerigen').is(':checked') ? (parseInt($('#input-qty-jerigen').val()) || 1) * HARGA_POTONGAN_JERIGEN : 0;
         const potVoucher = parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0;
         const grandTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+
+        if (!unformatRupiah($('#input-bayar').val())) {
+            $('#input-bayar').val(formatRupiah(grandTotal));
+        }
 
         $('#modal-bayar-faktur-label').text('Faktur: ' + $('#label-faktur').text());
         $('#modalBayar').modal('show');
@@ -976,9 +980,9 @@
         const grandTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
 
         if (val === 'pas') {
-            $('#input-bayar').val(grandTotal);
+            $('#input-bayar').val(formatRupiah(grandTotal));
         } else {
-            $('#input-bayar').val(val);
+            $('#input-bayar').val(formatRupiah(val));
         }
         updateSummary();
     });
@@ -992,10 +996,10 @@
             // Non tunai auto-fill uang pas
             let subtotal = 0;
             cart.forEach(i => subtotal += (i.qty * i.harga_jual));
-            const diskon = parseFloat($('#input-diskon').val()) || 0;
+            const diskon = unformatRupiah($('#input-diskon').val()) || 0;
             const potJerigen = $('#chk-jerigen').is(':checked') ? (parseInt($('#input-qty-jerigen').val()) || 1) * HARGA_POTONGAN_JERIGEN : 0;
             const grandTotal = Math.max(0, subtotal - diskon - potJerigen);
-            $('#input-bayar').val(grandTotal);
+            $('#input-bayar').val(formatRupiah(grandTotal));
         } else {
             $('#alert-non-tunai').addClass('d-none');
         }
@@ -1037,11 +1041,11 @@
 
         let subtotal = 0;
         cart.forEach(i => subtotal += (i.qty * i.harga_jual));
-        const diskon = parseFloat($('#input-diskon').val()) || 0;
+        const diskon = unformatRupiah($('#input-diskon').val()) || 0;
         const potJerigen = $('#chk-jerigen').is(':checked') ? (parseInt($('#input-qty-jerigen').val()) || 1) * HARGA_POTONGAN_JERIGEN : 0;
         const potVoucher = parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0;
         const grandTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
-        const bayar = parseFloat($('#input-bayar').val()) || 0;
+        const bayar = unformatRupiah($('#input-bayar').val()) || 0;
 
         if (bayar < grandTotal) {
             Swal.fire('Uang Kurang', 'Nominal uang pembayaran kurang dari total tagihan!', 'warning');

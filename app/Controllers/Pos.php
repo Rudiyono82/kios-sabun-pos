@@ -170,7 +170,7 @@ class Pos extends BaseController
             ];
         }
 
-        $diskon = (float) ($json['diskon'] ?? 0);
+        $diskon = (float) str_replace(['.', ',', ' '], '', (string)($json['diskon'] ?? 0));
         $potonganJerigen = (float) ($json['potongan_tukar_jerigen'] ?? 0);
         $kodeVoucher = $json['kode_voucher'] ?? null;
         $potonganVoucher = (float) ($json['potongan_voucher'] ?? 0);
@@ -178,7 +178,7 @@ class Pos extends BaseController
         $grandTotal = $subtotal - $diskon - $potonganJerigen - $potonganVoucher;
         if ($grandTotal < 0) $grandTotal = 0;
 
-        $bayar = (float) ($json['bayar'] ?? 0);
+        $bayar = (float) str_replace(['.', ',', ' '], '', (string)($json['bayar'] ?? 0));
         $kembalian = $bayar - $grandTotal;
 
         // Insert Master Penjualan

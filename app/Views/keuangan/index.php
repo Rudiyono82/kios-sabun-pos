@@ -219,7 +219,7 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Nominal Biaya (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" name="total" class="form-control form-control-lg fw-bold text-danger fs-4" placeholder="0" min="1" required>
+                        <input type="text" inputmode="numeric" name="total" class="form-control form-control-lg fw-bold text-danger fs-4 input-currency" placeholder="0" required>
                     </div>
 
                     <div class="mb-3">
@@ -269,7 +269,7 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Nominal Pemasukan (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" name="total" class="form-control form-control-lg fw-bold text-success fs-4" placeholder="0" min="1" required>
+                        <input type="text" inputmode="numeric" name="total" class="form-control form-control-lg fw-bold text-success fs-4 input-currency" placeholder="0" required>
                     </div>
 
                     <div class="mb-3">
@@ -346,7 +346,7 @@
                             <i class="bi bi-exclamation-triangle-fill me-1"></i>
                             Anda login sebagai <strong>Administrator</strong>.
                         </p>
-                        <p class="small mb-1">Hapus catatan kas <strong>${nama}</strong> sebesar <strong>Rp ${nominal}</strong>?</p>
+                        <p class="small mb-1">Hapus catatan kas <strong>${nama}</strong> sebesar <strong>Rp ${formatRupiah(nominal)}</strong>?</p>
                         <p class="small text-muted mb-0">Pembukuan saldo kas toko akan disesuaikan kembali.</p>
                     `,
                     icon: 'warning',

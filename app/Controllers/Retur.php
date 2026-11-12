@@ -120,7 +120,8 @@ class Retur extends BaseController
                     ]);
                 }
             } elseif ($tipePenyelesaian === 'Ganti_Uang_Kas') {
-                $nilaiGanti = (float) ($this->request->getPost('nilai_ganti') ?: $nilaiRetur);
+                $rawNilaiGanti = $this->request->getPost('nilai_ganti');
+                $nilaiGanti = $rawNilaiGanti !== null && $rawNilaiGanti !== '' ? (float) str_replace(['.', ',', ' '], '', (string)$rawNilaiGanti) : (float)$nilaiRetur;
                 $db->table('data_keuangan')->insert([
                     'tanggal' => date('Y-m-d H:i:s'),
                     'jenis_keuangan' => 'Pemasukan',
@@ -248,7 +249,7 @@ class Retur extends BaseController
             ]);
         } elseif ($tipePenyelesaian === 'Ganti_Uang_Kas') {
             // Supplier mengganti dengan nilai uang (Cash / Potong Tagihan)
-            $nilaiGanti = (float) $this->request->getPost('nilai_ganti');
+            $nilaiGanti = (float) str_replace(['.', ',', ' '], '', (string)$this->request->getPost('nilai_ganti'));
 
             $db->table('data_keuangan')->insert([
                 'tanggal' => date('Y-m-d H:i:s'),

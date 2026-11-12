@@ -74,21 +74,27 @@ class Barang extends BaseController
             'status'      => $this->request->getPost('status') ?? 'Aktif',
         ];
 
+        // Helper pembersih angka mata uang (rupiah) berformat titik
+        $cleanNumber = function($val) {
+            if ($val === null || $val === '') return 0.0;
+            return (float) str_replace(['.', ',', ' '], '', (string)$val);
+        };
+
         // Pengaturan harga, paket grosir, dan stok:
         // Saat TAMBAH BARU: Field harga beli, harga jual, grosir, dan paket A/B/C SEMUANYA ENABLED bisa di-input (Admin maupun Kasir)
         // Saat EDIT:
         //   - Jika Admin: Bebas menentukan dan mengubah seluruh harga & stok
         //   - Jika Kasir: Pertahankan harga lama dari database (karena field harga di-lock/disabled saat edit)
         if ($isAdmin) {
-            $data['harga_beli']   = (float) $this->request->getPost('harga_beli');
-            $data['harga_jual']   = (float) $this->request->getPost('harga_jual');
-            $data['harga_grosir'] = (float) $this->request->getPost('harga_grosir');
+            $data['harga_beli']   = $cleanNumber($this->request->getPost('harga_beli'));
+            $data['harga_jual']   = $cleanNumber($this->request->getPost('harga_jual'));
+            $data['harga_grosir'] = $cleanNumber($this->request->getPost('harga_grosir'));
             $data['qty_paket_a']  = (float) $this->request->getPost('qty_paket_a');
-            $data['hrg_paket_a']  = (float) $this->request->getPost('hrg_paket_a');
+            $data['hrg_paket_a']  = $cleanNumber($this->request->getPost('hrg_paket_a'));
             $data['qty_paket_b']  = (float) $this->request->getPost('qty_paket_b');
-            $data['hrg_paket_b']  = (float) $this->request->getPost('hrg_paket_b');
+            $data['hrg_paket_b']  = $cleanNumber($this->request->getPost('hrg_paket_b'));
             $data['qty_paket_c']  = (float) $this->request->getPost('qty_paket_c');
-            $data['hrg_paket_c']  = (float) $this->request->getPost('hrg_paket_c');
+            $data['hrg_paket_c']  = $cleanNumber($this->request->getPost('hrg_paket_c'));
             $data['stok']         = (float) $this->request->getPost('stok');
             $data['min_stok']     = (float) ($this->request->getPost('min_stok') ?: 5);
         } else {
@@ -108,15 +114,15 @@ class Barang extends BaseController
                 $data['min_stok']     = (float) ($existing['min_stok'] ?? 5);
             } else {
                 // Pada Tambah Baru: Kasir diizinkan input harga beli, harga jual, grosir & paket A/B/C
-                $data['harga_beli']   = (float) $this->request->getPost('harga_beli');
-                $data['harga_jual']   = (float) $this->request->getPost('harga_jual');
-                $data['harga_grosir'] = (float) $this->request->getPost('harga_grosir');
+                $data['harga_beli']   = $cleanNumber($this->request->getPost('harga_beli'));
+                $data['harga_jual']   = $cleanNumber($this->request->getPost('harga_jual'));
+                $data['harga_grosir'] = $cleanNumber($this->request->getPost('harga_grosir'));
                 $data['qty_paket_a']  = (float) $this->request->getPost('qty_paket_a');
-                $data['hrg_paket_a']  = (float) $this->request->getPost('hrg_paket_a');
+                $data['hrg_paket_a']  = $cleanNumber($this->request->getPost('hrg_paket_a'));
                 $data['qty_paket_b']  = (float) $this->request->getPost('qty_paket_b');
-                $data['hrg_paket_b']  = (float) $this->request->getPost('hrg_paket_b');
+                $data['hrg_paket_b']  = $cleanNumber($this->request->getPost('hrg_paket_b'));
                 $data['qty_paket_c']  = (float) $this->request->getPost('qty_paket_c');
-                $data['hrg_paket_c']  = (float) $this->request->getPost('hrg_paket_c');
+                $data['hrg_paket_c']  = $cleanNumber($this->request->getPost('hrg_paket_c'));
                 $data['stok']         = 0;
                 $data['min_stok']     = 5;
             }
