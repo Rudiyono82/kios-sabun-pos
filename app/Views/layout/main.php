@@ -238,15 +238,23 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
+            min-width: 0;
+            overflow-x: clip;
         }
         .top-navbar {
-            background: #ffffff;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border-bottom: 1px solid #e2e8f0;
             padding: 14px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
         }
         .main-content {
             padding: 28px;
