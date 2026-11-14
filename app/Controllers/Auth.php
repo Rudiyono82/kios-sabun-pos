@@ -162,7 +162,7 @@ class Auth extends BaseController
             ]);
         }
 
-        return redirect()->to('/dashboard')->with('success', "Selamat datang, {$user['nama_user']}!");
+        return redirect()->to(base_url('dashboard'))->with('success', "Selamat datang, {$user['nama_user']}!");
     }
 
     public function simpanKasAwal()

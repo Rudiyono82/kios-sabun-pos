@@ -27,7 +27,18 @@ class App extends BaseConfig
                 || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
                 || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
             $scheme = $isHttps ? 'https' : 'http';
-            $this->baseURL = $scheme . '://' . $_SERVER['HTTP_HOST'] . '/';
+
+            // Deteksi otomatis sub-path / sub-folder jika aplikasi berada di dalam direktori seperti XAMPP (/kios-sabun-parfum-pos/public/)
+            $subPath = '';
+            if (isset($_SERVER['SCRIPT_NAME'])) {
+                $dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+                $dir = trim($dir, '/');
+                if (!empty($dir)) {
+                    $subPath = '/' . $dir;
+                }
+            }
+
+            $this->baseURL = $scheme . '://' . $_SERVER['HTTP_HOST'] . $subPath . '/';
             $this->allowedHostnames[] = $_SERVER['HTTP_HOST'];
             $cleanHost = preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']);
             if ($cleanHost !== $_SERVER['HTTP_HOST']) {
