@@ -3,9 +3,9 @@
     <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 1140px;">
         <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
             <!-- Header Modal -->
-            <div class="modal-header py-2 px-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%); border-bottom: 2px solid #0284c7;">
+            <div class="modal-header py-2 px-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0284c7 100%); border-bottom: 3px solid #38bdf8;">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary text-white p-2 rounded-3 shadow-sm">
+                    <span class="badge bg-white text-primary p-2 rounded-3 shadow-sm">
                         <i class="bi bi-card-checklist fs-6"></i>
                     </span>
                     <div>
@@ -14,7 +14,7 @@
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-info-subtle text-info border border-info-subtle font-monospace px-3 py-1" id="lookup-badge-mode">MODE PENJUALAN</span>
+                    <span class="badge bg-white text-primary border font-monospace px-3 py-1 fw-bold shadow-xs" id="lookup-badge-mode">MODE PENJUALAN</span>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
             </div>
@@ -69,7 +69,7 @@
                         <div class="card border shadow-sm rounded-3 overflow-hidden bg-white">
                             <div class="table-responsive" style="max-height: 420px; min-height: 320px; overflow-y: auto;" id="lookup-table-container">
                                 <table class="table table-hover align-middle mb-0 font-monospace-cells" id="table-lookup-items" style="font-size: 0.82rem;">
-                                    <thead class="table-dark sticky-top small text-uppercase" style="z-index: 5;">
+                                    <thead class="sticky-top small text-uppercase text-white" style="background: linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%); z-index: 5;">
                                         <tr>
                                             <th style="width: 105px;">ID Barang</th>
                                             <th>Nama Barang</th>
@@ -192,14 +192,14 @@ const StockLookup = {
         if (this.mode === 'penjualan') {
             $('#lookup-modal-title').text('List of Stock (LookUp Penjualan POS)');
             $('#lookup-modal-subtitle').text('Menampilkan barang aktif dengan stok > 0 untuk transaksi kasir');
-            $('#lookup-badge-mode').text('MODE PENJUALAN').removeClass('bg-warning-subtle text-warning').addClass('bg-info-subtle text-info');
+            $('#lookup-badge-mode').text('MODE PENJUALAN').removeClass('bg-warning text-dark').addClass('bg-white text-primary');
             $('#lookup-th-col-harga').text('Harga Jual');
             $('#lookup-detail-lbl-harga').text('Harga Jual:');
             $('#lookup-th-col-status').hide(); // Di penjualan semua otomatis Aktif
         } else {
             $('#lookup-modal-title').text('List of Stock (LookUp Pembelian Supplier)');
             $('#lookup-modal-subtitle').text('Menampilkan seluruh barang supplier terpilih (status aktif maupun tidak aktif)');
-            $('#lookup-badge-mode').text('MODE PEMBELIAN').removeClass('bg-info-subtle text-info').addClass('bg-warning-subtle text-warning');
+            $('#lookup-badge-mode').text('MODE PEMBELIAN').removeClass('bg-white text-primary').addClass('bg-warning text-dark');
             $('#lookup-th-col-harga').text('Harga Modal');
             $('#lookup-detail-lbl-harga').text('Harga Modal (Beli):');
             $('#lookup-th-col-status').show(); // Di pembelian tampilkan status Aktif / Nonaktif

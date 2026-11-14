@@ -523,9 +523,9 @@
     <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
         <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
             <!-- Header Modal -->
-            <div class="modal-header py-2 px-3 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-bottom: 2px solid #0ea5e9;">
+            <div class="modal-header py-2 px-3 text-white" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0284c7 100%); border-bottom: 3px solid #38bdf8;">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary text-white p-2 rounded-3 shadow-sm">
+                    <span class="badge bg-white text-primary p-2 rounded-3 shadow-sm">
                         <i class="bi bi-cart-plus-fill fs-6"></i>
                     </span>
                     <div>
