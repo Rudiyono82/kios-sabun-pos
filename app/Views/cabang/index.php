@@ -182,6 +182,7 @@
     function resetFormCabang() {
         $('#cabang-id').val('');
         $('#formCabang')[0].reset();
+        $('#cabang-status').val('Aktif').trigger('change');
         $('#modalCabangHeader').removeClass('bg-warning text-dark').addClass('bg-primary text-white');
         $('#modalCabangHeader .btn-close').addClass('btn-close-white');
         $('#modalCabangTitle').text('Tambah Cabang Baru');
@@ -197,7 +198,7 @@
         $('#cabang-kota').val(c.kota || '');
         $('#cabang-telepon').val(c.telepon || '');
         $('#cabang-footer').val(c.footer_struk || '');
-        $('#cabang-status').val(c.status || 'Aktif');
+        $('#cabang-status').val(c.status || 'Aktif').trigger('change');
         $('#cabang-is_pusat').prop('checked', c.is_pusat == 1);
 
         $('#modalCabangHeader').removeClass('bg-primary text-white').addClass('bg-warning text-dark');

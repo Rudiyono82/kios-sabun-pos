@@ -34,6 +34,31 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // Global Synchronizer: Otomatis sinkronisasi tampilan komponen Select2 saat nilai .val(...) diisi via JavaScript/Database retrieve
+        (function($) {
+            if (!$) return;
+            const origVal = $.fn.val;
+            $.fn.val = function(value) {
+                if (arguments.length === 0) {
+                    return origVal.call(this);
+                }
+                const res = origVal.apply(this, arguments);
+                if (this && this.length) {
+                    this.each(function() {
+                        if (this.nodeType === 1 && this.tagName === 'SELECT' && $(this).hasClass('select2-hidden-accessible')) {
+                            if (!$(this).data('_s2_syncing')) {
+                                $(this).data('_s2_syncing', true);
+                                $(this).trigger('change');
+                                $(this).removeData('_s2_syncing');
+                            }
+                        }
+                    });
+                }
+                return res;
+            };
+        })(jQuery);
+    </script>
 
     <style>
         :root {

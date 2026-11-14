@@ -184,9 +184,9 @@
         $('#form-kode_user').val(u.kode_user).prop('readonly', true);
         $('#form-nip').val(u.nip);
         $('#form-nama_user').val(u.nama_user);
-        $('#form-role').val(u.role);
+        $('#form-role').val(u.role).trigger('change');
         $('#form-telepon').val(u.telepon);
-        $('#form-id_cabang').val(u.id_cabang || 1);
+        $('#form-id_cabang').val(u.id_cabang || 1).trigger('change');
         $('#form-can_switch_cabang').prop('checked', u.can_switch_cabang == 1 || u.role === 'admin');
         $('#form-is_active').prop('checked', u.is_active == 1);
         $('#label-pass').text('Reset Password (Kosongkan jika tidak diubah)');
@@ -205,6 +205,8 @@
         $('#help-pass').html('Password default: <code>123456</code> (jika dikosongkan untuk user baru)');
         $('#form-can_switch_cabang').prop('checked', false);
         $('form')[0].reset();
+        $('#form-role').val('kasir').trigger('change');
+        $('#form-id_cabang').val(1).trigger('change');
     });
 </script>
 <?= $this->endSection() ?>

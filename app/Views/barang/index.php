@@ -420,11 +420,11 @@
         $('#form-id_barang').val(b.id_barang).prop('readonly', true);
         $('#form-barcode').val(b.barcode || '');
         $('#form-nama_barang').val(b.nama_barang || '');
-        $('#form-kategori_id').val(b.kategori_id || '');
-        $('#form-satuan').val(b.satuan || '');
-        $('#form-kode_supplier_1').val(b.kode_supplier_1 || '');
-        $('#form-kode_supplier_2').val(b.kode_supplier_2 || '');
-        $('#form-status').val(b.status || 'Aktif');
+        $('#form-kategori_id').val(b.kategori_id || '').trigger('change');
+        $('#form-satuan').val(b.satuan || '').trigger('change');
+        $('#form-kode_supplier_1').val(b.kode_supplier_1 || '').trigger('change');
+        $('#form-kode_supplier_2').val(b.kode_supplier_2 || '').trigger('change');
+        $('#form-status').val(b.status || 'Aktif').trigger('change');
         $('#form-is_jerigen').prop('checked', b.is_jerigen == 1);
 
         if (isAdmin) {
@@ -476,8 +476,11 @@
         $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
         $('#form-id_barang').prop('readonly', false);
         $('#formBarang')[0].reset();
-        $('#form-kode_supplier_1').val('');
-        $('#form-kode_supplier_2').val('');
+        $('#form-kategori_id').val('').trigger('change');
+        $('#form-satuan').val('').trigger('change');
+        $('#form-kode_supplier_1').val('').trigger('change');
+        $('#form-kode_supplier_2').val('').trigger('change');
+        $('#form-status').val('Aktif').trigger('change');
         $('#form-harga_beli, #form-harga_jual, #form-harga_grosir, #form-hrg_paket_a, #form-hrg_paket_b, #form-hrg_paket_c').val('0');
 
         // Saat Tambah Baru: SEMUA field harga beli, harga jual, grosir, dan paket A/B/C di-ENABLE bisa diinput
