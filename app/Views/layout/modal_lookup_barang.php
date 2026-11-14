@@ -20,11 +20,12 @@
             </div>
 
             <div class="modal-body p-3 bg-light">
-                <!-- Baris Filter & Pencarian Sesuai Screenshot VB6 -->
+                <!-- Baris Filter & Pencarian Sesuai Screenshot VB6 (Sejajar 1 Baris Penuh) -->
                 <div class="card border p-2 px-3 mb-3 bg-white shadow-sm rounded-3">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-12 col-md-4">
-                            <div class="input-group input-group-sm">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
+                            <!-- Filter Dropdown (Sejajar Horisontal) -->
+                            <div class="input-group input-group-sm flex-nowrap" style="width: 250px;">
                                 <span class="input-group-text bg-light text-dark fw-bold text-nowrap" style="font-size: 0.78rem;">
                                     <i class="bi bi-funnel me-1 text-primary"></i> Filter :
                                 </span>
@@ -36,25 +37,27 @@
                                     <option value="all">SEMUA KOLOM</option>
                                 </select>
                             </div>
-                        </div>
 
-                        <div class="col-12 col-md-5">
-                            <div class="input-group input-group-sm">
+                            <!-- Input Pencarian (Sejajar Horisontal & Fleksibel) -->
+                            <div class="input-group input-group-sm flex-nowrap flex-grow-1" style="min-width: 260px; max-width: 520px;">
                                 <span class="input-group-text bg-light text-dark fw-bold text-nowrap" style="font-size: 0.78rem;">
                                     <i class="bi bi-search me-1 text-success"></i> Kata Cari :
                                 </span>
                                 <input type="text" id="lookup-search-keyword" class="form-control" placeholder="Ketik kata yang dicari lalu tekan Enter..." autocomplete="off">
-                                <button class="btn btn-success fw-bold px-3" type="button" id="btn-lookup-do-search" title="Mulai Pencarian">
+                                <button class="btn btn-success fw-bold px-3" type="button" id="btn-lookup-do-search" title="Mulai Pencarian [Enter]">
                                     <i class="bi bi-arrow-right"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="col-12 col-md-3 text-md-end d-flex align-items-center justify-content-md-end gap-2">
+                        <!-- Tombol Refresh & Petunjuk Keyboard -->
+                        <div class="d-flex align-items-center gap-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-lookup-refresh-data" title="Refresh Data">
                                 <i class="bi bi-arrow-repeat me-1"></i> Refresh
                             </button>
-                            <small class="text-muted d-none d-lg-inline text-nowrap" style="font-size: 0.72rem;">Gunakan <kbd class="bg-light text-dark border">↑</kbd> <kbd class="bg-light text-dark border">↓</kbd> & <kbd class="bg-primary text-white border">Enter</kbd></small>
+                            <small class="text-muted d-none d-lg-inline text-nowrap" style="font-size: 0.72rem;">
+                                Gunakan <kbd class="bg-light text-dark border">↑</kbd> <kbd class="bg-light text-dark border">↓</kbd> & <kbd class="bg-primary text-white border">Enter</kbd>
+                            </small>
                         </div>
                     </div>
                 </div>
