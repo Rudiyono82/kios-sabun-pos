@@ -58,8 +58,11 @@
                         </td>
                         <td>
                             <div class="fw-semibold text-dark"><?= esc($b['nama_barang']) ?></div>
-                            <?php if (!empty($b['is_jerigen'])): ?>
-                                <span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-recycle"></i> Tukar Jerigen 5L</span>
+                            <?php 
+                                $is5L = preg_match('/5\s*l/i', $b['nama_barang'] ?? '');
+                            ?>
+                            <?php if (!empty($b['is_jerigen']) && $is5L): ?>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-recycle"></i> Tukar Jerigen 5 L</span>
                             <?php endif; ?>
                             <?php if (!empty($b['kode_supplier_1'])): ?>
                                 <div class="mt-1" style="font-size: 0.72rem;">

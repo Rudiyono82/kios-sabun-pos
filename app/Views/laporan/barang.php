@@ -226,9 +226,12 @@
                             <!-- Nama Barang -->
                             <td>
                                 <div class="fw-semibold text-dark"><?= esc($b['nama_barang']) ?></div>
-                                <?php if (!empty($b['is_jerigen'])): ?>
+                                <?php 
+                                    $is5L = preg_match('/5\s*l/i', $b['nama_barang'] ?? '');
+                                ?>
+                                <?php if (!empty($b['is_jerigen']) && $is5L): ?>
                                     <span class="badge bg-success-subtle text-success border border-success-subtle small" style="font-size: 0.7rem;">
-                                        <i class="bi bi-recycle"></i> Tukar Jerigen 5L
+                                        <i class="bi bi-recycle"></i> Tukar Jerigen 5 L
                                     </span>
                                 <?php endif; ?>
                             </td>
