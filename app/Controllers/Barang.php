@@ -29,6 +29,7 @@ class Barang extends BaseController
             'is_admin' => $isAdmin,
             'kategori' => $db->table('kategori')->get()->getResultArray(),
             'satuan' => $db->table('satuan')->get()->getResultArray(),
+            'suppliers' => $db->table('supplier')->orderBy('nama_supplier', 'ASC')->get()->getResultArray(),
         ];
 
         return view('barang/index', $data);
@@ -65,13 +66,15 @@ class Barang extends BaseController
         }
 
         $data = [
-            'id_barang'   => $idBarang,
-            'barcode'     => trim((string)$this->request->getPost('barcode')),
-            'nama_barang' => $namaBarang,
-            'kategori_id' => $kategoriId,
-            'satuan'      => $satuan,
-            'is_jerigen'  => $this->request->getPost('is_jerigen') ? 1 : 0,
-            'status'      => $this->request->getPost('status') ?? 'Aktif',
+            'id_barang'       => $idBarang,
+            'barcode'         => trim((string)$this->request->getPost('barcode')),
+            'nama_barang'     => $namaBarang,
+            'kategori_id'     => $kategoriId,
+            'satuan'          => $satuan,
+            'kode_supplier_1' => trim((string)$this->request->getPost('kode_supplier_1')) ?: null,
+            'kode_supplier_2' => trim((string)$this->request->getPost('kode_supplier_2')) ?: null,
+            'is_jerigen'      => $this->request->getPost('is_jerigen') ? 1 : 0,
+            'status'          => $this->request->getPost('status') ?? 'Aktif',
         ];
 
         // Helper pembersih angka mata uang (rupiah) berformat titik

@@ -74,7 +74,15 @@
             
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-5">
-                    <label class="form-label small fw-bold mb-1">Cari Produk / Bahan Baku</label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small fw-bold mb-0">Cari Produk / Bahan Baku</label>
+                        <div class="form-check form-check-inline m-0" title="Centang untuk menyaring produk hanya dari supplier yang dipilih di samping">
+                            <input class="form-check-input" type="checkbox" id="check-filter-supplier" checked style="cursor: pointer;">
+                            <label class="form-check-label text-primary fw-semibold" for="check-filter-supplier" style="font-size: 0.72rem; cursor: pointer;">
+                                <i class="bi bi-funnel-fill"></i> Filter Supplier
+                            </label>
+                        </div>
+                    </div>
                     <select id="pilih-barang" class="form-select form-select-sm">
                         <option value="">-- Pilih Barang / Bahan --</option>
                         <?php 
@@ -85,6 +93,8 @@
                             <option value="<?= esc($b['id_barang']) ?>"
                                 data-nama="<?= esc($b['nama_barang']) ?>"
                                 data-satuan="<?= esc($b['satuan']) ?>"
+                                data-supp1="<?= esc($b['kode_supplier_1'] ?? '') ?>"
+                                data-supp2="<?= esc($b['kode_supplier_2'] ?? '') ?>"
                                 data-hargabeli="<?= (float)$b['harga_beli'] ?>"
                                 data-hargajual="<?= (float)$b['harga_jual'] ?>"
                                 data-hargagrosir="<?= (float)$b['harga_grosir'] ?>"
@@ -99,6 +109,7 @@
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <div id="filter-supplier-badge" class="small mt-1 text-muted" style="font-size: 0.73rem;"></div>
                 </div>
                 <div class="col-6 col-md-2">
                     <label class="form-label small fw-bold mb-1">Qty Beli</label>
@@ -347,17 +358,91 @@
     }
 
     $(document).ready(function() {
+        // Simpan semua options barang asli untuk proses filter cepat berdasarkan supplier
+        const originalBarangOptions = $('#pilih-barang option').clone();
+
+        function filterBarangBySupplier() {
+            const selectedSupplier = $('#beli-supplier').val();
+            const isFilterActive = $('#check-filter-supplier').is(':checked');
+            const currentSelectedVal = $('#pilih-barang').val();
+
+            $('#pilih-barang').empty();
+
+            if (!selectedSupplier || !isFilterActive) {
+                // Tampilkan semua barang
+                $('#pilih-barang').append(originalBarangOptions.clone());
+                $('#pilih-barang').val(currentSelectedVal);
+                const totalItem = originalBarangOptions.length - 1;
+                $('#filter-supplier-badge').html('<span class="text-muted"><i class="bi bi-info-circle"></i> Menampilkan seluruh katalog (' + totalItem + ' produk)</span>');
+                return;
+            }
+
+            // Filter barang yang supp1 == selectedSupplier atau supp2 == selectedSupplier
+            let matchCount = 0;
+            originalBarangOptions.each(function(index, el) {
+                if (index === 0) {
+                    $('#pilih-barang').append($(el).clone());
+                    return;
+                }
+                const s1 = $(el).data('supp1');
+                const s2 = $(el).data('supp2');
+                if (s1 === selectedSupplier || s2 === selectedSupplier) {
+                    $('#pilih-barang').append($(el).clone());
+                    matchCount++;
+                }
+            });
+
+            if (matchCount > 0) {
+                $('#filter-supplier-badge').html('<span class="text-success fw-semibold"><i class="bi bi-check-circle"></i> ' + matchCount + ' produk terdaftar dari supplier ini</span>');
+                if ($('#pilih-barang option[value="' + currentSelectedVal + '"]').length > 0) {
+                    $('#pilih-barang').val(currentSelectedVal);
+                } else {
+                    $('#pilih-barang').val('');
+                    $('#input-harga-beli').val('');
+                }
+            } else {
+                $('#filter-supplier-badge').html('<span class="text-warning fw-semibold"><i class="bi bi-exclamation-triangle"></i> Belum ada produk terdaftar untuk supplier ini. <a href="javascript:void(0)" id="btn-show-all-barang" class="text-primary text-decoration-underline">Tampilkan semua produk</a></span>');
+                $('#pilih-barang').val('');
+                $('#input-harga-beli').val('');
+            }
+        }
+
+        $('#beli-supplier').on('change', function() {
+            filterBarangBySupplier();
+        });
+
+        $('#check-filter-supplier').on('change', function() {
+            filterBarangBySupplier();
+        });
+
+        $(document).on('click', '#btn-show-all-barang', function(e) {
+            e.preventDefault();
+            $('#check-filter-supplier').prop('checked', false).trigger('change');
+        });
+
         // Saat barang dipilih dari dropdown, isi harga beli default (terkunci dari master)
         $('#pilih-barang').on('change', function() {
             const $opt = $(this).find(':selected');
             if ($opt.val()) {
                 const harga = parseFloat($opt.data('hargabeli')) || 0;
                 $('#input-harga-beli').val(formatRupiah(harga));
+
+                // Jika supplier belum dipilih di samping, otomatis pilih Supplier 1 produk ini
+                const supp1 = $opt.data('supp1');
+                if (supp1 && !$('#beli-supplier').val()) {
+                    $('#beli-supplier').val(supp1);
+                    const suppName = $('#beli-supplier').find(':selected').data('nama') || supp1;
+                    $('#filter-supplier-badge').html('<span class="text-primary"><i class="bi bi-magic"></i> Mitra supplier otomatis dipilih: ' + suppName + '</span>');
+                }
+
                 $('#input-qty-beli').focus().select();
             } else {
                 $('#input-harga-beli').val('');
             }
         });
+
+        // Jalankan inisialisasi awal filter jika supplier sudah terpilih
+        filterBarangBySupplier();
 
         // 1. Trigger Buka Modal Ubah Harga
         $('#btn-trigger-ubah-harga').on('click', function(e) {

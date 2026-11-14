@@ -63,6 +63,14 @@
                             <?php if (!empty($b['is_jerigen'])): ?>
                                 <span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-recycle"></i> Tukar Jerigen 5L</span>
                             <?php endif; ?>
+                            <?php if (!empty($b['kode_supplier_1'])): ?>
+                                <div class="mt-1" style="font-size: 0.72rem;">
+                                    <span class="text-primary fw-medium"><i class="bi bi-truck me-1"></i><?= esc($b['nama_supplier_1'] ?? $b['kode_supplier_1']) ?></span>
+                                    <?php if (!empty($b['kode_supplier_2'])): ?>
+                                        <span class="text-muted ms-1">/ <?= esc($b['nama_supplier_2'] ?? $b['kode_supplier_2']) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </td>
                         <td><span class="badge bg-light text-dark border"><?= esc($b['nama_kategori'] ?? 'Umum') ?></span></td>
                         <td><span class="badge bg-secondary-subtle text-secondary"><?= esc($b['satuan']) ?></span></td>
@@ -174,6 +182,38 @@
                                 <?php foreach ($satuan as $s): ?>
                                     <option value="<?= esc($s['nama_satuan']) ?>"><?= esc($s['nama_satuan']) ?></option>
                                 <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <!-- Kode Supplier 1 & 2 (Sesuai VB6) -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">
+                                <i class="bi bi-truck text-primary me-1"></i>Kode Supplier 1 (Utama)
+                            </label>
+                            <select name="kode_supplier_1" id="form-kode_supplier_1" class="form-select">
+                                <option value="">-- Tidak Ada / Pilih Supplier 1 --</option>
+                                <?php if (!empty($suppliers)): ?>
+                                    <?php foreach ($suppliers as $sup): ?>
+                                        <option value="<?= esc($sup['kode_supplier']) ?>">
+                                            <?= esc($sup['kode_supplier']) ?> | <?= esc($sup['nama_supplier']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">
+                                <i class="bi bi-truck text-secondary me-1"></i>Kode Supplier 2 (Alternatif)
+                            </label>
+                            <select name="kode_supplier_2" id="form-kode_supplier_2" class="form-select">
+                                <option value="">-- Tidak Ada / Pilih Supplier 2 --</option>
+                                <?php if (!empty($suppliers)): ?>
+                                    <?php foreach ($suppliers as $sup): ?>
+                                        <option value="<?= esc($sup['kode_supplier']) ?>">
+                                            <?= esc($sup['kode_supplier']) ?> | <?= esc($sup['nama_supplier']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </select>
                         </div>
 
@@ -383,6 +423,8 @@
         $('#form-nama_barang').val(b.nama_barang || '');
         $('#form-kategori_id').val(b.kategori_id || '');
         $('#form-satuan').val(b.satuan || '');
+        $('#form-kode_supplier_1').val(b.kode_supplier_1 || '');
+        $('#form-kode_supplier_2').val(b.kode_supplier_2 || '');
         $('#form-status').val(b.status || 'Aktif');
         $('#form-is_jerigen').prop('checked', b.is_jerigen == 1);
 
@@ -435,6 +477,8 @@
         $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
         $('#form-id_barang').prop('readonly', false);
         $('#formBarang')[0].reset();
+        $('#form-kode_supplier_1').val('');
+        $('#form-kode_supplier_2').val('');
         $('#form-harga_beli, #form-harga_jual, #form-harga_grosir, #form-hrg_paket_a, #form-hrg_paket_b, #form-hrg_paket_c').val('0');
 
         // Saat Tambah Baru: SEMUA field harga beli, harga jual, grosir, dan paket A/B/C di-ENABLE bisa diinput
