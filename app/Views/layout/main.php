@@ -241,21 +241,117 @@
             min-width: 0;
             overflow-x: clip;
         }
+        /* ============================================================ */
+        /* TOP NAVBAR MODERN GLASSMORPHISM DESIGN & FREEZE STICKY       */
+        /* ============================================================ */
         .top-navbar {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-bottom: 1px solid #e2e8f0;
-            padding: 14px 28px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.94) 100%);
+            backdrop-filter: blur(14px) saturate(180%);
+            -webkit-backdrop-filter: blur(14px) saturate(180%);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+            padding: 11px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky;
             top: 0;
             z-index: 1020;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .top-navbar-title {
+            font-size: 1.12rem;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+            letter-spacing: -0.2px;
+        }
+        .branch-switcher-btn {
+            background: #f0fdf4 !important;
+            border: 1px solid #86efac !important;
+            color: #166534 !important;
+            font-weight: 700 !important;
+            border-radius: 30px !important;
+            padding: 0.35rem 0.85rem !important;
+            box-shadow: 0 1px 2px rgba(22, 163, 74, 0.08);
             transition: all 0.2s ease;
         }
+        .branch-switcher-btn:hover,
+        .branch-switcher-btn:focus {
+            background: #dcfce7 !important;
+            border-color: #4ade80 !important;
+            color: #14532d !important;
+            box-shadow: 0 3px 8px rgba(22, 163, 74, 0.18);
+        }
+        .navbar-clock-pill {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
+            padding: 4px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+        .navbar-clock-pill #live-clock {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-weight: 800;
+            font-size: 0.88rem;
+            color: #0284c7;
+        }
+        .navbar-quick-tx-btn {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 700 !important;
+            border-radius: 30px !important;
+            padding: 0.38rem 0.95rem !important;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+            transition: all 0.2s ease;
+        }
+        .navbar-quick-tx-btn:hover {
+            background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+            transform: translateY(-1px);
+        }
+        .navbar-user-btn {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 30px !important;
+            padding: 3px 12px 3px 5px !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+        }
+        .navbar-user-btn:hover {
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        /* ============================================================ */
+        /* TIPOGRAFI TEBAL: LABEL FIELD INPUT & HEADER KOLOM GRID       */
+        /* ============================================================ */
+        .form-label,
+        label:not(.form-check-label):not(.btn) {
+            font-weight: 750 !important;
+            color: #0f172a !important;
+            font-size: 0.84rem;
+            letter-spacing: 0.15px;
+            margin-bottom: 0.3rem;
+        }
+        .form-label.small,
+        label.small {
+            font-weight: 750 !important;
+            font-size: 0.80rem;
+        }
+        .card-modern h6,
+        .card-header h6,
+        .modal-body h6,
+        .modal-title {
+            font-weight: 800 !important;
+            color: #0f172a !important;
+            letter-spacing: -0.15px;
+        }
+
         .main-content {
             padding: 28px;
             flex-grow: 1;
@@ -298,17 +394,18 @@
         .table thead tr,
         .table thead th,
         .table thead.table-light th,
-        .table thead.table-dark th {
+        .table thead.table-dark th,
+        table.dataTable thead th {
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
             color: #ffffff !important;
-            font-weight: 700 !important;
-            font-size: 0.8rem !important;
-            letter-spacing: 0.6px;
+            font-weight: 800 !important;
+            font-size: 0.81rem !important;
+            letter-spacing: 0.65px;
             text-transform: uppercase;
             border-bottom: 2px solid #0284c7 !important; /* aksen biru */
             border-top: none !important;
             vertical-align: middle;
-            padding: 12px 14px !important;
+            padding: 13px 14px !important;
         }
 
         .table thead tr th:first-child {
@@ -987,13 +1084,18 @@
                     <i class="bi bi-list fs-5"></i>
                 </button>
 
-                <h5 class="mb-0 fw-bold text-dark d-none d-sm-block"><?= esc($title ?? 'Dashboard') ?></h5>
+                <h5 class="mb-0 top-navbar-title d-none d-sm-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary p-1 px-2 rounded-3 border border-primary-subtle" style="font-size: 0.85rem;">
+                        <i class="bi bi-window-sidebar"></i>
+                    </span>
+                    <span><?= esc($title ?? 'Dashboard') ?></span>
+                </h5>
                 
                 <!-- Branch Badge / Interactive Dropdown Switcher -->
                 <?php if ($canSwitchCabang): ?>
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-primary dropdown-toggle rounded-pill px-3 py-1 fw-semibold d-flex align-items-center gap-2 shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Klik untuk beralih cabang operasional">
-                        <i class="bi bi-shop-window text-primary"></i>
+                    <button class="btn btn-sm branch-switcher-btn dropdown-toggle d-flex align-items-center gap-2 shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Klik untuk beralih cabang operasional">
+                        <i class="bi bi-shop-window text-success"></i>
                         <span class="text-truncate" style="max-width: 170px;"><?= esc($currentCabangNama) ?></span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-start shadow-lg border-0 py-2" style="min-width: 260px; border-radius: 12px; z-index: 9999;">
@@ -1029,31 +1131,34 @@
                 <?php endif; ?>
             </div>
             
-            <div class="d-flex align-items-center gap-3">
-                <!-- Jam Live -->
-                <div class="text-end d-none d-md-block">
-                    <div class="fw-semibold small text-dark" id="live-clock">--:--:--</div>
-                    <small class="text-muted" style="font-size: 0.78rem;"><?= date('l, d F Y') ?></small>
+            <div class="d-flex align-items-center gap-2 gap-md-3">
+                <!-- Jam Live Modern Pill Widget -->
+                <div class="navbar-clock-pill d-none d-md-flex align-items-center">
+                    <i class="bi bi-clock-history text-primary fs-6"></i>
+                    <div class="text-end">
+                        <div class="lh-1" id="live-clock">--:--:--</div>
+                        <small class="text-muted fw-semibold" style="font-size: 0.70rem;"><?= date('D, d M Y') ?></small>
+                    </div>
                 </div>
                 
-                <div class="vr mx-1"></div>
+                <div class="vr mx-1 d-none d-md-block"></div>
 
                 <!-- Tombol Transaksi Cepat -->
-                <a href="<?= base_url('pos') ?>" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-medium d-none d-sm-inline-block">
-                    <i class="bi bi-plus-circle me-1"></i> Transaksi Baru
+                <a href="<?= base_url('pos') ?>" class="btn btn-sm navbar-quick-tx-btn d-none d-sm-inline-flex align-items-center gap-1 shadow-sm">
+                    <i class="bi bi-plus-circle-fill"></i> Transaksi Baru
                 </a>
 
                 <!-- User Profile & Status Area (Header Kanan) -->
                 <div class="dropdown">
-                    <button class="btn btn-light rounded-pill border d-flex align-items-center gap-2 py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <button class="btn btn-light navbar-user-btn d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;">
                             <i class="bi bi-person-fill fs-6"></i>
                         </div>
-                        <div class="text-start d-none d-sm-block">
-                            <div class="fw-bold small text-dark lh-1"><?= esc(session()->get('nama_user') ?? 'User Kasir') ?></div>
-                            <small class="text-success" style="font-size: 0.72rem;"><i class="bi bi-circle-fill" style="font-size: 7px;"></i> <?= esc(ucfirst(session()->get('role') ?? 'Kasir')) ?></small>
+                        <div class="text-start d-none d-sm-block me-1">
+                            <div class="fw-bold small text-dark lh-1" style="font-size: 0.82rem;"><?= esc(session()->get('nama_user') ?? 'User Kasir') ?></div>
+                            <small class="text-success fw-bold" style="font-size: 0.70rem;"><i class="bi bi-circle-fill" style="font-size: 6px;"></i> <?= esc(ucfirst(session()->get('role') ?? 'Kasir')) ?></small>
                         </div>
-                        <i class="bi bi-chevron-down text-muted small ms-1"></i>
+                        <i class="bi bi-chevron-down text-muted small"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg rounded-3 border-0 py-2" style="min-width: 210px;">
                         <li class="px-3 py-2 border-bottom mb-1">
