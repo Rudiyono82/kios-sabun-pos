@@ -334,10 +334,8 @@
     function roundPosTotal(amount) {
         amount = parseFloat(amount) || 0;
         if (amount <= 0) return 0;
-        if (amount < 1000) {
-            if (Math.round(amount) === 500) return 500;
-            return 1000;
-        }
+        if (amount <= 500) return 500;
+
         let base = Math.floor(amount / 500) * 500;
         let remainder = amount - base;
         if (remainder > 0 && remainder <= 250) {
