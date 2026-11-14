@@ -47,13 +47,25 @@ class BarangModel extends Model
             ->get()->getResultArray();
     }
 
-    public function getStokMenipis()
+    public function getStokMenipis($idCabang = null, $limit = 100)
     {
-        return $this->db->table('barang')
-            ->where('stok <= min_stok')
-            ->where('status', 'Aktif')
-            ->orderBy('stok', 'ASC')
-            ->get()->getResultArray();
+        $cbg = (int)($idCabang ?: (session()->get('id_cabang') ?: 1));
+
+        $builder = $this->db->table('barang b')
+            ->select('b.id, b.id_barang, b.barcode, b.nama_barang, b.kategori_id, k.nama_kategori, b.satuan, b.harga_beli, b.harga_jual, b.gambar, b.kode_supplier_1, s.nama_supplier, COALESCE(sc.stok, b.stok) as stok, COALESCE(sc.min_stok, b.min_stok) as min_stok')
+            ->join('kategori k', 'k.id = b.kategori_id', 'left')
+            ->join('supplier s', 's.kode_supplier = b.kode_supplier_1', 'left')
+            ->join('stok_cabang sc', "sc.id_barang = b.id_barang AND sc.id_cabang = {$cbg}", 'left')
+            ->where('b.status', 'Aktif')
+            ->where('(COALESCE(sc.stok, b.stok) <= COALESCE(sc.min_stok, b.min_stok) OR COALESCE(sc.stok, b.stok) <= 0)')
+            ->orderBy('COALESCE(sc.stok, b.stok)', 'ASC')
+            ->orderBy('b.nama_barang', 'ASC');
+
+        if ($limit > 0) {
+            $builder->limit($limit);
+        }
+
+        return $builder->get()->getResultArray();
     }
 }
 

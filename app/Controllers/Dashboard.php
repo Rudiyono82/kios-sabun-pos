@@ -23,7 +23,7 @@ class Dashboard extends BaseController
         $summaryHariIni = $penjualanModel->getSummaryHariIni($cabangFilter);
         $grafik7Hari = $penjualanModel->getGrafikPenjualan7Hari($cabangFilter);
         $topProduk = $penjualanModel->getTopProdukTerlaris(5, $cabangFilter);
-        $stokMenipis = $barangModel->getStokMenipis();
+        $stokMenipis = $barangModel->getStokMenipis($userCabangId, 100);
         $topMember = $memberModel->getTopMember(5);
         $ringkasanKas = $keuanganModel->getRingkasanHariIni($cabangFilter);
 

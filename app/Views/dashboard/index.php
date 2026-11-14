@@ -100,7 +100,7 @@
 <?php $isAdmin = (session()->get('role') === 'admin'); ?>
 <div class="row g-4 mb-4">
     <!-- Grafik Penjualan & Profit 7 Hari Terakhir -->
-    <div class="col-12 <?= $isAdmin ? 'col-lg-8' : 'col-lg-12' ?>">
+    <div class="col-12 col-lg-8">
         <div class="card-modern p-4 h-100">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
@@ -127,42 +127,214 @@
         </div>
     </div>
 
-    <?php if ($isAdmin): ?>
-    <!-- Alert Stok Kritis / Menipis (Khusus Admin / Owner Toko) -->
+    <!-- Alert Stok Kritis / Menipis (Card Ringkasan Cepat) -->
     <div class="col-12 col-lg-4">
-        <div class="card-modern p-4 h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 class="fw-bold mb-1 text-danger"><i class="bi bi-exclamation-octagon-fill"></i> Perlu Restock Segera</h5>
-                    <small class="text-muted">Barang di bawah batas minimum stok</small>
+        <div class="card-modern p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1 text-danger"><i class="bi bi-exclamation-octagon-fill"></i> Perlu Restock</h5>
+                        <small class="text-muted">Barang &le; batas minimum stok</small>
+                    </div>
+                    <span class="badge bg-danger text-white rounded-pill px-3 py-1 fs-6"><?= count($stokMenipis) ?> Item</span>
                 </div>
-                <span class="badge bg-danger text-white rounded-pill"><?= count($stokMenipis) ?> Item</span>
+
+                <?php if (empty($stokMenipis)): ?>
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-check-circle-fill text-success fs-1"></i>
+                        <p class="mt-2 mb-0">Semua stok barang dalam kondisi aman!</p>
+                    </div>
+                <?php else: ?>
+                    <div class="list-group list-group-flush overflow-auto" style="max-height: 250px;">
+                        <?php foreach (array_slice($stokMenipis, 0, 8) as $item): ?>
+                            <div class="list-group-item px-0 py-2 border-0 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold text-dark small text-truncate" style="max-width: 175px;"><?= esc($item['nama_barang']) ?></div>
+                                    <small class="text-muted"><?= esc($item['id_barang']) ?> &bull; Min: <?= $item['min_stok'] ?> <?= esc($item['satuan']) ?></small>
+                                </div>
+                                <div class="text-end">
+                                    <?php if ((float)$item['stok'] <= 0): ?>
+                                        <span class="badge bg-danger fw-bold fs-6">0</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning text-dark fw-bold fs-6"><?= $item['stok'] ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
-            <?php if (empty($stokMenipis)): ?>
-                <div class="text-center py-5 text-muted">
-                    <i class="bi bi-check-circle-fill text-success fs-1"></i>
-                    <p class="mt-2 mb-0">Semua stok barang dalam kondisi aman!</p>
-                </div>
-            <?php else: ?>
-                <div class="list-group list-group-flush overflow-auto" style="max-height: 300px;">
-                    <?php foreach ($stokMenipis as $item): ?>
-                        <div class="list-group-item px-0 py-2 border-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="fw-semibold text-dark small text-truncate" style="max-width: 180px;"><?= esc($item['nama_barang']) ?></div>
-                                <small class="text-muted"><?= esc($item['id_barang']) ?> &bull; Min: <?= $item['min_stok'] ?> <?= esc($item['satuan']) ?></small>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-danger-subtle text-danger fw-bold fs-6"><?= $item['stok'] ?></span>
-                                <div><a href="<?= base_url('pembelian') ?>" class="text-primary small text-decoration-none">Order <i class="bi bi-arrow-right"></i></a></div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+            <div class="pt-3 border-top mt-2">
+                <a href="#section-tabel-stok-menipis" class="btn btn-outline-danger btn-sm w-100 fw-bold">
+                    <i class="bi bi-table me-1"></i> Lihat Tabel Lengkap Stok Menipis (<?= count($stokMenipis) ?>)
+                </a>
+            </div>
         </div>
     </div>
-    <?php endif; ?>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TABEL DATA BARANG AKAN & SUDAH HABIS (PERLU RESTOCK SEGERA)               -->
+<!-- ========================================================================= -->
+<div class="row g-4 mb-4" id="section-tabel-stok-menipis">
+    <div class="col-12">
+        <div class="card-modern p-4 border shadow-sm rounded-4 bg-white">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 pb-3 border-bottom">
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-danger p-2 rounded-3 text-white shadow-xs">
+                            <i class="bi bi-exclamation-triangle-fill fs-6"></i>
+                        </span>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">Data Barang Akan &amp; Sudah Habis (Perlu Restock)</h5>
+                            <small class="text-muted">
+                                Monitoring barang dengan stok saat ini &le; batas minimum pada cabang 
+                                <strong class="text-primary font-monospace"><?= esc(session()->get('nama_cabang') ?? 'KSP Metland Cileungsi (Pusat)') ?></strong>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kontrol Filter & Pencarian Cepat -->
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <div class="btn-group btn-group-sm" role="group" id="filter-stok-kritis-pills">
+                        <button type="button" class="btn btn-outline-secondary active btn-filter-stok" data-type="all">
+                            Semua <span class="badge bg-secondary ms-1"><?= count($stokMenipis) ?></span>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-filter-stok" data-type="habis">
+                            <i class="bi bi-x-circle-fill me-1"></i> Stok 0 (Kosong)
+                            <span class="badge bg-danger ms-1"><?= count(array_filter($stokMenipis, fn($i) => (float)$i['stok'] <= 0)) ?></span>
+                        </button>
+                        <button type="button" class="btn btn-outline-warning text-dark btn-filter-stok" data-type="menipis">
+                            <i class="bi bi-hourglass-bottom me-1"></i> Menipis (&le; Min)
+                            <span class="badge bg-warning text-dark ms-1"><?= count(array_filter($stokMenipis, fn($i) => (float)$i['stok'] > 0 && (float)$i['stok'] <= (float)$i['min_stok'])) ?></span>
+                        </button>
+                    </div>
+
+                    <div class="input-group input-group-sm" style="width: 220px;">
+                        <span class="input-group-text bg-light text-muted border"><i class="bi bi-search"></i></span>
+                        <input type="text" id="input-cari-stok-kritis" class="form-control" placeholder="Cari barang / kode..." autocomplete="off">
+                    </div>
+
+                    <?php if (session()->get('role') === 'admin'): ?>
+                        <a href="<?= base_url('pembelian/tambah') ?>" class="btn btn-sm btn-primary fw-bold text-nowrap shadow-xs">
+                            <i class="bi bi-cart-plus me-1"></i> Buat Restock
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Tabel Data -->
+            <div class="table-responsive rounded-3 border" style="max-height: 420px; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0" id="table-stok-menipis" style="font-size: 0.85rem;">
+                    <thead class="table-light sticky-top small text-uppercase fw-bold" style="z-index: 2;">
+                        <tr>
+                            <th style="width: 50px;" class="text-center">No</th>
+                            <th style="width: 55px;" class="text-center">Foto</th>
+                            <th style="width: 110px;">ID Barang</th>
+                            <th>Nama Barang</th>
+                            <th style="width: 130px;">Kategori</th>
+                            <th style="width: 85px;">Satuan</th>
+                            <th class="text-center" style="width: 100px;">Stok Saat Ini</th>
+                            <th class="text-center" style="width: 90px;">Min. Stok</th>
+                            <th style="width: 160px;">Supplier Utama</th>
+                            <th class="text-center" style="width: 100px;">Status</th>
+                            <?php if (session()->get('role') === 'admin'): ?>
+                                <th class="text-center" style="width: 90px;">Aksi</th>
+                            <?php endif; ?>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-stok-menipis">
+                        <?php if (empty($stokMenipis)): ?>
+                            <tr>
+                                <td colspan="<?= session()->get('role') === 'admin' ? '11' : '10' ?>" class="text-center py-5 text-muted">
+                                    <i class="bi bi-check-circle-fill text-success fs-1 mb-2 d-block"></i>
+                                    <strong>Semua Stok Barang Aman!</strong>
+                                    <div class="small">Tidak ada produk yang habis atau di bawah batas minimum stok saat ini.</div>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php 
+                            $no = 1;
+                            foreach ($stokMenipis as $item): 
+                                $stok = (float)($item['stok'] ?? 0);
+                                $minStok = (float)($item['min_stok'] ?? 5);
+                                $isHabis = ($stok <= 0);
+                                $rowType = $isHabis ? 'habis' : 'menipis';
+                                $imgSrc = !empty($item['gambar']) ? base_url('uploads/barang/' . $item['gambar']) : null;
+                            ?>
+                                <tr class="row-stok-kritis" data-type="<?= $rowType ?>" data-search="<?= strtolower(esc($item['id_barang'] . ' ' . $item['nama_barang'] . ' ' . ($item['nama_kategori'] ?? '') . ' ' . ($item['nama_supplier'] ?? ''))) ?>">
+                                    <td class="text-center text-muted fw-semibold"><?= $no++ ?></td>
+                                    <td class="text-center">
+                                        <?php if ($imgSrc): ?>
+                                            <img src="<?= $imgSrc ?>" alt="<?= esc($item['nama_barang']) ?>" class="rounded border shadow-xs" style="width: 32px; height: 32px; object-fit: cover; cursor: zoom-in;" onclick="window.open('<?= $imgSrc ?>', '_blank')" title="Klik perbesar foto" onerror="this.style.display='none'">
+                                        <?php else: ?>
+                                            <div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                                                <i class="bi bi-image"></i>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="font-monospace fw-bold text-dark"><?= esc($item['id_barang']) ?></td>
+                                    <td>
+                                        <div class="fw-semibold text-dark text-truncate" style="max-width: 260px;" title="<?= esc($item['nama_barang']) ?>">
+                                            <?= esc($item['nama_barang']) ?>
+                                        </div>
+                                        <?php if (!empty($item['barcode'])): ?>
+                                            <small class="text-muted font-monospace"><i class="bi bi-upc-scan"></i> <?= esc($item['barcode']) ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border"><?= esc($item['nama_kategori'] ?? 'Umum') ?></span></td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary"><?= esc($item['satuan'] ?? 'PCS') ?></span></td>
+                                    <td class="text-center">
+                                        <?php if ($isHabis): ?>
+                                            <span class="badge bg-danger fs-6 px-2 py-1 shadow-xs">0</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-warning text-dark fs-6 px-2 py-1 shadow-xs"><?= $stok ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center font-monospace text-muted fw-semibold"><?= $minStok ?></td>
+                                    <td>
+                                        <div class="small text-truncate" style="max-width: 150px;" title="<?= esc($item['nama_supplier'] ?? '-') ?>">
+                                            <i class="bi bi-truck text-muted me-1"></i><?= esc($item['nama_supplier'] ?? 'Supplier Umum') ?>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if ($isHabis): ?>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle small fw-bold">
+                                                <i class="bi bi-x-circle me-1"></i> Habis
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small fw-bold">
+                                                <i class="bi bi-exclamation-triangle me-1"></i> Menipis
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <?php if (session()->get('role') === 'admin'): ?>
+                                        <td class="text-center">
+                                            <a href="<?= base_url('pembelian/tambah') ?>" class="btn btn-xs btn-outline-primary py-1 px-2 rounded" title="Buat Pesanan Restock">
+                                                <i class="bi bi-cart-plus me-1"></i> Restock
+                                            </a>
+                                        </td>
+                                    <?php endif; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 text-muted small">
+                <div>
+                    Menampilkan <span id="count-visible-kritis" class="fw-bold text-dark"><?= count($stokMenipis) ?></span> dari total <span class="fw-bold text-dark"><?= count($stokMenipis) ?></span> item kritis/menipis.
+                </div>
+                <div class="d-flex gap-3">
+                    <span class="d-flex align-items-center gap-1"><span class="badge bg-danger p-1 rounded-circle"> </span> Stok Habis (0)</span>
+                    <span class="d-flex align-items-center gap-1"><span class="badge bg-warning p-1 rounded-circle"> </span> Stok Menipis (&le; Batas Min)</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Baris Tabel Operasional: Top Produk Terlaris & Top Member -->
@@ -356,6 +528,44 @@
                 });
         });
     });
+
+    // =========================================================================
+    // Filter & Pencarian Cepat Tabel Stok Menipis & Habis
+    // =========================================================================
+    let activeStokType = 'all';
+
+    $('.btn-filter-stok').on('click', function() {
+        $('.btn-filter-stok').removeClass('active');
+        $(this).addClass('active');
+        activeStokType = $(this).data('type');
+        filterTableStokKritis();
+    });
+
+    $('#input-cari-stok-kritis').on('keyup input', function() {
+        filterTableStokKritis();
+    });
+
+    function filterTableStokKritis() {
+        const keyword = ($('#input-cari-stok-kritis').val() || '').toLowerCase().trim();
+        let visibleCount = 0;
+
+        $('.row-stok-kritis').each(function() {
+            const rowType = $(this).data('type');
+            const rowSearch = $(this).data('search') || '';
+
+            const matchType = (activeStokType === 'all' || rowType === activeStokType);
+            const matchSearch = (!keyword || rowSearch.indexOf(keyword) !== -1);
+
+            if (matchType && matchSearch) {
+                $(this).show();
+                visibleCount++;
+            } else {
+                $(this).hide();
+            }
+        });
+
+        $('#count-visible-kritis').text(visibleCount);
+    }
 </script>
 <?= $this->endSection() ?>
 
