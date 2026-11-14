@@ -242,89 +242,118 @@
             overflow-x: clip;
         }
         /* ============================================================ */
-        /* TOP NAVBAR MODERN GLASSMORPHISM DESIGN & FREEZE STICKY       */
+        /* TOP NAVBAR MODERN DARK NAVY DESIGN & FREEZE STICKY           */
+        /* Memberikan Kontras Elegan Membedakan Header dari Isi Screen  */
         /* ============================================================ */
         .top-navbar {
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.94) 100%);
-            backdrop-filter: blur(14px) saturate(180%);
-            -webkit-backdrop-filter: blur(14px) saturate(180%);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.85);
-            padding: 11px 28px;
+            background: linear-gradient(90deg, #0f172a 0%, #1e293b 60%, #0f172a 100%);
+            border-bottom: 2px solid #0284c7;
+            padding: 10px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky;
             top: 0;
             z-index: 1020;
-            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.25);
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        #btn-toggle-sidebar {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
+            color: #ffffff !important;
+            border-radius: 8px !important;
+            transition: all 0.2s ease;
+        }
+        #btn-toggle-sidebar:hover {
+            background: rgba(255, 255, 255, 0.25) !important;
+            color: #38bdf8 !important;
+            border-color: #38bdf8 !important;
+        }
         .top-navbar-title {
-            font-size: 1.12rem;
+            font-size: 1.15rem;
             font-weight: 800 !important;
-            color: #0f172a !important;
+            color: #ffffff !important;
             letter-spacing: -0.2px;
         }
+        .top-navbar-title .badge {
+            background: rgba(2, 132, 199, 0.25) !important;
+            color: #38bdf8 !important;
+            border-color: rgba(56, 189, 248, 0.4) !important;
+        }
         .branch-switcher-btn {
-            background: #f0fdf4 !important;
-            border: 1px solid #86efac !important;
-            color: #166534 !important;
+            background: rgba(16, 185, 129, 0.15) !important;
+            border: 1px solid rgba(52, 211, 153, 0.45) !important;
+            color: #34d399 !important;
             font-weight: 700 !important;
             border-radius: 30px !important;
             padding: 0.35rem 0.85rem !important;
-            box-shadow: 0 1px 2px rgba(22, 163, 74, 0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             transition: all 0.2s ease;
         }
         .branch-switcher-btn:hover,
         .branch-switcher-btn:focus {
-            background: #dcfce7 !important;
-            border-color: #4ade80 !important;
-            color: #14532d !important;
-            box-shadow: 0 3px 8px rgba(22, 163, 74, 0.18);
+            background: rgba(16, 185, 129, 0.28) !important;
+            border-color: #6ee7b7 !important;
+            color: #a7f3d0 !important;
+            box-shadow: 0 3px 12px rgba(16, 185, 129, 0.3);
         }
         .navbar-clock-pill {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 30px;
             padding: 4px 14px;
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
         }
         .navbar-clock-pill #live-clock {
             font-family: 'JetBrains Mono', 'Consolas', monospace;
             font-weight: 800;
-            font-size: 0.88rem;
-            color: #0284c7;
+            font-size: 0.90rem;
+            color: #38bdf8;
+        }
+        .navbar-clock-pill small {
+            color: #94a3b8 !important;
+        }
+        .top-navbar .vr {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            opacity: 1;
         }
         .navbar-quick-tx-btn {
             background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
             color: #ffffff !important;
-            border: none !important;
+            border: 1px solid rgba(56, 189, 248, 0.45) !important;
             font-weight: 700 !important;
             border-radius: 30px !important;
             padding: 0.38rem 0.95rem !important;
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
             transition: all 0.2s ease;
         }
         .navbar-quick-tx-btn:hover {
-            background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
-            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+            background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%) !important;
+            box-shadow: 0 6px 18px rgba(2, 132, 199, 0.5);
             transform: translateY(-1px);
         }
         .navbar-user-btn {
-            background: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
             border-radius: 30px !important;
             padding: 3px 12px 3px 5px !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
             transition: all 0.2s ease;
         }
         .navbar-user-btn:hover {
-            background: #f8fafc !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.22) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+        }
+        .navbar-user-btn .text-dark {
+            color: #ffffff !important;
+        }
+        .navbar-user-btn .text-muted {
+            color: #94a3b8 !important;
         }
 
         /* ============================================================ */
@@ -1134,10 +1163,10 @@
             <div class="d-flex align-items-center gap-2 gap-md-3">
                 <!-- Jam Live Modern Pill Widget -->
                 <div class="navbar-clock-pill d-none d-md-flex align-items-center">
-                    <i class="bi bi-clock-history text-primary fs-6"></i>
+                    <i class="bi bi-clock-history text-info fs-6"></i>
                     <div class="text-end">
                         <div class="lh-1" id="live-clock">--:--:--</div>
-                        <small class="text-muted fw-semibold" style="font-size: 0.70rem;"><?= date('D, d M Y') ?></small>
+                        <small class="fw-semibold" style="font-size: 0.70rem;"><?= date('D, d M Y') ?></small>
                     </div>
                 </div>
                 
@@ -1150,15 +1179,15 @@
 
                 <!-- User Profile & Status Area (Header Kanan) -->
                 <div class="dropdown">
-                    <button class="btn btn-light navbar-user-btn d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn navbar-user-btn d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;">
                             <i class="bi bi-person-fill fs-6"></i>
                         </div>
                         <div class="text-start d-none d-sm-block me-1">
-                            <div class="fw-bold small text-dark lh-1" style="font-size: 0.82rem;"><?= esc(session()->get('nama_user') ?? 'User Kasir') ?></div>
-                            <small class="text-success fw-bold" style="font-size: 0.70rem;"><i class="bi bi-circle-fill" style="font-size: 6px;"></i> <?= esc(ucfirst(session()->get('role') ?? 'Kasir')) ?></small>
+                            <div class="fw-bold small text-white lh-1" style="font-size: 0.82rem;"><?= esc(session()->get('nama_user') ?? 'User Kasir') ?></div>
+                            <small class="fw-bold" style="font-size: 0.70rem; color: #4ade80;"><i class="bi bi-circle-fill" style="font-size: 6px;"></i> <?= esc(ucfirst(session()->get('role') ?? 'Kasir')) ?></small>
                         </div>
-                        <i class="bi bi-chevron-down text-muted small"></i>
+                        <i class="bi bi-chevron-down text-white-50 small"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg rounded-3 border-0 py-2" style="min-width: 210px;">
                         <li class="px-3 py-2 border-bottom mb-1">
