@@ -588,7 +588,8 @@
         }
 
         /* ============================================================ */
-        /* RESPONSIVE MOBILE NAVIGATION & OFF-CANVAS SIDEBAR            */
+        /* RESPONSIVE NAVIGATION & OFF-CANVAS / COLLAPSIBLE SIDEBAR     */
+        /* Optimal untuk HP, Tablet 10-12 Inch, dan Desktop             */
         /* ============================================================ */
         #sidebar-backdrop {
             display: none;
@@ -606,7 +607,14 @@
             display: block;
         }
 
-        @media (max-width: 991.98px) {
+        /* Desktop Collapse State (>= 1200px) */
+        body.sidebar-collapsed #sidebar {
+            margin-left: -265px;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Tablet (hingga 12 Inch / 1199.98px) & Smartphone */
+        @media (max-width: 1199.98px) {
             #sidebar {
                 position: fixed !important;
                 top: 0;
@@ -621,10 +629,36 @@
                 transform: translateX(0);
             }
             .main-content {
-                padding: 16px !important;
+                padding: 16px 18px !important;
             }
             .top-navbar {
-                padding: 10px 16px !important;
+                padding: 10px 18px !important;
+            }
+            /* Optimalisasi Elemen Layar Sentuh Tablet */
+            .btn-sm {
+                padding: 0.35rem 0.65rem;
+                font-size: 0.85rem;
+            }
+            .table-responsive {
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* Khusus Tablet 10-12 Inch (768px s/d 1280px) */
+        @media (min-width: 768px) and (max-width: 1280px) {
+            .metric-card {
+                padding: 18px;
+            }
+            .metric-card h3 {
+                font-size: 1.45rem;
+            }
+            .table thead th {
+                font-size: 0.78rem !important;
+                padding: 10px 10px !important;
+            }
+            .table tbody td {
+                padding: 10px 10px !important;
+                font-size: 0.88rem;
             }
         }
     </style>
@@ -940,8 +974,8 @@
         <!-- Top Navbar -->
         <header class="top-navbar">
             <div class="d-flex align-items-center gap-2 gap-md-3">
-                <!-- Mobile Hamburger Toggle Button -->
-                <button type="button" class="btn btn-sm btn-light border d-lg-none p-1 px-2 text-dark shadow-sm" id="btn-toggle-sidebar" aria-label="Toggle navigation">
+                <!-- Hamburger Toggle Button (Aktif di HP, Tablet 12 Inch & Desktop) -->
+                <button type="button" class="btn btn-sm btn-light border p-1 px-2 text-dark shadow-sm" id="btn-toggle-sidebar" aria-label="Toggle navigation" title="Sembunyikan / Tampilkan Menu Sidebar">
                     <i class="bi bi-list fs-5"></i>
                 </button>
 
@@ -1404,16 +1438,20 @@
         });
 
         $(document).ready(function() {
-            // Kontrol Off-Canvas Mobile Sidebar Drawer
+            // Kontrol Sidebar Toggle: Off-canvas di Tablet/HP (< 1200px) & Collapse di Desktop (>= 1200px)
             $('#btn-toggle-sidebar, #sidebar-backdrop').on('click', function(e) {
                 e.preventDefault();
-                $('#sidebar').toggleClass('show');
-                $('#sidebar-backdrop').toggleClass('show');
+                if ($(window).width() < 1200) {
+                    $('#sidebar').toggleClass('show');
+                    $('#sidebar-backdrop').toggleClass('show');
+                } else {
+                    $('body').toggleClass('sidebar-collapsed');
+                }
             });
 
-            // Tutup drawer otomatis saat link menu diklik di perangkat mobile
+            // Tutup drawer otomatis saat link menu diklik di perangkat tablet/mobile (< 1200px)
             $('#sidebar .nav-link:not(.parent-menu)').on('click', function() {
-                if ($(window).width() < 992) {
+                if ($(window).width() < 1200) {
                     $('#sidebar').removeClass('show');
                     $('#sidebar-backdrop').removeClass('show');
                 }
