@@ -18,6 +18,7 @@
                 'bulan'        => $bulan,
                 'tgl_mulai'    => $tgl_mulai,
                 'tgl_selesai'  => $tgl_selesai,
+                'id_cabang'    => $filter_cabang ?? '',
                 'jenis'        => $jenis,
                 'q'            => $q
             ]);
@@ -65,6 +66,33 @@
                 <label class="form-label small fw-bold text-dark mb-1">Tanggal Selesai:</label>
                 <input type="date" name="tgl_selesai" id="input_tgl_selesai" class="form-control" value="<?= esc($tgl_selesai) ?>">
             </div>
+
+            <!-- Filter Cabang -->
+            <?php if (!empty($is_admin)): ?>
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-bold text-dark mb-1">
+                    <i class="bi bi-shop me-1 text-primary"></i>Cabang Operasional:
+                </label>
+                <select name="id_cabang" class="form-select select2 fw-semibold">
+                    <option value="semua">-- Semua Cabang --</option>
+                    <?php foreach ($cabang_list as $cb): ?>
+                        <option value="<?= $cb['id'] ?>" <?= ($filter_cabang == $cb['id']) ? 'selected' : '' ?>>
+                            <?= esc($cb['nama_cabang']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php else: ?>
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-bold text-dark mb-1">
+                    <i class="bi bi-shop me-1 text-success"></i>Cabang Tugas:
+                </label>
+                <div class="badge bg-light text-dark border p-2 w-100 text-truncate text-start d-flex align-items-center gap-1" style="height: 38px;">
+                    <i class="bi bi-lock-fill text-muted"></i>
+                    <span class="text-truncate fw-semibold"><?= esc(session()->get('nama_cabang') ?? 'KSP Pusat') ?></span>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- Filter Kategori Arus Kas -->
             <div class="col-6 col-md-3">

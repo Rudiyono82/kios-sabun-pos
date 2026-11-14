@@ -16,12 +16,16 @@ class Dashboard extends BaseController
         $memberModel = new MemberModel();
         $keuanganModel = new KeuanganModel();
 
-        $summaryHariIni = $penjualanModel->getSummaryHariIni();
-        $grafik7Hari = $penjualanModel->getGrafikPenjualan7Hari();
-        $topProduk = $penjualanModel->getTopProdukTerlaris(5);
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $cabangFilter = $isAdmin ? null : $userCabangId;
+
+        $summaryHariIni = $penjualanModel->getSummaryHariIni($cabangFilter);
+        $grafik7Hari = $penjualanModel->getGrafikPenjualan7Hari($cabangFilter);
+        $topProduk = $penjualanModel->getTopProdukTerlaris(5, $cabangFilter);
         $stokMenipis = $barangModel->getStokMenipis();
         $topMember = $memberModel->getTopMember(5);
-        $ringkasanKas = $keuanganModel->getRingkasanHariIni();
+        $ringkasanKas = $keuanganModel->getRingkasanHariIni($cabangFilter);
 
         // Data total master
         $totalBarang = $barangModel->countAllResults();
@@ -46,7 +50,11 @@ class Dashboard extends BaseController
     {
         $penjualanModel = new PenjualanModel();
         $periode = $this->request->getGet('periode') ?? '7_hari';
-        $data = $penjualanModel->getGrafikPenjualan($periode);
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $cabangFilter = $isAdmin ? null : $userCabangId;
+
+        $data = $penjualanModel->getGrafikPenjualan($periode, $cabangFilter);
 
         return $this->response->setJSON([
             'status'    => 'success',

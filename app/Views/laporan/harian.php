@@ -10,14 +10,24 @@
             <small class="text-muted">No. Laporan: <strong class="text-dark font-monospace bg-light px-2 py-0.5 rounded border"><?= esc($no_laporan) ?></strong> &bull; Setara modul cetak laporan kasir & hitung ulang omzet di aplikasi VB asli</small>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <form action="<?= base_url('laporan/harian') ?>" method="GET" class="d-flex gap-2">
-                <input type="date" name="tanggal" class="form-control" value="<?= esc($tanggal) ?>">
-                <button type="submit" class="btn btn-outline-primary"><i class="bi bi-filter"></i> Filter</button>
+            <form action="<?= base_url('laporan/harian') ?>" method="GET" class="d-flex flex-wrap gap-2 align-items-center">
+                <input type="date" name="tanggal" class="form-control form-control-sm" value="<?= esc($tanggal) ?>" style="width: auto;">
+                <?php if (!empty($is_admin)): ?>
+                <select name="id_cabang" class="form-select form-select-sm" style="width: auto;">
+                    <option value="semua">-- Semua Cabang --</option>
+                    <?php foreach ($cabang_list as $cb): ?>
+                        <option value="<?= $cb['id'] ?>" <?= ($filter_cabang == $cb['id']) ? 'selected' : '' ?>>
+                            <?= esc($cb['nama_cabang']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?php endif; ?>
+                <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-filter"></i> Filter</button>
             </form>
-            <a href="<?= base_url('laporan/cetak-struk-harian?tanggal=' . $tanggal) ?>" target="_blank" onclick="window.open(this.href, 'StrukHarian', 'width=440,height=700'); return false;" class="btn btn-dark fw-bold text-nowrap shadow-sm">
+            <a href="<?= base_url('laporan/cetak-struk-harian?tanggal=' . $tanggal . (!empty($filter_cabang) ? '&id_cabang=' . $filter_cabang : '')) ?>" target="_blank" onclick="window.open(this.href, 'StrukHarian', 'width=440,height=700'); return false;" class="btn btn-sm btn-dark fw-bold text-nowrap shadow-sm">
                 <i class="bi bi-receipt me-1 text-warning"></i> Struk Kasir (Thermal)
             </a>
-            <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Cetak A4</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Cetak A4</button>
         </div>
     </div>
 

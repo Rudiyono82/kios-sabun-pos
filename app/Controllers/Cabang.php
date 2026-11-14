@@ -81,6 +81,10 @@ class Cabang extends BaseController
 
     public function switchCabang($id)
     {
+        if (session()->get('role') !== 'admin' && !session()->get('can_switch_cabang')) {
+            return redirect()->back()->with('error', 'Akses ditolak! Kasir hanya dapat beroperasi di cabang tugas masing-masing.');
+        }
+
         $target = $this->cabangModel->find($id);
         if (!$target) {
             return redirect()->back()->with('error', 'Cabang tujuan tidak ditemukan!');

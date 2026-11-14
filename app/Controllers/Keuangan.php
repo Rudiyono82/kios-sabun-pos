@@ -14,14 +14,26 @@ class Keuangan extends BaseController
         $tglMulai = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
         $tglSelesai = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
 
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
+
         $kategoriList = $db->table('kategori_keuangan')->where('is_active', 1)->orderBy('nama_kategori', 'ASC')->get()->getResultArray();
 
-        $transaksiList = $db->table('data_keuangan')
+        $builder = $db->table('data_keuangan')
             ->where("DATE(tanggal) >=", $tglMulai)
-            ->where("DATE(tanggal) <=", $tglSelesai)
-            ->orderBy('tanggal', 'DESC')
-            ->get()
-            ->getResultArray();
+            ->where("DATE(tanggal) <=", $tglSelesai);
+
+        // Isolasi Cabang
+        if (!$isAdmin) {
+            $builder->where('id_cabang', $userCabangId);
+        } else {
+            if (!empty($filterCabang) && $filterCabang !== 'semua') {
+                $builder->where('id_cabang', (int)$filterCabang);
+            }
+        }
+
+        $transaksiList = $builder->orderBy('tanggal', 'DESC')->get()->getResultArray();
 
         // Hitung Total Masuk & Keluar Periode ini
         $totalMasuk = 0;
@@ -39,19 +51,30 @@ class Keuangan extends BaseController
             }
         }
 
-        // Hitung Saldo Kas Hari Ini
-        $ringkasanHariIni = $keuanganModel->getRingkasanHariIni();
+        // Hitung Saldo Kas Hari Ini terisolasi per cabang
+        $ringkasanHariIni = $keuanganModel->getRingkasanHariIni($isAdmin && empty($filterCabang) ? null : ($isAdmin ? (int)$filterCabang : $userCabangId));
 
         // Hitung Laba Bersih Periode ini (Khusus Admin)
-        $penjualanPeriode = $db->table('penjualan')
+        $penjualanBuilder = $db->table('penjualan')
             ->select('COALESCE(SUM(grand_total), 0) as omzet, COALESCE(SUM(total_profit), 0) as profit_kotor')
             ->where("DATE(tanggal) >=", $tglMulai)
-            ->where("DATE(tanggal) <=", $tglSelesai)
-            ->get()->getRowArray();
+            ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if (!$isAdmin) {
+            $penjualanBuilder->where('id_cabang', $userCabangId);
+        } else {
+            if (!empty($filterCabang) && $filterCabang !== 'semua') {
+                $penjualanBuilder->where('id_cabang', (int)$filterCabang);
+            }
+        }
+
+        $penjualanPeriode = $penjualanBuilder->get()->getRowArray();
 
         $omzet = (float)($penjualanPeriode['omzet'] ?? 0);
         $profitKotor = (float)($penjualanPeriode['profit_kotor'] ?? 0);
         $labaBersihRiil = $profitKotor - $totalKeluar;
+
+        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         $data = [
             'title' => 'Buku Kas & Biaya Operasional Toko',
@@ -66,6 +89,10 @@ class Keuangan extends BaseController
             'omzet_periode' => $omzet,
             'profit_kotor_periode' => $profitKotor,
             'laba_bersih_riil' => $labaBersihRiil,
+            'is_admin' => $isAdmin,
+            'user_cabang_id' => $userCabangId,
+            'filter_cabang' => $filterCabang,
+            'cabang_list' => $cabangList,
         ];
 
         return view('keuangan/index', $data);
@@ -80,12 +107,14 @@ class Keuangan extends BaseController
         $total = (float) str_replace(['.', ',', ' '], '', (string)$this->request->getPost('total'));
         $keterangan = $this->request->getPost('keterangan');
         $isLocked = $this->request->getPost('is_locked') ? 1 : 0;
+        $idCabang = (int)(session()->get('id_cabang') ?: 1);
 
         if ($total <= 0) {
             return redirect()->back()->with('error', 'Nominal transaksi harus lebih dari 0.');
         }
 
         $db->table('data_keuangan')->insert([
+            'id_cabang' => $idCabang,
             'tanggal' => date('Y-m-d H:i:s'),
             'jenis_keuangan' => $jenis,
             'nama_keuangan' => $nama,
@@ -128,6 +157,14 @@ class Keuangan extends BaseController
         }
 
         $isCurrentAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+
+        if (!$isCurrentAdmin && (int)($row['id_cabang'] ?? 1) !== $userCabangId) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'Akses ditolak! Anda tidak berhak menghapus catatan kas milik cabang lain.'
+            ]);
+        }
 
         // 3. Item pengeluaran/pemasukan yang ditandai flag khusus (is_locked = 1) HANYA bisa dihapus oleh akun admin langsung
         if (!empty($row['is_locked'])) {

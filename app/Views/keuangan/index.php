@@ -103,7 +103,28 @@
             <label class="small fw-bold text-muted">Sampai Tanggal</label>
             <input type="date" name="tgl_selesai" class="form-control form-control-sm" value="<?= esc($tgl_selesai) ?>">
         </div>
-        <div class="col-12 col-md-2 mt-md-4">
+        <?php if (!empty($is_admin)): ?>
+        <div class="col-12 col-md-3">
+            <label class="small fw-bold text-muted"><i class="bi bi-shop me-1 text-primary"></i>Cabang Operasional</label>
+            <select name="id_cabang" class="form-select form-select-sm">
+                <option value="semua">-- Semua Cabang --</option>
+                <?php foreach ($cabang_list as $cb): ?>
+                    <option value="<?= $cb['id'] ?>" <?= ($filter_cabang == $cb['id']) ? 'selected' : '' ?>>
+                        <?= esc($cb['nama_cabang']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php else: ?>
+        <div class="col-12 col-md-3">
+            <label class="small fw-bold text-muted"><i class="bi bi-shop me-1 text-success"></i>Cabang Kasir</label>
+            <div class="badge bg-light text-dark border p-2 w-100 text-truncate text-start d-flex align-items-center gap-1" style="height: 31px;">
+                <i class="bi bi-lock-fill text-muted"></i>
+                <span class="text-truncate"><?= esc(session()->get('nama_cabang') ?? 'KSP Pusat') ?></span>
+            </div>
+        </div>
+        <?php endif; ?>
+        <div class="col-12 col-md-3 mt-md-4">
             <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill">
                 <i class="bi bi-funnel me-1"></i> Terapkan Filter
             </button>

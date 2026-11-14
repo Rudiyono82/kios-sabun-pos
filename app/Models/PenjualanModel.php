@@ -12,7 +12,7 @@ class PenjualanModel extends Model
         'no_faktur', 'tanggal', 'kode_user', 'nama_kasir', 'kode_member',
         'total_item', 'total_qty', 'subtotal', 'diskon', 'potongan_tukar_jerigen',
         'grand_total', 'bayar', 'kembalian', 'metode_bayar', 'no_kartu',
-        'total_profit', 'catatan', 'created_at'
+        'total_profit', 'catatan', 'created_at', 'kode_voucher', 'potongan_voucher', 'id_cabang'
     ];
 
     public function generateNoFaktur()
@@ -32,7 +32,7 @@ class PenjualanModel extends Model
         return $prefix . $nextNum;
     }
 
-    public function getSummaryHariIni()
+    public function getSummaryHariIni($idCabang = null)
     {
         $today = date('Y-m-d');
         $builder = $this->db->table('penjualan')
@@ -45,10 +45,14 @@ class PenjualanModel extends Model
             ')
             ->where("DATE(tanggal)", $today);
         
+        if (!empty($idCabang)) {
+            $builder->where('id_cabang', (int)$idCabang);
+        }
+        
         return $builder->get()->getRowArray();
     }
 
-    public function getGrafikPenjualan($periode = '7_hari')
+    public function getGrafikPenjualan($periode = '7_hari', $idCabang = null)
     {
         $data = [];
 
@@ -66,10 +70,15 @@ class PenjualanModel extends Model
                 $hariIndo = $namaHariIndo[$dayEng] ?? $dayEng;
                 $label = $hariIndo . ' (' . date('d/m', $currentTs) . ')';
 
-                $row = $this->db->table('penjualan')
+                $builder = $this->db->table('penjualan')
                     ->select('COALESCE(SUM(grand_total), 0) as omzet, COALESCE(SUM(total_profit), 0) as profit, COUNT(id) as jml_trx')
-                    ->where("DATE(tanggal)", $date)
-                    ->get()->getRowArray();
+                    ->where("DATE(tanggal)", $date);
+
+                if (!empty($idCabang)) {
+                    $builder->where('id_cabang', (int)$idCabang);
+                }
+
+                $row = $builder->get()->getRowArray();
 
                 $data[] = [
                     'tanggal'   => $date,
@@ -85,10 +94,15 @@ class PenjualanModel extends Model
                 $date = date('Y-m-d', strtotime("-$i days"));
                 $label = date('d M', strtotime($date));
 
-                $row = $this->db->table('penjualan')
+                $builder = $this->db->table('penjualan')
                     ->select('COALESCE(SUM(grand_total), 0) as omzet, COALESCE(SUM(total_profit), 0) as profit, COUNT(id) as jml_trx')
-                    ->where("DATE(tanggal)", $date)
-                    ->get()->getRowArray();
+                    ->where("DATE(tanggal)", $date);
+
+                if (!empty($idCabang)) {
+                    $builder->where('id_cabang', (int)$idCabang);
+                }
+
+                $row = $builder->get()->getRowArray();
 
                 $data[] = [
                     'tanggal'   => $date,
@@ -112,10 +126,15 @@ class PenjualanModel extends Model
                 $y = date('y', $time);
                 $label = ($bulanIndo[$b] ?? date('M', $time)) . " '" . $y;
 
-                $row = $this->db->table('penjualan')
+                $builder = $this->db->table('penjualan')
                     ->select('COALESCE(SUM(grand_total), 0) as omzet, COALESCE(SUM(total_profit), 0) as profit, COUNT(id) as jml_trx')
-                    ->where("strftime('%Y-%m', tanggal)", $ym)
-                    ->get()->getRowArray();
+                    ->where("strftime('%Y-%m', tanggal)", $ym);
+
+                if (!empty($idCabang)) {
+                    $builder->where('id_cabang', (int)$idCabang);
+                }
+
+                $row = $builder->get()->getRowArray();
 
                 $data[] = [
                     'tanggal'   => $ym,
@@ -127,23 +146,28 @@ class PenjualanModel extends Model
             }
         } else {
             // Default 7 Hari Terakhir
-            return $this->getGrafikPenjualan7Hari();
+            return $this->getGrafikPenjualan7Hari($idCabang);
         }
 
         return $data;
     }
 
-    public function getGrafikPenjualan7Hari()
+    public function getGrafikPenjualan7Hari($idCabang = null)
     {
         $data = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = date('Y-m-d', strtotime("-$i days"));
             $label = date('d M', strtotime($date));
             
-            $row = $this->db->table('penjualan')
+            $builder = $this->db->table('penjualan')
                 ->select('COALESCE(SUM(grand_total), 0) as omzet, COALESCE(SUM(total_profit), 0) as profit, COUNT(id) as jml_trx')
-                ->where("DATE(tanggal)", $date)
-                ->get()->getRowArray();
+                ->where("DATE(tanggal)", $date);
+
+            if (!empty($idCabang)) {
+                $builder->where('id_cabang', (int)$idCabang);
+            }
+            
+            $row = $builder->get()->getRowArray();
             
             $data[] = [
                 'tanggal' => $date,
@@ -156,11 +180,17 @@ class PenjualanModel extends Model
         return $data;
     }
 
-    public function getTopProdukTerlaris($limit = 5)
+    public function getTopProdukTerlaris($limit = 5, $idCabang = null)
     {
-        return $this->db->table('penjualan_detail')
-            ->select('id_barang, nama_barang, SUM(qty) as total_qty, SUM(subtotal) as total_nilai')
-            ->groupBy('id_barang, nama_barang')
+        $builder = $this->db->table('penjualan_detail pd')
+            ->select('pd.id_barang, pd.nama_barang, SUM(pd.qty) as total_qty, SUM(pd.subtotal) as total_nilai')
+            ->join('penjualan p', 'p.no_faktur = pd.no_faktur', 'inner');
+
+        if (!empty($idCabang)) {
+            $builder->where('p.id_cabang', (int)$idCabang);
+        }
+
+        return $builder->groupBy('pd.id_barang, pd.nama_barang')
             ->orderBy('total_qty', 'DESC')
             ->limit($limit)
             ->get()->getResultArray();

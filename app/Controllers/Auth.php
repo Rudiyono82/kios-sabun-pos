@@ -127,16 +127,17 @@ class Auth extends BaseController
             'id_cabang'         => $idCabang,
             'nama_cabang'       => $namaCabang,
             'kode_cabang'       => $kodeCabang,
-            'can_switch_cabang' => (int)($user['can_switch_cabang'] ?? 1),
+            'can_switch_cabang' => (int)($user['can_switch_cabang'] ?? ($user['role'] === 'admin' ? 1 : 0)),
             'is_logged_in'      => true,
         ]);
 
         \App\Models\AuditLogModel::log('LOGIN', 'AUTH', "Pengguna {$user['nama_user']} ({$user['role']}) berhasil login di {$namaCabang}", null, null, $idCabang);
 
-        // Cek Kas Awal Hari Ini (Alur Logika SimpanUangKasHarian VB6)
+        // Cek Kas Awal Hari Ini (Alur Logika SimpanUangKasHarian VB6) - Terisolasi per cabang
         $today = date('Y-m-d');
         $adaKasAwal = $db->table('data_keuangan')
             ->where("DATE(tanggal)", $today)
+            ->where('id_cabang', $idCabang)
             ->groupStart()
                 ->where('jenis_keuangan', 'Kas Awal')
                 ->orGroupStart()

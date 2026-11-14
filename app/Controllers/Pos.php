@@ -13,8 +13,10 @@ class Pos extends BaseController
     {
         $db = \Config\Database::connect();
         $today = date('Y-m-d');
+        $idCabang = (int)(session()->get('id_cabang') ?: 1);
         return $db->table('data_keuangan')
             ->where("DATE(tanggal)", $today)
+            ->where('id_cabang', $idCabang)
             ->groupStart()
                 ->where('jenis_keuangan', 'Kas Awal')
                 ->orGroupStart()

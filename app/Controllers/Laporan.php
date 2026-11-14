@@ -12,17 +12,28 @@ class Laporan extends BaseController
         $db = \Config\Database::connect();
         $tgl = $this->request->getGet('tanggal') ?? date('Y-m-d');
 
-        $penjualan = $db->table('penjualan')
-            ->where("DATE(tanggal)", $tgl)
-            ->orderBy('id', 'DESC')
-            ->get()->getResultArray();
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
 
-        $keuangan = $db->table('data_keuangan')
-            ->where("DATE(tanggal)", $tgl)
-            ->orderBy('id', 'ASC')
-            ->get()->getResultArray();
+        $pBuilder = $db->table('penjualan')->where("DATE(tanggal)", $tgl);
+        $kBuilder = $db->table('data_keuangan')->where("DATE(tanggal)", $tgl);
+
+        if (!$isAdmin) {
+            $pBuilder->where('id_cabang', $userCabangId);
+            $kBuilder->where('id_cabang', $userCabangId);
+        } else {
+            if (!empty($filterCabang) && $filterCabang !== 'semua') {
+                $pBuilder->where('id_cabang', (int)$filterCabang);
+                $kBuilder->where('id_cabang', (int)$filterCabang);
+            }
+        }
+
+        $penjualan = $pBuilder->orderBy('id', 'DESC')->get()->getResultArray();
+        $keuangan = $kBuilder->orderBy('id', 'ASC')->get()->getResultArray();
 
         $profil = $db->table('profil_toko')->get()->getRowArray();
+        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         // Rekapitulasi
         $totalOmzet = 0;
@@ -53,6 +64,10 @@ class Laporan extends BaseController
             'penjualan' => $penjualan,
             'keuangan' => $keuangan,
             'profil' => $profil,
+            'is_admin' => $isAdmin,
+            'user_cabang_id' => $userCabangId,
+            'filter_cabang' => $filterCabang,
+            'cabang_list' => $cabangList,
             'rekap' => [
                 'omzet' => $totalOmzet,
                 'profit' => $totalProfit,
@@ -73,14 +88,35 @@ class Laporan extends BaseController
         $db = \Config\Database::connect();
         $tgl = $this->request->getGet('tanggal') ?? date('Y-m-d');
 
-        // Profil Toko
-        $profil = $db->table('profil_toko')->get()->getRowArray();
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
 
-        // Data Penjualan Hari Terpilih
-        $penjualan = $db->table('penjualan')
-            ->where("DATE(tanggal)", $tgl)
-            ->orderBy('id', 'ASC')
-            ->get()->getResultArray();
+        $targetCabangId = !$isAdmin ? $userCabangId : (!empty($filterCabang) && $filterCabang !== 'semua' ? (int)$filterCabang : $userCabangId);
+
+        // Profil Toko & Cabang
+        $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+        $cabangInfo = $db->table('cabang')->where('id', $targetCabangId)->get()->getRowArray();
+        if ($cabangInfo) {
+            $profil['nama_toko'] = $cabangInfo['nama_cabang'];
+            if (!empty($cabangInfo['alamat'])) {
+                $profil['alamat'] = $cabangInfo['alamat'];
+            }
+            if (!empty($cabangInfo['telepon'])) {
+                $profil['telepon'] = $cabangInfo['telepon'];
+            }
+        }
+
+        // Data Penjualan Hari Terpilih Terisolasi Cabang
+        $pBuilder = $db->table('penjualan')->where("DATE(tanggal)", $tgl);
+        $kBuilder = $db->table('data_keuangan')->where("DATE(tanggal)", $tgl);
+
+        if (!$isAdmin || (!empty($filterCabang) && $filterCabang !== 'semua')) {
+            $pBuilder->where('id_cabang', $targetCabangId);
+            $kBuilder->where('id_cabang', $targetCabangId);
+        }
+
+        $penjualan = $pBuilder->orderBy('id', 'ASC')->get()->getResultArray();
 
         $totalTransaksi = count($penjualan);
         $totalQty = 0;
@@ -112,11 +148,8 @@ class Laporan extends BaseController
             }
         }
 
-        // Data Keuangan (Kas Awal, Pengeluaran, Kas Masuk Lain)
-        $keuangan = $db->table('data_keuangan')
-            ->where("DATE(tanggal)", $tgl)
-            ->orderBy('id', 'ASC')
-            ->get()->getResultArray();
+        // Data Keuangan (Kas Awal, Pengeluaran, Kas Masuk Lain) Terisolasi Cabang
+        $keuangan = $kBuilder->orderBy('id', 'ASC')->get()->getResultArray();
 
         $kasAwal = 0;
         $tglKasAwal = null;
@@ -598,14 +631,21 @@ class Laporan extends BaseController
         $q            = trim($this->request->getGet('q') ?: '');
 
         $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
 
-        // Daftar Kasir untuk Dropdown Filter
-        $kasirList = $db->table('penjualan')
-            ->select('kode_user, nama_kasir')
-            ->groupBy('kode_user')
-            ->get()->getResultArray();
+        // Daftar Kasir untuk Dropdown Filter terisolasi per cabang
+        $kasirBuilder = $db->table('penjualan')
+            ->select('kode_user, nama_kasir');
+        if (!$isAdmin) {
+            $kasirBuilder->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $kasirBuilder->where('id_cabang', (int)$filterCabang);
+        }
+        $kasirList = $kasirBuilder->groupBy('kode_user')->get()->getResultArray();
 
         $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         if ($tipeTampilan === 'barang') {
             // Rekap Penjualan Berdasarkan Produk Terjual
@@ -620,6 +660,12 @@ class Laporan extends BaseController
                 ->join('kategori k', 'k.id = b.kategori_id', 'left')
                 ->where("DATE(p.tanggal) >=", $tglMulai)
                 ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if (!$isAdmin) {
+                $builder->where('p.id_cabang', $userCabangId);
+            } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+                $builder->where('p.id_cabang', (int)$filterCabang);
+            }
 
             if ($metodeBayar !== 'semua' && !empty($metodeBayar)) {
                 $builder->where('p.metode_bayar', $metodeBayar);
@@ -661,7 +707,10 @@ class Laporan extends BaseController
                 'total_qty'     => $totalQty,
                 'total_profit'  => $isAdmin ? $totalProfit : 0,
                 'profil'        => $profil,
-                'is_admin'      => $isAdmin
+                'is_admin'      => $isAdmin,
+                'user_cabang_id'=> $userCabangId,
+                'filter_cabang' => $filterCabang,
+                'cabang_list'   => $cabangList,
             ];
 
             return view('laporan/penjualan', $data);
@@ -671,6 +720,12 @@ class Laporan extends BaseController
         $builder = $db->table('penjualan')
             ->where("DATE(tanggal) >=", $tglMulai)
             ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if (!$isAdmin) {
+            $builder->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $builder->where('id_cabang', (int)$filterCabang);
+        }
 
         if ($metodeBayar !== 'semua' && !empty($metodeBayar)) {
             $builder->where('metode_bayar', $metodeBayar);
@@ -739,7 +794,10 @@ class Laporan extends BaseController
             'total_qris'          => $totalQris,
             'total_transfer'      => $totalTransfer,
             'profil'              => $profil,
-            'is_admin'            => $isAdmin
+            'is_admin'            => $isAdmin,
+            'user_cabang_id'      => $userCabangId,
+            'filter_cabang'       => $filterCabang,
+            'cabang_list'         => $cabangList,
         ];
 
         return view('laporan/penjualan', $data);
@@ -752,6 +810,12 @@ class Laporan extends BaseController
 
         if (!$penjualan) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'Faktur tidak ditemukan']);
+        }
+
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        if (!$isAdmin && (int)($penjualan['id_cabang'] ?? 1) !== $userCabangId) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Akses ditolak: Faktur milik cabang lain']);
         }
 
         $items = $db->table('penjualan_detail pd')
@@ -779,6 +843,9 @@ class Laporan extends BaseController
         $q            = trim($this->request->getGet('q') ?: '');
 
         $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
+
         $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
 
         if ($tipeTampilan === 'barang') {
@@ -793,6 +860,12 @@ class Laporan extends BaseController
                 ->join('kategori k', 'k.id = b.kategori_id', 'left')
                 ->where("DATE(p.tanggal) >=", $tglMulai)
                 ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if (!$isAdmin) {
+                $builder->where('p.id_cabang', $userCabangId);
+            } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+                $builder->where('p.id_cabang', (int)$filterCabang);
+            }
 
             if ($metodeBayar !== 'semua' && !empty($metodeBayar)) $builder->where('p.metode_bayar', $metodeBayar);
             if ($kasir !== 'semua' && !empty($kasir)) $builder->where('p.kode_user', $kasir);
@@ -821,6 +894,12 @@ class Laporan extends BaseController
         $builder = $db->table('penjualan')
             ->where("DATE(tanggal) >=", $tglMulai)
             ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if (!$isAdmin) {
+            $builder->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $builder->where('id_cabang', (int)$filterCabang);
+        }
 
         if ($metodeBayar !== 'semua' && !empty($metodeBayar)) $builder->where('metode_bayar', $metodeBayar);
         if ($kasir !== 'semua' && !empty($kasir)) $builder->where('kode_user', $kasir);
@@ -856,6 +935,9 @@ class Laporan extends BaseController
         $q            = trim($this->request->getGet('q') ?: '');
 
         $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
+
         $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
         $namaToko = $profil['nama_toko'] ?? 'Kios Sabun & Parfum';
 
@@ -871,6 +953,12 @@ class Laporan extends BaseController
                 ->join('kategori k', 'k.id = b.kategori_id', 'left')
                 ->where("DATE(p.tanggal) >=", $tglMulai)
                 ->where("DATE(p.tanggal) <=", $tglSelesai);
+
+            if (!$isAdmin) {
+                $builder->where('p.id_cabang', $userCabangId);
+            } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+                $builder->where('p.id_cabang', (int)$filterCabang);
+            }
 
             if ($metodeBayar !== 'semua' && !empty($metodeBayar)) $builder->where('p.metode_bayar', $metodeBayar);
             if ($kasir !== 'semua' && !empty($kasir)) $builder->where('p.kode_user', $kasir);
@@ -905,6 +993,12 @@ class Laporan extends BaseController
         $builder = $db->table('penjualan')
             ->where("DATE(tanggal) >=", $tglMulai)
             ->where("DATE(tanggal) <=", $tglSelesai);
+
+        if (!$isAdmin) {
+            $builder->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $builder->where('id_cabang', (int)$filterCabang);
+        }
 
         if ($metodeBayar !== 'semua' && !empty($metodeBayar)) $builder->where('metode_bayar', $metodeBayar);
         if ($kasir !== 'semua' && !empty($kasir)) $builder->where('kode_user', $kasir);
@@ -1280,18 +1374,31 @@ class Laporan extends BaseController
             $periodeLabel = date('d/m/Y', strtotime($tglMulai)) . ' s/d ' . date('d/m/Y', strtotime($tglSelesai));
         }
 
-        // 1. Profil Toko
+        // 1. Profil Toko & Cabang
         $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
+        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
-        // 2. Saldo Awal Kas (Sebelum Periode Ini Dimulai)
-        $saldoAwalRow = $db->query("
+        // 2. Saldo Awal Kas (Sebelum Periode Ini Dimulai) Terisolasi Cabang
+        $saldoSql = "
             SELECT COALESCE(SUM(CASE 
                 WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
                 WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
                 ELSE 0 END), 0) as saldo_awal
             FROM data_keuangan
             WHERE tanggal < ?
-        ", [$startDate])->getRowArray();
+        ";
+        $saldoParams = [$startDate];
+        if (!$isAdmin) {
+            $saldoSql .= " AND id_cabang = ?";
+            $saldoParams[] = $userCabangId;
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $saldoSql .= " AND id_cabang = ?";
+            $saldoParams[] = (int)$filterCabang;
+        }
+        $saldoAwalRow = $db->query($saldoSql, $saldoParams)->getRowArray();
 
         $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
 
@@ -1299,6 +1406,12 @@ class Laporan extends BaseController
         $builder = $db->table('data_keuangan')
             ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate);
+
+        if (!$isAdmin) {
+            $builder->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $builder->where('id_cabang', (int)$filterCabang);
+        }
 
         if ($jenisFilter !== 'semua' && !empty($jenisFilter)) {
             $builder->where('jenis_keuangan', $jenisFilter);
@@ -1406,7 +1519,10 @@ class Laporan extends BaseController
             'nilai_aset_jual'       => $nilaiAsetJual,
             'total_kekayaan_toko'   => $totalKekayaanToko,
             'profil'                => $profil,
-            'is_admin'              => (session()->get('role') === 'admin')
+            'is_admin'              => $isAdmin,
+            'user_cabang_id'        => $userCabangId,
+            'filter_cabang'         => $filterCabang,
+            'cabang_list'           => $cabangList,
         ];
 
         return view('laporan/arus_kas', $data);
@@ -1444,21 +1560,39 @@ class Laporan extends BaseController
         }
 
         $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
 
-        $saldoAwalRow = $db->query("
+        $saldoSql = "
             SELECT COALESCE(SUM(CASE 
                 WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
                 WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
                 ELSE 0 END), 0) as saldo_awal
             FROM data_keuangan
             WHERE tanggal < ?
-        ", [$startDate])->getRowArray();
+        ";
+        $saldoParams = [$startDate];
+        if (!$isAdmin) {
+            $saldoSql .= " AND id_cabang = ?";
+            $saldoParams[] = $userCabangId;
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $saldoSql .= " AND id_cabang = ?";
+            $saldoParams[] = (int)$filterCabang;
+        }
+        $saldoAwalRow = $db->query($saldoSql, $saldoParams)->getRowArray();
 
         $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
 
         $builder = $db->table('data_keuangan')
             ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate);
+
+        if (!$isAdmin) {
+            $builder->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $builder->where('id_cabang', (int)$filterCabang);
+        }
 
         if ($jenisFilter !== 'semua' && !empty($jenisFilter)) {
             $builder->where('jenis_keuangan', $jenisFilter);
@@ -1546,21 +1680,39 @@ class Laporan extends BaseController
 
         $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
         $namaToko = $profil['nama_toko'] ?? 'Kios Sabun & Parfum';
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
 
-        $saldoAwalRow = $db->query("
+        $saldoSql = "
             SELECT COALESCE(SUM(CASE 
                 WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
                 WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
                 ELSE 0 END), 0) as saldo_awal
             FROM data_keuangan
             WHERE tanggal < ?
-        ", [$startDate])->getRowArray();
+        ";
+        $saldoParams = [$startDate];
+        if (!$isAdmin) {
+            $saldoSql .= " AND id_cabang = ?";
+            $saldoParams[] = $userCabangId;
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $saldoSql .= " AND id_cabang = ?";
+            $saldoParams[] = (int)$filterCabang;
+        }
+        $saldoAwalRow = $db->query($saldoSql, $saldoParams)->getRowArray();
 
         $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
 
         $builder = $db->table('data_keuangan')
             ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate);
+
+        if (!$isAdmin) {
+            $builder->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $builder->where('id_cabang', (int)$filterCabang);
+        }
 
         if ($jenisFilter !== 'semua' && !empty($jenisFilter)) $builder->where('jenis_keuangan', $jenisFilter);
         if (!empty($q)) {

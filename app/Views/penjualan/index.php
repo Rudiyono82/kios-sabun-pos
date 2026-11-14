@@ -79,14 +79,35 @@
 <!-- Filter Faktur Penjualan -->
 <div class="card-modern p-3 mb-4">
     <form action="<?= base_url('penjualan') ?>" method="GET" class="row g-2 align-items-end">
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <label class="form-label small fw-bold mb-1">Dari Tanggal:</label>
             <input type="date" name="tgl_mulai" class="form-control form-control-sm" value="<?= esc($tgl_mulai) ?>">
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <label class="form-label small fw-bold mb-1">Sampai Tanggal:</label>
             <input type="date" name="tgl_selesai" class="form-control form-control-sm" value="<?= esc($tgl_selesai) ?>">
         </div>
+        <?php if (!empty($is_admin)): ?>
+        <div class="col-12 col-md-2">
+            <label class="form-label small fw-bold mb-1"><i class="bi bi-shop me-1 text-primary"></i>Cabang:</label>
+            <select name="id_cabang" class="form-select form-select-sm">
+                <option value="semua">-- Semua Cabang --</option>
+                <?php foreach ($cabang_list as $cb): ?>
+                    <option value="<?= $cb['id'] ?>" <?= ($filter_cabang == $cb['id']) ? 'selected' : '' ?>>
+                        <?= esc($cb['nama_cabang']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php else: ?>
+        <div class="col-12 col-md-2">
+            <label class="form-label small fw-bold mb-1"><i class="bi bi-shop me-1 text-success"></i>Cabang Kasir:</label>
+            <div class="badge bg-light text-dark border p-2 w-100 text-truncate text-start d-flex align-items-center gap-1" style="height: 31px;">
+                <i class="bi bi-lock-fill text-muted"></i>
+                <span class="text-truncate"><?= esc(session()->get('nama_cabang') ?? 'KSP Pusat') ?></span>
+            </div>
+        </div>
+        <?php endif; ?>
         <div class="col-6 col-md-2">
             <label class="form-label small fw-bold mb-1">Metode Bayar:</label>
             <select name="metode_bayar" class="form-select form-select-sm">

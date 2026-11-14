@@ -17,9 +17,22 @@ class Penjualan extends BaseController
         $metodeBayar = $this->request->getGet('metode_bayar') ?: '';
         $jenisPembeli = $this->request->getGet('jenis_pembeli') ?: '';
 
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        $filterCabang = $this->request->getGet('id_cabang');
+
         $builder = $db->table('penjualan')
             ->where("DATE(tanggal) >=", $tglMulai)
             ->where("DATE(tanggal) <=", $tglSelesai);
+
+        // Isolasi Cabang: Kasir hanya bisa melihat transaksi cabangnya sendiri
+        if (!$isAdmin) {
+            $builder->where('id_cabang', $userCabangId);
+        } else {
+            if (!empty($filterCabang) && $filterCabang !== 'semua') {
+                $builder->where('id_cabang', (int)$filterCabang);
+            }
+        }
 
         if (!empty($metodeBayar)) {
             $builder->where('metode_bayar', $metodeBayar);
@@ -35,6 +48,9 @@ class Penjualan extends BaseController
         }
 
         $list = $builder->orderBy('id', 'DESC')->get()->getResultArray();
+
+        // Ambil daftar cabang untuk filter Admin
+        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         // Hitung Metrik Ringkasan
         $totalOmset = 0;
@@ -56,6 +72,10 @@ class Penjualan extends BaseController
             'tgl_selesai' => $tglSelesai,
             'metode_bayar' => $metodeBayar,
             'jenis_pembeli' => $jenisPembeli,
+            'is_admin' => $isAdmin,
+            'user_cabang_id' => $userCabangId,
+            'filter_cabang' => $filterCabang,
+            'cabang_list' => $cabangList,
             'total_omset' => $totalOmset,
             'total_transaksi' => count($list),
             'total_qty' => $totalQty,
@@ -76,6 +96,16 @@ class Penjualan extends BaseController
             return $this->response->setStatusCode(404)->setJSON([
                 'status' => 'error',
                 'message' => 'Faktur penjualan tidak ditemukan!'
+            ]);
+        }
+
+        // Branch Isolation: Kasir tidak boleh melihat detail faktur cabang lain
+        $isAdmin = (session()->get('role') === 'admin');
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        if (!$isAdmin && (int)($penjualan['id_cabang'] ?? 1) !== $userCabangId) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'Akses ditolak! Faktur penjualan ini milik cabang lain.'
             ]);
         }
 
@@ -130,26 +160,33 @@ class Penjualan extends BaseController
             ]);
         }
 
-        $db->transStart();
-
-        // 1. Pulihkan stok barang
-        $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
-        if ($barang) {
-            $stokBaru = (float)$barang['stok'] + (float)$item['qty'];
-            $db->table('barang')->where('id_barang', $item['id_barang'])->update(['stok' => $stokBaru]);
-
-            // Catat Kartu Stok MASUK
-            $db->table('kartu_stok')->insert([
-                'tanggal' => date('Y-m-d H:i:s'),
-                'id_barang' => $item['id_barang'],
-                'tipe' => 'MASUK',
-                'no_referensi' => $noFaktur,
-                'masuk' => (float)$item['qty'],
-                'keluar' => 0,
-                'sisa' => $stokBaru,
-                'keterangan' => 'Hapus Item [' . $item['nama_barang'] . '] dari Faktur ' . $noFaktur . ' (Otorisasi Super Admin)'
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        if (!$isCurrentAdmin && (int)($penjualan['id_cabang'] ?? 1) !== $userCabangId) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'Akses ditolak! Anda tidak dapat mengubah faktur milik cabang lain.'
             ]);
         }
+
+        $db->transStart();
+
+        // 1. Pulihkan stok barang di cabang bersangkutan & master
+        $idFakturCabang = (int)($penjualan['id_cabang'] ?? 1);
+        $stokCabangModel = new \App\Models\StokCabangModel();
+        $stokBaru = $stokCabangModel->updateStok($item['id_barang'], $idFakturCabang, (float)$item['qty']);
+        $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$item['id_barang'], $item['id_barang']]);
+
+        // Catat Kartu Stok MASUK
+        $db->table('kartu_stok')->insert([
+            'tanggal' => date('Y-m-d H:i:s'),
+            'id_barang' => $item['id_barang'],
+            'tipe' => 'MASUK',
+            'no_referensi' => $noFaktur,
+            'masuk' => (float)$item['qty'],
+            'keluar' => 0,
+            'sisa' => $stokBaru,
+            'keterangan' => 'Hapus Item [' . $item['nama_barang'] . '] dari Faktur ' . $noFaktur . ' (Cabang #' . $idFakturCabang . ')'
+        ]);
 
         // Cek sisa item lainnya pada faktur ini
         $sisaItem = $db->table('penjualan_detail')
@@ -286,28 +323,35 @@ class Penjualan extends BaseController
             ]);
         }
 
+        $userCabangId = (int)(session()->get('id_cabang') ?: 1);
+        if (!$isCurrentAdmin && (int)($penjualan['id_cabang'] ?? 1) !== $userCabangId) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'Akses ditolak! Anda tidak dapat membatalkan faktur milik cabang lain.'
+            ]);
+        }
+
         $db->transStart();
 
         // 2. Kembalikan stok setiap barang yang terjual (karena transaksi dihapus/dibatalkan)
+        $idFakturCabang = (int)($penjualan['id_cabang'] ?? 1);
+        $stokCabangModel = new \App\Models\StokCabangModel();
         $items = $db->table('penjualan_detail')->where('no_faktur', $noFaktur)->get()->getResultArray();
         foreach ($items as $item) {
-            $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
-            if ($barang) {
-                $stokBaru = $barang['stok'] + (float)$item['qty'];
-                $db->table('barang')->where('id_barang', $item['id_barang'])->update(['stok' => $stokBaru]);
+            $stokBaru = $stokCabangModel->updateStok($item['id_barang'], $idFakturCabang, (float)$item['qty']);
+            $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$item['id_barang'], $item['id_barang']]);
 
-                // Catat Kartu Stok MASUK (Pembatalan Penjualan)
-                $db->table('kartu_stok')->insert([
-                    'tanggal' => date('Y-m-d H:i:s'),
-                    'id_barang' => $item['id_barang'],
-                    'tipe' => 'MASUK',
-                    'no_referensi' => $noFaktur,
-                    'masuk' => (float)$item['qty'],
-                    'keluar' => 0,
-                    'sisa' => $stokBaru,
-                    'keterangan' => 'Pembatalan Faktur ' . $noFaktur . ' (Otorisasi Super Admin)'
-                ]);
-            }
+            // Catat Kartu Stok MASUK (Pembatalan Penjualan)
+            $db->table('kartu_stok')->insert([
+                'tanggal' => date('Y-m-d H:i:s'),
+                'id_barang' => $item['id_barang'],
+                'tipe' => 'MASUK',
+                'no_referensi' => $noFaktur,
+                'masuk' => (float)$item['qty'],
+                'keluar' => 0,
+                'sisa' => $stokBaru,
+                'keterangan' => 'Pembatalan Faktur ' . $noFaktur . ' (Cabang #' . $idFakturCabang . ')'
+            ]);
         }
 
         // 3. Jika Transaksi Member: Kembalikan Poin & Aktifkan Kembali Voucher yang Terpakai
