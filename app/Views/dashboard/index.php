@@ -10,7 +10,7 @@
         </div>
         <div>
             <div class="d-flex align-items-center gap-2">
-                <h5 class="fw-bold mb-0 text-dark"><?= esc(session()->get('nama_cabang') ?? 'KSP Cileungsi - Pusat') ?></h5>
+                <h5 class="fw-bold mb-0 text-dark"><?= esc(session()->get('nama_cabang') ?? 'KSP Metland Cileungsi (Pusat)') ?></h5>
                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0" style="font-size: 0.7rem;">
                     <?= esc(session()->get('kode_cabang') ?? 'CBG-01') ?>
                 </span>

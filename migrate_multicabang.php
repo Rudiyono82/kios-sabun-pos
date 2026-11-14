@@ -28,8 +28,8 @@ if ($countCabang == 0) {
     $db->exec("
     INSERT INTO cabang (id, kode_cabang, nama_cabang, alamat, kota, telepon, footer_struk, is_pusat, status)
     VALUES 
-    (1, 'CBG-01', 'KSP Cileungsi (Pusat)', 'Jl. Metland Cileungsi, Blok BD.04, No.17', 'Cileungsi - Bogor', '0857-1115-9296', 'Terima Kasih Atas Kunjungan Anda di Cabang Pusat Cileungsi!', 1, 'Aktif'),
-    (2, 'CBG-02', 'KSP Cibubur (Cabang 2)', 'Jl. Alternatif Cibubur No. 88', 'Cibubur - Jakarta Timur', '0812-8707-1352', 'Terima Kasih Atas Kunjungan Anda di Outlet Cabang Cibubur!', 0, 'Aktif');
+    (1, 'CBG-01', 'KSP Metland Cileungsi (Pusat)', 'Jl. Metland Cileungsi, Blok BD.04, No.17', 'Cileungsi - Bogor', '0857-1115-9296', 'Terima Kasih Atas Kunjungan Anda di KSP Metland Cileungsi (Pusat)!', 1, 'Aktif'),
+    (2, 'CBG-02', 'KSP PK11 Cileungsi (Cabang 2)', 'Jl. Alternatif Cibubur No. 88', 'Cileungsi - Bogor', '0812-8707-1352', 'Terima Kasih Atas Kunjungan Anda di KSP PK11 Cileungsi (Cabang 2)!', 0, 'Aktif');
     ");
     echo "Inserted initial branches: Cabang 1 & Cabang 2.\n";
 }

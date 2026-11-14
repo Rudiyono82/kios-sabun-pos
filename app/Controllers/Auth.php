@@ -115,7 +115,7 @@ class Auth extends BaseController
         $idCabang = (int)($user['id_cabang'] ?? 1);
         if ($idCabang <= 0) $idCabang = 1;
         $cabang = $db->table('cabang')->where('id', $idCabang)->get()->getRowArray();
-        $namaCabang = $cabang ? $cabang['nama_cabang'] : 'KSP Cileungsi (Pusat)';
+        $namaCabang = $cabang ? $cabang['nama_cabang'] : 'KSP Metland Cileungsi (Pusat)';
         $kodeCabang = $cabang ? $cabang['kode_cabang'] : 'CBG-01';
 
         // Set User Session
