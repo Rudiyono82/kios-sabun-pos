@@ -72,39 +72,60 @@
         <div class="card-modern p-4 mb-4">
             <h6 class="fw-bold mb-3 text-dark border-bottom pb-2"><i class="bi bi-plus-circle me-2 text-primary"></i>Pilih Barang Masuk / Restock</h6>
             
-            <div class="row g-2 align-items-end">
+            <!-- Baris Kontrol Input Restock (Sejajar Sempurna) -->
+            <div class="row g-2 align-items-start">
+                <!-- 1. Cari Produk -->
                 <div class="col-12 col-md-5">
-                    <label class="form-label small fw-bold mb-1">
+                    <label class="form-label small fw-bold mb-1 text-truncate d-block" style="height: 22px; line-height: 22px;">
                         Cari Produk / Bahan Baku <span class="text-danger">*</span>
                     </label>
-                    <select id="pilih-barang" class="form-select form-select-sm" disabled>
+                    <select id="pilih-barang" class="form-select" style="height: 38px;" disabled>
                         <option value="">-- Wajib Pilih Mitra Supplier Dahulu --</option>
                     </select>
-                    <div id="filter-supplier-badge" class="small mt-1 text-danger fw-semibold" style="font-size: 0.73rem;">
-                        <i class="bi bi-exclamation-circle-fill me-1"></i>Pilih Mitra Supplier di sebelah kiri terlebih dahulu agar daftar produk muncul.
-                    </div>
                 </div>
+
+                <!-- 2. Qty Beli -->
                 <div class="col-6 col-md-2">
-                    <label class="form-label small fw-bold mb-1">Qty Beli</label>
-                    <input type="number" id="input-qty-beli" class="form-control form-control-sm text-center fw-bold" value="1" min="0.1" step="any">
+                    <label class="form-label small fw-bold mb-1 text-truncate d-block" style="height: 22px; line-height: 22px;">
+                        Qty Beli <span class="text-danger">*</span>
+                    </label>
+                    <input type="number" id="input-qty-beli" class="form-control text-center fw-bold" style="height: 38px;" value="1" min="0.1" step="any">
                 </div>
+
+                <!-- 3. Harga Beli Modal -->
                 <div class="col-6 col-md-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label small fw-bold mb-0">Harga Beli Modal (Rp)</label>
-                        <button type="button" class="btn btn-link p-0 text-decoration-none text-primary fw-semibold" id="btn-trigger-ubah-harga" style="font-size: 0.74rem;" title="Klik jika harga dari supplier berubah">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="height: 22px;">
+                        <label class="form-label small fw-bold mb-0 text-truncate">Harga Beli Modal</label>
+                        <button type="button" class="btn btn-link p-0 text-decoration-none text-primary fw-semibold" id="btn-trigger-ubah-harga" style="font-size: 0.73rem;" title="Klik jika harga dari supplier berubah">
                             <i class="bi bi-pencil-square"></i> Ubah Harga
                         </button>
                     </div>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light text-muted">Rp</span>
-                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control form-control-sm text-end fw-bold bg-light input-currency" placeholder="0" readonly title="Terkunci dari Master Barang. Klik 'Ubah Harga' jika ada perubahan dari supplier.">
+                    <div class="input-group" style="height: 38px;">
+                        <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control text-end fw-bold bg-light input-currency" style="height: 38px;" placeholder="0" readonly title="Terkunci dari Master Barang. Klik 'Ubah Harga' jika ada perubahan dari supplier.">
                     </div>
-                    <small class="text-muted d-block" style="font-size: 0.70rem;"><i class="bi bi-lock-fill text-secondary me-1"></i>Terkunci dari Master Barang</small>
                 </div>
+
+                <!-- 4. Tombol Tambah -->
                 <div class="col-12 col-md-2">
-                    <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" id="btn-tambah-item">
-                        <i class="bi bi-plus-lg me-1"></i> Tambah
+                    <label class="form-label small fw-bold mb-1 d-none d-md-block" style="height: 22px; line-height: 22px; visibility: hidden;">Aksi</label>
+                    <button type="button" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-sm" id="btn-tambah-item" style="height: 38px;">
+                        <i class="bi bi-plus-lg fs-6"></i> Tambah
                     </button>
+                </div>
+            </div>
+
+            <!-- Baris Keterangan & Status (Di Bawah Input agar Seluruh Box Sejajar) -->
+            <div class="row mt-2 g-1 align-items-center">
+                <div class="col-12 col-md-8">
+                    <div id="filter-supplier-badge" class="small text-danger fw-semibold" style="font-size: 0.73rem;">
+                        <i class="bi bi-exclamation-circle-fill me-1"></i>Pilih Mitra Supplier di sebelah kiri terlebih dahulu agar daftar produk muncul.
+                    </div>
+                </div>
+                <div class="col-12 col-md-4 text-md-end">
+                    <small class="text-muted" style="font-size: 0.70rem;">
+                        <i class="bi bi-lock-fill text-secondary me-1"></i>Terkunci otomatis dari Master Barang
+                    </small>
                 </div>
             </div>
         </div>
