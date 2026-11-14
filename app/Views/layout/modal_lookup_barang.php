@@ -178,6 +178,7 @@ const StockLookup = {
     items: [],
     selectedItem: null,
     onSelectCallback: null,
+    activeAjaxRequest: null,
 
     // Buka Popup LookUp
     open: function(options) {
@@ -213,29 +214,39 @@ const StockLookup = {
         $('#modalLookupStock').modal('show');
 
         // Ambil Data dari Server
-        this.fetchData();
+        this.fetchData(false);
 
+        // Pastikan kursor langsung fokus dan terpilih di textbox pencarian
         setTimeout(() => {
-            $('#lookup-search-keyword').focus().select();
-        }, 400);
+            $('#lookup-search-keyword').trigger('focus').select();
+        }, 150);
+        setTimeout(() => {
+            $('#lookup-search-keyword').trigger('focus').select();
+        }, 350);
     },
 
     // Request Data dari Endpoint /barang/lookup
-    fetchData: function() {
+    fetchData: function(isLiveSearch) {
         const self = this;
         const q = $('#lookup-search-keyword').val().trim();
         const filterBy = $('#lookup-filter-by').val();
 
-        $('#lookup-items-tbody').html(`
-            <tr>
-                <td colspan="8" class="text-center py-5 text-muted">
-                    <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
-                    <div>Memuat data list of stock...</div>
-                </td>
-            </tr>
-        `);
+        if (self.activeAjaxRequest) {
+            self.activeAjaxRequest.abort();
+        }
 
-        $.ajax({
+        if (!isLiveSearch) {
+            $('#lookup-items-tbody').html(`
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                        <div>Memuat data list of stock...</div>
+                    </td>
+                </tr>
+            `);
+        }
+
+        self.activeAjaxRequest = $.ajax({
             url: '<?= base_url('barang/lookup') ?>',
             type: 'GET',
             data: {
@@ -246,8 +257,22 @@ const StockLookup = {
             },
             dataType: 'json',
             success: function(res) {
+                self.activeAjaxRequest = null;
                 if (res.status === 'success') {
                     self.items = res.data || [];
+                    self.renderTable(self.items);
+                } else {
+                    $('#lookup-items-tbody').html(`<tr><td colspan="7" class="text-center py-4 text-danger">Gagal memuat data</td></tr>`);
+                }
+            },
+            error: function(err) {
+                if (err.statusText === 'abort') return;
+                self.activeAjaxRequest = null;
+                console.error('Error lookup:', err);
+                $('#lookup-items-tbody').html(`<tr><td colspan="7" class="text-center py-4 text-danger">Terjadi kesalahan koneksi server</td></tr>`);
+            }
+        });
+    },
                     self.renderTable(self.items);
                 } else {
                     $('#lookup-items-tbody').html(`<tr><td colspan="8" class="text-center py-4 text-danger">Gagal memuat data</td></tr>`);
@@ -397,6 +422,70 @@ const StockLookup = {
 };
 
 $(document).ready(function() {
+    let lookupSearchTimer = null;
+
+    // A. Otomatis fokus dan pilih teks ke input pencarian saat modal LookUp terbuka
+    $('#modalLookupStock').on('shown.bs.modal', function() {
+        $('#lookup-search-keyword').trigger('focus').select();
+    });
+
+    // B. Realtime Live Search: Ketik 1 huruf langsung proses mencari & memperbarui data di grid
+    $('#lookup-search-keyword').on('input', function() {
+        clearTimeout(lookupSearchTimer);
+        lookupSearchTimer = setTimeout(function() {
+            StockLookup.fetchData(true);
+        }, 150);
+    });
+
+    // C. Navigasi Keyboard di Kotak Pencarian: Panah Atas / Bawah untuk pilih baris, Enter untuk konfirmasi
+    $('#lookup-search-keyword').on('keydown', function(e) {
+        const $rows = $('#table-lookup-items tr.lookup-item-row');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!$rows.length) return;
+            const $active = $rows.filter('.active');
+            let $target;
+            if (!$active.length) {
+                $target = $rows.first();
+            } else {
+                const nextIndex = $rows.index($active) + 1;
+                $target = (nextIndex < $rows.length) ? $rows.eq(nextIndex) : $rows.last();
+            }
+            if ($target.length) {
+                StockLookup.selectRow($target.data('item'), $target);
+                $target[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!$rows.length) return;
+            const $active = $rows.filter('.active');
+            let $target;
+            if (!$active.length) {
+                $target = $rows.last();
+            } else {
+                const prevIndex = $rows.index($active) - 1;
+                $target = (prevIndex >= 0) ? $rows.eq(prevIndex) : $rows.first();
+            }
+            if ($target.length) {
+                StockLookup.selectRow($target.data('item'), $target);
+                $target[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(lookupSearchTimer);
+
+            // Jika ada baris aktif terpilih, langsung pilih dan tutup modal
+            if (StockLookup.selectedItem) {
+                StockLookup.confirmSelection();
+            } else if ($rows.length) {
+                const $first = $rows.first();
+                StockLookup.selectRow($first.data('item'), $first);
+                StockLookup.confirmSelection();
+            }
+        }
+    });
+
     // 1. Klik pada baris tabel
     $(document).on('click', '.lookup-item-row', function() {
         const item = $(this).data('item');
@@ -424,39 +513,16 @@ $(document).ready(function() {
         StockLookup.confirmSelection();
     });
 
-    // 5. Input pencarian (Enter atau Klik Tombol Cari)
-    $('#lookup-search-keyword').on('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            StockLookup.fetchData();
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            const $active = $('#table-lookup-items tr.lookup-item-row.active');
-            const $next = $active.length ? $active.next('tr.lookup-item-row') : $('#table-lookup-items tr.lookup-item-row').first();
-            if ($next.length) {
-                StockLookup.selectRow($next.data('item'), $next);
-                $next[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            }
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            const $active = $('#table-lookup-items tr.lookup-item-row.active');
-            const $prev = $active.length ? $active.prev('tr.lookup-item-row') : $('#table-lookup-items tr.lookup-item-row').last();
-            if ($prev.length) {
-                StockLookup.selectRow($prev.data('item'), $prev);
-                $prev[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            }
-        }
-    });
-
+    // 5. Tombol Cari Manual & Refresh
     $('#btn-lookup-do-search, #btn-lookup-refresh-data').on('click', function() {
-        StockLookup.fetchData();
+        StockLookup.fetchData(false);
     });
 
     $('#lookup-filter-by').on('change', function() {
-        StockLookup.fetchData();
+        StockLookup.fetchData(false);
     });
 
-    // Navigasi Keyboard global di dalam Modal LookUp (Arrow Up/Down & Enter)
+    // 6. Navigasi Keyboard global di dalam Modal LookUp (Arrow Up/Down & Enter)
     $('#modalLookupStock').on('keydown', function(e) {
         if (e.key === 'Enter' && !$(e.target).is('#lookup-search-keyword')) {
             e.preventDefault();
