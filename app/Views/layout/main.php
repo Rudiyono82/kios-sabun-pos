@@ -849,7 +849,7 @@
             $uri = uri_string();
             $isMasterActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'barang') || str_contains($uri, 'kategori') || str_contains($uri, 'satuan') || str_contains($uri, 'supplier') || str_contains($uri, 'member') || str_contains($uri, 'barcode')));
             $isTransaksiActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || str_contains($uri, 'stok-opname') || str_contains($uri, 'transfer-stok')));
-            $isLaporanActive = (str_contains($uri, 'laporan'));
+            $isLaporanActive = (str_contains($uri, 'laporan') || str_contains($uri, 'owner'));
             $isConfigActive = (str_contains($uri, 'karyawan') || str_contains($uri, 'cabang') || str_contains($uri, 'profile') || str_contains($uri, 'audit-trail') || str_contains($uri, 'live-kasir') || str_contains($uri, 'monitoring-kasir'));
         ?>
 
@@ -1034,6 +1034,13 @@
                                 </a>
                             </li>
                             <?php if (session()->get('role') === 'admin'): ?>
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/owner') ?>" class="nav-link <?= str_contains($uri, 'owner') ? 'active' : '' ?>" style="background: rgba(245, 158, 11, 0.12); border-left: 3px solid #f59e0b; color: #fbbf24; font-weight: 700;">
+                                    <i class="bi bi-shield-lock-fill text-warning"></i>
+                                    <span>Rekap &amp; Aset Owner</span>
+                                    <span class="badge bg-warning text-dark ms-auto" style="font-size: 0.65rem;">OWNER</span>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a href="<?= base_url('laporan/stok-opname') ?>" class="nav-link <?= str_contains($uri, 'laporan/stok-opname') ? 'active' : '' ?>">
                                     <i class="bi bi-box-seam-fill text-success"></i>

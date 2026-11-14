@@ -175,4 +175,18 @@ $routes->group('laporan', ['filter' => 'auth'], function($routes) {
     $routes->get('arus-kas/excel', 'Laporan::excelArusKas');
     $routes->get('kartu-stok', 'Laporan::kartuStok', ['filter' => 'admin']);
     $routes->get('stok-opname', 'Laporan::stokOpname', ['filter' => 'admin']);
+    
+    // Rekap & Valuasi Aset Khusus Owner (Eksklusif Admin / Owner)
+    $routes->get('owner', 'LaporanOwner::index', ['filter' => 'admin']);
+    $routes->post('owner/simpan-pengeluaran', 'LaporanOwner::simpanPengeluaran', ['filter' => 'admin']);
+    $routes->get('owner/cetak', 'LaporanOwner::cetak', ['filter' => 'admin']);
+    $routes->get('owner/excel', 'LaporanOwner::excel', ['filter' => 'admin']);
+});
+
+// Alias Route Khusus Laporan Owner
+$routes->group('laporan-owner', ['filter' => 'admin'], function($routes) {
+    $routes->get('/', 'LaporanOwner::index');
+    $routes->post('simpan-pengeluaran', 'LaporanOwner::simpanPengeluaran');
+    $routes->get('cetak', 'LaporanOwner::cetak');
+    $routes->get('excel', 'LaporanOwner::excel');
 });

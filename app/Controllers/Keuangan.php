@@ -113,10 +113,14 @@ class Keuangan extends BaseController
             return redirect()->back()->with('error', 'Nominal transaksi harus lebih dari 0.');
         }
 
+        $tipePengeluaran = $this->request->getPost('tipe_pengeluaran') === 'pribadi' ? 'pribadi' : 'toko';
+        $tglCustom = $this->request->getPost('tanggal') ? ($this->request->getPost('tanggal') . ' ' . date('H:i:s')) : date('Y-m-d H:i:s');
+
         $db->table('data_keuangan')->insert([
             'id_cabang' => $idCabang,
-            'tanggal' => date('Y-m-d H:i:s'),
+            'tanggal' => $tglCustom,
             'jenis_keuangan' => $jenis,
+            'tipe_pengeluaran' => $tipePengeluaran,
             'nama_keuangan' => $nama,
             'total' => $total,
             'keterangan' => $keterangan,
