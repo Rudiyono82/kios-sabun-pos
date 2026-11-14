@@ -58,7 +58,8 @@ class Pembelian extends BaseController
             'title' => 'Input Pembelian Supplier Baru',
             'no_beli' => $pembelianModel->generateNoBeli(),
             'suppliers' => $db->table('supplier')->orderBy('nama_supplier', 'ASC')->get()->getResultArray(),
-            'barangs' => $db->table('barang')->where('status', 'Aktif')->orderBy('nama_barang', 'ASC')->get()->getResultArray(),
+            // Sesuai permintaan user: input pembelian menampilkan semua status (Aktif maupun Nonaktif)
+            'barangs' => $db->table('barang')->orderBy('nama_barang', 'ASC')->get()->getResultArray(),
         ];
 
         return view('pembelian/tambah', $data);

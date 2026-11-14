@@ -213,4 +213,66 @@ class Barang extends BaseController
 
         return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Barang tidak ditemukan']);
     }
+
+    // LookUp List of Stock (Popup Pencarian Barang untuk Penjualan & Pembelian)
+    public function lookup()
+    {
+        $db = \Config\Database::connect();
+        $tipe = $this->request->getGet('tipe') ?: 'penjualan'; // 'penjualan' atau 'pembelian'
+        $keyword = trim((string)$this->request->getGet('q'));
+        $filterBy = $this->request->getGet('filter_by') ?: 'all';
+        $kodeSupplier = trim((string)$this->request->getGet('supplier'));
+        $idCabang = session()->get('id_cabang') ?: 1;
+
+        $builder = $db->table('barang b')
+            ->select('b.id, b.id_barang, b.barcode, b.nama_barang, b.kategori_id, k.nama_kategori, b.satuan, b.harga_beli, b.harga_jual, b.harga_grosir, b.qty_paket_a, b.hrg_paket_a, b.qty_paket_b, b.hrg_paket_b, b.qty_paket_c, b.hrg_paket_c, b.status, b.kode_supplier_1, b.kode_supplier_2, s1.nama_supplier as nama_supplier_1, s2.nama_supplier as nama_supplier_2, COALESCE(sc.stok, b.stok) as stok_cabang, b.stok as stok_total')
+            ->join('kategori k', 'k.id = b.kategori_id', 'left')
+            ->join('supplier s1', 's1.kode_supplier = b.kode_supplier_1', 'left')
+            ->join('supplier s2', 's2.kode_supplier = b.kode_supplier_2', 'left')
+            ->join('stok_cabang sc', 'sc.id_barang = b.id_barang AND sc.id_cabang = ' . (int)$idCabang, 'left');
+
+        if ($tipe === 'penjualan') {
+            // Permintaan User:
+            // Di penjualan: hanya data barang yang AKTIF dan STOKNYA TIDAK = 0 (stok > 0)
+            $builder->where('b.status', 'Aktif')
+                    ->where('COALESCE(sc.stok, b.stok) >', 0);
+        } else {
+            // Permintaan User:
+            // Di pembelian: semua barang sesuai suppliernya dan SEMUA STATUS (Aktif maupun Nonaktif)
+            if (!empty($kodeSupplier)) {
+                $builder->groupStart()
+                    ->where('b.kode_supplier_1', $kodeSupplier)
+                    ->orWhere('b.kode_supplier_2', $kodeSupplier)
+                    ->groupEnd();
+            }
+        }
+
+        if (!empty($keyword)) {
+            if ($filterBy === 'nama') {
+                $builder->like('b.nama_barang', $keyword);
+            } elseif ($filterBy === 'kode') {
+                $builder->like('b.id_barang', $keyword);
+            } elseif ($filterBy === 'barcode') {
+                $builder->like('b.barcode', $keyword);
+            } elseif ($filterBy === 'kategori') {
+                $builder->like('k.nama_kategori', $keyword);
+            } else {
+                $builder->groupStart()
+                    ->like('b.nama_barang', $keyword)
+                    ->orLike('b.id_barang', $keyword)
+                    ->orLike('b.barcode', $keyword)
+                    ->orLike('k.nama_kategori', $keyword)
+                    ->groupEnd();
+            }
+        }
+
+        $items = $builder->orderBy('b.nama_barang', 'ASC')->limit(200)->get()->getResultArray();
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'tipe' => $tipe,
+            'total' => count($items),
+            'data' => $items
+        ]);
+    }
 }

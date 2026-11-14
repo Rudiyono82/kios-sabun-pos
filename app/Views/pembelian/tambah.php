@@ -76,9 +76,14 @@
             <div class="row g-2 align-items-start">
                 <!-- 1. Cari Produk -->
                 <div class="col-12 col-md-5">
-                    <label class="form-label small fw-bold mb-1 text-truncate d-block" style="height: 22px; line-height: 22px;">
-                        Cari Produk / Bahan Baku <span class="text-danger">*</span>
-                    </label>
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="height: 22px; line-height: 22px;">
+                        <label class="form-label small fw-bold mb-0 text-truncate">
+                            Cari Produk / Bahan Baku <span class="text-danger">*</span>
+                        </label>
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold d-flex align-items-center gap-1 shadow-sm" id="btn-open-lookup-beli" style="font-size: 0.75rem; height: 22px;" title="Buka LookUp List of Stock Modal Popup">
+                            <i class="bi bi-card-checklist"></i> LookUp Barang
+                        </button>
+                    </div>
                     <select id="pilih-barang" class="form-select" style="height: 38px;" disabled>
                         <option value="">-- Wajib Pilih Mitra Supplier Dahulu --</option>
                     </select>
@@ -813,7 +818,59 @@
                 }
             });
         });
+
+        // Buka Modal LookUp Barang (Mode Pembelian: Khusus Supplier Terpilih, Semua Status Aktif & Nonaktif)
+        $('#btn-open-lookup-beli').on('click', function(e) {
+            e.preventDefault();
+            const selectedSupplier = $('#beli-supplier').val();
+            if (!selectedSupplier) {
+                Swal.fire({
+                    title: 'Pilih Mitra Supplier',
+                    text: 'Silakan pilih Mitra Supplier di sebelah kiri terlebih dahulu agar daftar produk supplier ditampilkan di LookUp.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                $('#beli-supplier').focus();
+                return;
+            }
+
+            StockLookup.open({
+                mode: 'pembelian',
+                supplier: selectedSupplier,
+                onSelect: function(item) {
+                    // Cari atau tambahkan opsi di dropdown select2
+                    let $existingOpt = $('#pilih-barang').find('option[value="' + item.id_barang + '"]');
+                    if ($existingOpt.length === 0) {
+                        const stokText = isAdmin ? ' - Stok: ' + new Intl.NumberFormat('id-ID').format(item.stok_cabang || item.stok_total || 0) + ' ' + (item.satuan || '') : '';
+                        const optText = item.nama_barang + ' (' + item.id_barang + ')' + stokText;
+                        const $newOpt = $('<option>')
+                            .val(item.id_barang)
+                            .text(optText)
+                            .attr('data-nama', item.nama_barang)
+                            .attr('data-satuan', item.satuan)
+                            .attr('data-supp1', item.kode_supplier_1 || '')
+                            .attr('data-supp2', item.kode_supplier_2 || '')
+                            .attr('data-hargabeli', parseFloat(item.harga_beli) || 0)
+                            .attr('data-hargajual', parseFloat(item.harga_jual) || 0)
+                            .attr('data-hargagrosir', parseFloat(item.harga_grosir) || 0)
+                            .attr('data-qtypaketa', parseFloat(item.qty_paket_a) || 0)
+                            .attr('data-hrgpaketa', parseFloat(item.hrg_paket_a) || 0)
+                            .attr('data-qtypaketb', parseFloat(item.qty_paket_b) || 0)
+                            .attr('data-hrgpaketb', parseFloat(item.hrg_paket_b) || 0)
+                            .attr('data-qtypaketc', parseFloat(item.qty_paket_c) || 0)
+                            .attr('data-hrgpaketc', parseFloat(item.hrg_paket_c) || 0)
+                            .attr('data-stok', parseFloat(item.stok_cabang || item.stok_total) || 0);
+
+                        $('#pilih-barang').append($newOpt);
+                    }
+                    $('#pilih-barang').prop('disabled', false).val(item.id_barang).trigger('change');
+                    setTimeout(() => $('#input-qty-beli').focus().select(), 250);
+                }
+            });
+        });
     });
 </script>
+
+<?= $this->include('layout/modal_lookup_barang') ?>
 <?= $this->endSection() ?>
 

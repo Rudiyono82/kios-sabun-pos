@@ -10,6 +10,7 @@
         <span class="badge bg-light text-dark border"><kbd class="bg-primary text-white px-1">F2</kbd> Scan Barcode</span>
         <span class="badge bg-light text-dark border"><kbd class="bg-warning text-dark px-1">F3</kbd> Cari Member</span>
         <span class="badge bg-light text-dark border"><kbd class="bg-success text-white px-1">F4</kbd> Tukar Jerigen</span>
+        <span class="badge bg-light text-dark border"><kbd class="bg-info text-dark px-1">F5</kbd> LookUp Barang</span>
         <span class="badge bg-light text-dark border"><kbd class="bg-secondary text-white px-1">F6</kbd> Diskon</span>
         <span class="badge bg-light text-dark border"><kbd class="bg-warning text-dark px-1">F7</kbd> Voucher</span>
         <span class="badge bg-light text-dark border"><kbd class="bg-danger text-white px-1">F8</kbd> Kosongkan</span>
@@ -135,6 +136,9 @@
                         <input type="text" id="barcode-input" class="form-control border-start-0 py-2 ps-1" style="font-size: 0.95rem;" placeholder="Scan Barcode / Ketik Nama Barang [F2] (Panah Atas/Bawah & Enter untuk Memilih)..." autofocus autocomplete="off">
                         <button class="btn btn-primary px-3 fw-bold" type="button" id="btn-focus-barcode" title="Fokus Scan Barcode [F2]">
                             <kbd class="bg-white text-primary font-monospace fw-bold">[F2] Scan</kbd>
+                        </button>
+                        <button class="btn btn-warning text-dark px-3 fw-bold d-flex align-items-center gap-1 shadow-sm" type="button" id="btn-open-lookup-pos" title="LookUp List of Stock [F5]">
+                            <i class="bi bi-card-checklist fs-6"></i> <span>[F5] LookUp</span>
                         </button>
                     </div>
                     <!-- Dropdown Suggestion Barang -->
@@ -1480,6 +1484,11 @@
                 $('#barcode-input').focus();
             }
         }
+        // 4b. F5: Buka LookUp List of Stock Modal Popup (Barang Aktif & Stok > 0)
+        else if (e.key === 'F5') {
+            e.preventDefault();
+            $('#btn-open-lookup-pos').click();
+        }
         // 5. F6: Input Potongan Diskon Manual
         else if (e.key === 'F6') {
             e.preventDefault();
@@ -1609,5 +1618,19 @@
             }
         }
     });
+
+    // Event Handler Buka LookUp List of Stock Modal Popup (Mode Penjualan: Hanya Aktif & Stok > 0)
+    $('#btn-open-lookup-pos').on('click', function(e) {
+        e.preventDefault();
+        StockLookup.open({
+            mode: 'penjualan',
+            onSelect: function(item) {
+                addToCart(item);
+                setTimeout(() => $('#barcode-input').focus(), 250);
+            }
+        });
+    });
 </script>
+
+<?= $this->include('layout/modal_lookup_barang') ?>
 <?= $this->endSection() ?>

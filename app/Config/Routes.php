@@ -35,6 +35,7 @@ $routes->group('pos', ['filter' => 'auth'], function($routes) {
 // Master Barang
 $routes->group('barang', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Barang::index');
+    $routes->get('lookup', 'Barang::lookup');
     $routes->post('simpan', 'Barang::simpan');
     $routes->match(['get', 'post'], 'hapus/(:num)', 'Barang::hapus/$1');
     $routes->post('update-stok-cepat', 'Barang::updateStokCepat', ['filter' => 'admin']);
