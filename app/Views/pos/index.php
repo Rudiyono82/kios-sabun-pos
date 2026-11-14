@@ -550,8 +550,6 @@
                                     <span>Kode: <strong class="text-dark font-monospace" id="modal-qty-kode-barang">-</strong></span>
                                     <span>&bull;</span>
                                     <span>Satuan: <span class="badge bg-secondary-subtle text-secondary" id="modal-qty-satuan">-</span></span>
-                                    <span>&bull;</span>
-                                    <span>Stok: <span class="badge bg-success" id="modal-qty-stok">0</span></span>
                                 </div>
                                 <div class="text-primary fw-bold fs-6 font-monospace" id="modal-qty-harga-satuan">Rp 0</div>
                             </div>
@@ -1050,13 +1048,12 @@
 
                 if (data && data.length > 0) {
                     data.forEach((item, idx) => {
-                        const stokInfo = (item.stok !== null && item.stok !== undefined) ? ` | Stok: ${item.stok} ${item.satuan}` : '';
                         const row = $(`
                             <a href="javascript:void(0)" class="list-group-item list-group-item-action py-2 barang-suggest-item" data-idx="${idx}">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-semibold text-dark">${item.nama_barang}</div>
-                                        <small class="text-muted">Kode: ${item.id_barang}${stokInfo}</small>
+                                        <small class="text-muted">Kode: ${item.id_barang}</small>
                                     </div>
                                     <span class="badge bg-primary fs-6">Rp ${new Intl.NumberFormat('id-ID').format(item.harga_jual)}</span>
                                 </div>
@@ -1150,9 +1147,6 @@
         $('#modal-qty-nama-barang').text(item.nama_barang || '-').attr('title', item.nama_barang || '');
         $('#modal-qty-kode-barang').text(item.id_barang || '-');
         $('#modal-qty-satuan').text(item.satuan || '-');
-
-        const stok = parseFloat(item.stok_cabang !== undefined ? item.stok_cabang : item.stok) || 0;
-        $('#modal-qty-stok').text(stok).removeClass('bg-success bg-danger').addClass(stok > 0 ? 'bg-success' : 'bg-danger');
 
         const hargaSatuan = parseFloat(item.harga_jual || item.harga_normal || 0);
         $('#modal-qty-harga-satuan').text('Rp ' + new Intl.NumberFormat('id-ID').format(hargaSatuan) + ' / ' + (item.satuan || 'unit'));

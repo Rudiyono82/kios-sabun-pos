@@ -70,19 +70,18 @@
                                         <tr>
                                             <th style="width: 105px;">ID Barang</th>
                                             <th>Nama Barang</th>
-                                            <th style="width: 120px;">Kategori</th>
-                                            <th style="width: 75px;">Satuan</th>
-                                            <th class="text-end" style="width: 110px;" id="lookup-th-col-harga">Harga Jual</th>
-                                            <th class="text-center" style="width: 75px;">Stok</th>
+                                            <th style="width: 125px;">Kategori</th>
+                                            <th style="width: 85px;">Satuan</th>
+                                            <th class="text-end" style="width: 120px;" id="lookup-th-col-harga">Harga Jual</th>
                                             <th class="text-center" style="width: 80px;" id="lookup-th-col-status">Status</th>
-                                            <th class="text-center" style="width: 65px;">Pilih</th>
+                                            <th class="text-center" style="width: 75px;">Pilih</th>
                                         </tr>
                                     </thead>
                                     <tbody id="lookup-items-tbody">
                                         <tr>
-                                            <td colspan="8" class="text-center py-5 text-muted">
+                                            <td colspan="7" class="text-center py-5 text-muted">
                                                 <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
-                                                <div>Memuat data stok barang...</div>
+                                                <div>Memuat data barang...</div>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -128,10 +127,6 @@
                                     <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
                                         <span class="text-muted" id="lookup-detail-lbl-harga">Harga Jual:</span>
                                         <strong class="text-primary fs-6 font-monospace" id="lookup-detail-harga">Rp 0</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
-                                        <span class="text-muted">Stok Saat Ini:</span>
-                                        <span class="badge bg-success fs-6" id="lookup-detail-stok">0</span>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="text-muted">Status Produk:</span>
@@ -273,7 +268,7 @@ const StockLookup = {
         if (!items || items.length === 0) {
             $tbody.html(`
                 <tr>
-                    <td colspan="8" class="text-center py-5 text-muted">
+                    <td colspan="7" class="text-center py-5 text-muted">
                         <i class="bi bi-inbox fs-2 opacity-50 d-block mb-1"></i>
                         Tidak ada barang yang cocok dengan filter kriteria pencarian.
                     </td>
@@ -285,7 +280,6 @@ const StockLookup = {
 
         items.forEach((item, index) => {
             const harga = (self.mode === 'penjualan') ? parseFloat(item.harga_jual || 0) : parseFloat(item.harga_beli || 0);
-            const stokVal = (self.mode === 'penjualan') ? parseFloat(item.stok_cabang || item.stok || 0) : parseFloat(item.stok || 0);
             const statusClass = item.status === 'Aktif' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle';
 
             const statusCol = (self.mode === 'pembelian') 
@@ -299,7 +293,7 @@ const StockLookup = {
             const $tr = $(`
                 <tr class="lookup-item-row" data-index="${index}" style="cursor: pointer;">
                     <td class="fw-bold text-dark text-nowrap">${item.id_barang}</td>
-                    <td class="fw-semibold text-dark text-truncate" style="max-width: 260px;" title="${item.nama_barang}">
+                    <td class="fw-semibold text-dark text-truncate" style="max-width: 300px;" title="${item.nama_barang}">
                         <div class="d-flex align-items-center gap-2">
                             ${fotoThumbnail}
                             <span class="text-truncate">${item.nama_barang}</span>
@@ -308,7 +302,6 @@ const StockLookup = {
                     <td><span class="badge bg-light text-dark border">${item.nama_kategori || 'Umum'}</span></td>
                     <td><span class="badge bg-secondary-subtle text-secondary">${item.satuan || '-'}</span></td>
                     <td class="text-end fw-bold text-primary text-nowrap">Rp ${new Intl.NumberFormat('id-ID').format(harga)}</td>
-                    <td class="text-center fw-bold ${stokVal <= 5 ? 'text-danger' : 'text-success'}">${new Intl.NumberFormat('id-ID').format(stokVal)}</td>
                     ${statusCol}
                     <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-primary btn-choose-row py-0 px-2 fw-semibold" title="Pilih Barang">
@@ -361,9 +354,6 @@ const StockLookup = {
         const harga = (this.mode === 'penjualan') ? parseFloat(item.harga_jual || 0) : parseFloat(item.harga_beli || 0);
         $('#lookup-detail-harga').text('Rp ' + new Intl.NumberFormat('id-ID').format(harga));
 
-        const stokVal = (this.mode === 'penjualan') ? parseFloat(item.stok_cabang || item.stok || 0) : parseFloat(item.stok || 0);
-        $('#lookup-detail-stok').text(new Intl.NumberFormat('id-ID').format(stokVal) + ' ' + (item.satuan || ''));
-
         if (item.status === 'Aktif') {
             $('#lookup-detail-status').text('Aktif').removeClass().addClass('badge bg-success-subtle text-success border border-success-subtle');
         } else {
@@ -385,7 +375,6 @@ const StockLookup = {
         $('#lookup-detail-kategori').text('-');
         $('#lookup-detail-satuan').text('-');
         $('#lookup-detail-harga').text('Rp 0');
-        $('#lookup-detail-stok').text('0');
         $('#lookup-detail-status').text('-');
     },
 
