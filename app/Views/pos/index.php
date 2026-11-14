@@ -516,6 +516,91 @@
     </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- MODAL POPUP KONFIRMASI INPUT QTY BARANG (PENJUALAN POS)                   -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="modalInputQtyPos" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <!-- Header Modal -->
+            <div class="modal-header py-2 px-3 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-bottom: 2px solid #0ea5e9;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary text-white p-2 rounded-3 shadow-sm">
+                        <i class="bi bi-cart-plus-fill fs-6"></i>
+                    </span>
+                    <div>
+                        <h6 class="modal-title fw-bold text-white mb-0">Konfirmasi Jumlah (Qty)</h6>
+                        <small class="text-white-50" style="font-size: 0.72rem;">Tentukan kuantiti barang yang masuk ke keranjang</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="form-confirm-qty-pos" autocomplete="off">
+                <div class="modal-body p-3 bg-light">
+                    <!-- Kartu Informasi Barang Terpilih -->
+                    <div class="card border p-3 mb-3 bg-white shadow-xs rounded-3">
+                        <div class="d-flex gap-3 align-items-center">
+                            <div id="modal-qty-foto-box" class="rounded border bg-light d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0" style="width: 72px; height: 72px;">
+                                <i class="bi bi-image text-muted fs-3"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <h6 class="fw-bold text-dark mb-1 text-truncate" id="modal-qty-nama-barang" title="">-</h6>
+                                <div class="d-flex flex-wrap gap-2 small text-muted mb-1" style="font-size: 0.78rem;">
+                                    <span>Kode: <strong class="text-dark font-monospace" id="modal-qty-kode-barang">-</strong></span>
+                                    <span>&bull;</span>
+                                    <span>Satuan: <span class="badge bg-secondary-subtle text-secondary" id="modal-qty-satuan">-</span></span>
+                                    <span>&bull;</span>
+                                    <span>Stok: <span class="badge bg-success" id="modal-qty-stok">0</span></span>
+                                </div>
+                                <div class="text-primary fw-bold fs-6 font-monospace" id="modal-qty-harga-satuan">Rp 0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Jumlah Qty Utama -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small mb-1 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-calculator me-1 text-primary"></i> Masukkan Jumlah Beli (Qty):</span>
+                            <span class="text-muted" style="font-size: 0.72rem;">Tekan <kbd class="bg-primary text-white border">Enter</kbd> untuk simpan</span>
+                        </label>
+                        <div class="input-group input-group-lg shadow-sm">
+                            <button class="btn btn-outline-secondary px-3" type="button" id="btn-modal-qty-minus">
+                                <i class="bi bi-dash-lg fs-5"></i>
+                            </button>
+                            <input type="number" step="any" min="0.01" class="form-control text-center fw-bold fs-2 font-monospace text-primary" id="input-modal-qty-value" value="1" required autocomplete="off">
+                            <button class="btn btn-outline-secondary px-3" type="button" id="btn-modal-qty-plus">
+                                <i class="bi bi-plus-lg fs-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Kotak Subtotal & Info Grosir Realtime -->
+                    <div class="p-2 px-3 rounded-3 bg-primary-subtle text-primary border border-primary-subtle d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold small">Subtotal Pembelian :</span>
+                        <strong class="fs-4 font-monospace" id="modal-qty-subtotal-preview">Rp 0</strong>
+                    </div>
+
+                    <div id="modal-qty-tier-alert" class="alert alert-info py-1 px-2 mt-2 mb-0 small d-none d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                        <i class="bi bi-tag-fill text-info flex-shrink-0"></i>
+                        <span id="modal-qty-tier-text"></span>
+                    </div>
+                </div>
+
+                <!-- Footer Modal -->
+                <div class="modal-footer py-2 px-3 bg-white border-top d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> Batal [Esc]
+                    </button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4 py-2 shadow-sm" id="btn-modal-qty-confirm">
+                        <i class="bi bi-cart-check fs-5 me-1"></i> Masuk Keranjang [Enter]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -978,9 +1063,9 @@
                             </a>
                         `);
                         row.on('click', () => {
-                            addToCart(item);
                             $drop.addClass('d-none').empty();
-                            $('#barcode-input').val('').focus();
+                            $('#barcode-input').val('');
+                            openModalInputQty(item);
                         });
                         $drop.append(row);
                     });
@@ -1030,9 +1115,9 @@
 
             $.get('<?= base_url('pos/search') ?>', { term: term }, function(data) {
                 if (data && data.length > 0) {
-                    addToCart(data[0]);
-                    $('#barcode-input').val('').focus();
+                    $('#barcode-input').val('');
                     $('#search-dropdown').addClass('d-none');
+                    openModalInputQty(data[0]);
                 } else {
                     Swal.fire('Tidak Ditemukan', 'Barcode atau kode barang tidak cocok!', 'warning');
                 }
@@ -1052,11 +1137,129 @@
         $('#barcode-input').focus();
     });
 
+    // =========================================================================
+    // MODAL POPUP KONFIRMASI INPUT QTY BARANG SEBELUM MASUK KERANJANG
+    // =========================================================================
+    let currentQtyItem = null;
+
+    function openModalInputQty(item) {
+        if (!item) return;
+        currentQtyItem = item;
+
+        // Tampilkan Identitas Barang
+        $('#modal-qty-nama-barang').text(item.nama_barang || '-').attr('title', item.nama_barang || '');
+        $('#modal-qty-kode-barang').text(item.id_barang || '-');
+        $('#modal-qty-satuan').text(item.satuan || '-');
+
+        const stok = parseFloat(item.stok_cabang !== undefined ? item.stok_cabang : item.stok) || 0;
+        $('#modal-qty-stok').text(stok).removeClass('bg-success bg-danger').addClass(stok > 0 ? 'bg-success' : 'bg-danger');
+
+        const hargaSatuan = parseFloat(item.harga_jual || item.harga_normal || 0);
+        $('#modal-qty-harga-satuan').text('Rp ' + new Intl.NumberFormat('id-ID').format(hargaSatuan) + ' / ' + (item.satuan || 'unit'));
+
+        // Foto Produk Kemasan
+        if (item.gambar) {
+            const imgUrl = '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(item.gambar);
+            $('#modal-qty-foto-box').html(`
+                <img src="${imgUrl}" class="img-fluid rounded" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<i class=\\'bi bi-image text-muted fs-3\\'></i>'">
+            `);
+        } else {
+            $('#modal-qty-foto-box').html('<i class="bi bi-image text-muted fs-3"></i>');
+        }
+
+        // Nilai Default Qty = 1
+        $('#input-modal-qty-value').val(1);
+        updateModalQtySubtotal();
+
+        // Tampilkan Modal
+        const modalEl = document.getElementById('modalInputQtyPos');
+        const modalObj = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modalObj.show();
+    }
+
+    function updateModalQtySubtotal() {
+        if (!currentQtyItem) return;
+        const qty = parseFloat($('#input-modal-qty-value').val()) || 0;
+        let hargaPakai = parseFloat(currentQtyItem.harga_jual || currentQtyItem.harga_normal || 0);
+
+        const qtyA = parseFloat(currentQtyItem.qty_paket_a) || 0;
+        const hrgA = parseFloat(currentQtyItem.hrg_paket_a) || 0;
+        const qtyB = parseFloat(currentQtyItem.qty_paket_b) || 0;
+        const hrgB = parseFloat(currentQtyItem.hrg_paket_b) || 0;
+
+        let tierText = '';
+        if (qtyB > 0 && hrgB > 0 && qty >= qtyB) {
+            hargaPakai = hrgB;
+            tierText = `Harga Grosir Paket B Aktif (>= ${qtyB} ${currentQtyItem.satuan}): Rp ${new Intl.NumberFormat('id-ID').format(hrgB)}/unit`;
+        } else if (qtyA > 0 && hrgA > 0 && qty >= qtyA) {
+            hargaPakai = hrgA;
+            tierText = `Harga Grosir Paket A Aktif (>= ${qtyA} ${currentQtyItem.satuan}): Rp ${new Intl.NumberFormat('id-ID').format(hrgA)}/unit`;
+        }
+
+        if (tierText) {
+            $('#modal-qty-tier-text').text(tierText);
+            $('#modal-qty-tier-alert').removeClass('d-none');
+        } else {
+            $('#modal-qty-tier-alert').addClass('d-none');
+        }
+
+        const subtotal = qty * hargaPakai;
+        $('#modal-qty-subtotal-preview').text('Rp ' + new Intl.NumberFormat('id-ID').format(subtotal));
+    }
+
+    // Event Handler Modal Input Qty
+    $('#modalInputQtyPos').on('shown.bs.modal', function() {
+        const $input = $('#input-modal-qty-value');
+        $input.focus().select();
+    });
+
+    $('#modalInputQtyPos').on('hidden.bs.modal', function() {
+        currentQtyItem = null;
+        setTimeout(() => $('#barcode-input').focus(), 150);
+    });
+
+    $('#input-modal-qty-value').on('input change keyup', function() {
+        updateModalQtySubtotal();
+    });
+
+    $('#btn-modal-qty-minus').on('click', function() {
+        const $input = $('#input-modal-qty-value');
+        let val = parseFloat($input.val()) || 1;
+        if (val > 1) {
+            $input.val(val - 1).trigger('input');
+        }
+    });
+
+    $('#btn-modal-qty-plus').on('click', function() {
+        const $input = $('#input-modal-qty-value');
+        let val = parseFloat($input.val()) || 0;
+        $input.val(val + 1).trigger('input');
+    });
+
+    // Form Konfirmasi Qty (Enter)
+    $('#form-confirm-qty-pos').on('submit', function(e) {
+        e.preventDefault();
+        if (!currentQtyItem) return;
+
+        const qty = parseFloat($('#input-modal-qty-value').val());
+        if (isNaN(qty) || qty <= 0) {
+            Swal.fire('Jumlah Tidak Valid', 'Silakan masukkan jumlah kuantiti yang valid (minimal 1 atau lebih)!', 'warning');
+            $('#input-modal-qty-value').focus().select();
+            return;
+        }
+
+        addToCart(currentQtyItem, qty);
+
+        const modalObj = bootstrap.Modal.getInstance(document.getElementById('modalInputQtyPos'));
+        if (modalObj) modalObj.hide();
+    });
+
     // Menambah barang ke keranjang
-    function addToCart(item) {
+    function addToCart(item, qty = 1) {
+        const qtyToAdd = parseFloat(qty) || 1;
         const existing = cart.find(x => x.id_barang === item.id_barang);
         if (existing) {
-            existing.qty += 1;
+            existing.qty += qtyToAdd;
         } else {
             cart.push({
                 id_barang: item.id_barang,
@@ -1068,8 +1271,9 @@
                 qty_paket_b: parseFloat(item.qty_paket_b) || 0,
                 hrg_paket_b: parseFloat(item.hrg_paket_b) || 0,
                 satuan: item.satuan,
-                stok: parseFloat(item.stok),
-                qty: 1
+                stok: parseFloat(item.stok_cabang !== undefined ? item.stok_cabang : item.stok),
+                gambar: item.gambar || '',
+                qty: qtyToAdd
             });
         }
         applyTieredPricing();
@@ -1625,8 +1829,9 @@
         StockLookup.open({
             mode: 'penjualan',
             onSelect: function(item) {
-                addToCart(item);
-                setTimeout(() => $('#barcode-input').focus(), 250);
+                setTimeout(function() {
+                    openModalInputQty(item);
+                }, 300);
             }
         });
     });

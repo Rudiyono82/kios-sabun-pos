@@ -23,10 +23,12 @@
                 <!-- Baris Filter & Pencarian Sesuai Screenshot VB6 -->
                 <div class="card border p-2 px-3 mb-3 bg-white shadow-sm rounded-3">
                     <div class="row g-2 align-items-center">
-                        <div class="col-12 col-md-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <label class="small fw-bold text-dark text-nowrap mb-0" style="font-size: 0.78rem;">Filter Terlebih Dahulu :</label>
-                                <select id="lookup-filter-by" class="form-select form-select-sm fw-semibold" style="min-width: 140px;">
+                        <div class="col-12 col-md-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-dark fw-bold text-nowrap" style="font-size: 0.78rem;">
+                                    <i class="bi bi-funnel me-1 text-primary"></i> Filter :
+                                </span>
+                                <select id="lookup-filter-by" class="form-select form-select-sm fw-semibold">
                                     <option value="nama" selected>NAMA BARANG</option>
                                     <option value="kode">ID BARANG</option>
                                     <option value="barcode">KODE BARCODE</option>
@@ -37,22 +39,22 @@
                         </div>
 
                         <div class="col-12 col-md-5">
-                            <div class="d-flex align-items-center gap-2">
-                                <label class="small fw-bold text-dark text-nowrap mb-0" style="font-size: 0.78rem;">Kata Cari :</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" id="lookup-search-keyword" class="form-control" placeholder="Ketik kata yang dicari lalu tekan Enter..." autocomplete="off">
-                                    <button class="btn btn-success fw-bold px-3" type="button" id="btn-lookup-do-search" title="Mulai Pencarian">
-                                        <i class="bi bi-arrow-right"></i>
-                                    </button>
-                                </div>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-dark fw-bold text-nowrap" style="font-size: 0.78rem;">
+                                    <i class="bi bi-search me-1 text-success"></i> Kata Cari :
+                                </span>
+                                <input type="text" id="lookup-search-keyword" class="form-control" placeholder="Ketik kata yang dicari lalu tekan Enter..." autocomplete="off">
+                                <button class="btn btn-success fw-bold px-3" type="button" id="btn-lookup-do-search" title="Mulai Pencarian">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
                             </div>
                         </div>
 
-                        <div class="col-12 col-md-4 text-md-end d-flex align-items-center justify-content-md-end gap-2">
+                        <div class="col-12 col-md-3 text-md-end d-flex align-items-center justify-content-md-end gap-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-lookup-refresh-data" title="Refresh Data">
                                 <i class="bi bi-arrow-repeat me-1"></i> Refresh
                             </button>
-                            <small class="text-muted d-none d-lg-inline" style="font-size: 0.72rem;">Gunakan <kbd class="bg-light text-dark border">↑</kbd> <kbd class="bg-light text-dark border">↓</kbd> & <kbd class="bg-primary text-white border">Enter</kbd></small>
+                            <small class="text-muted d-none d-lg-inline text-nowrap" style="font-size: 0.72rem;">Gunakan <kbd class="bg-light text-dark border">↑</kbd> <kbd class="bg-light text-dark border">↓</kbd> & <kbd class="bg-primary text-white border">Enter</kbd></small>
                         </div>
                     </div>
                 </div>
