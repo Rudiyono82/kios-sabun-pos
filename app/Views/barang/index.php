@@ -40,9 +40,7 @@
                     <th>Nama Barang</th>
                     <th>Kategori</th>
                     <th>Satuan</th>
-                    <?php if ($is_admin): ?>
                     <th class="text-end">Harga Beli</th>
-                    <?php endif; ?>
                     <th class="text-end">Harga Jual</th>
                     <?php if ($is_admin): ?>
                     <th class="text-center">Stok</th>
@@ -74,9 +72,7 @@
                         </td>
                         <td><span class="badge bg-light text-dark border"><?= esc($b['nama_kategori'] ?? 'Umum') ?></span></td>
                         <td><span class="badge bg-secondary-subtle text-secondary"><?= esc($b['satuan']) ?></span></td>
-                        <?php if ($is_admin): ?>
                         <td class="text-end text-muted">Rp <?= number_format((float)$b['harga_beli'], 0, ',', '.') ?></td>
-                        <?php endif; ?>
                         <td class="text-end fw-bold text-primary">
                             <div>Rp <?= number_format((float)$b['harga_jual'], 0, ',', '.') ?></div>
                             <?php if ((float)($b['harga_grosir'] ?? 0) > 0): ?>

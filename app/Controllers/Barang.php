@@ -14,10 +14,9 @@ class Barang extends BaseController
         $barangList = $barangModel->getBarangWithKategori();
         $isAdmin = (session()->get('role') === 'admin');
 
-        // Jika bukan admin (kasir), sembunyikan informasi stok akhir & harga modal
+        // Jika bukan admin (kasir), sembunyikan informasi stok akhir saja (harga beli/modal tetap ditampilkan untuk pengecekan kasir)
         if (!$isAdmin) {
             foreach ($barangList as &$b) {
-                $b['harga_beli'] = null;
                 $b['stok'] = null;
                 $b['min_stok'] = null;
             }
