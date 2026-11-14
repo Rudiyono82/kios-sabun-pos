@@ -182,12 +182,12 @@
     $(document).ready(function() {
         // Inisialisasi baris pertama
         $('#item-tbody').append(buildItemRow(rowIndex++));
-        $('.select-barang').select2({ theme: 'bootstrap-5', width: '100%' });
+        $('.select-barang').select2({ theme: 'bootstrap-5', width: '100%', minimumResultsForSearch: 8 });
 
         $('#btn-tambah-baris').on('click', function() {
             let newRow = $(buildItemRow(rowIndex++));
             $('#item-tbody').append(newRow);
-            newRow.find('.select-barang').select2({ theme: 'bootstrap-5', width: '100%' });
+            newRow.find('.select-barang').select2({ theme: 'bootstrap-5', width: '100%', minimumResultsForSearch: 8 });
             updateSummary();
         });
 
