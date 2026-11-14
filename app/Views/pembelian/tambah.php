@@ -1,13 +1,16 @@
 <?= $this->extend('layout/main') ?>
 
 <?= $this->section('content') ?>
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-cart-plus-fill text-primary me-2"></i>Input Pembelian Supplier Baru</h4>
         <p class="text-muted small mb-0">Catat transaksi pembelian bahan baku kimia / kemasan / barang jadi dari supplier dengan pembaruan stok otomatis.</p>
     </div>
-    <div>
-        <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+    <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="$('#btn-simpan-pembelian').click()" title="Simpan transaksi pembelian ini">
+            <i class="bi bi-check-circle-fill"></i> Simpan Transaksi
+        </button>
+        <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
             <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Pembelian
         </a>
     </div>
@@ -16,18 +19,30 @@
 <div class="row g-4">
     <!-- FORM HEADER PEMBELIAN -->
     <div class="col-12 col-lg-4">
+        <!-- 1. Ringkasan Total Tagihan & Tombol Simpan (Ditaruh di PALING ATAS agar Langsung Kelihatan) -->
+        <div class="card-modern p-4 mb-3 text-center" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #86efac; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15); position: sticky; top: 80px; z-index: 10;">
+            <span class="text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">TOTAL BIAYA PEMBELIAN</span>
+            <h2 class="display-6 fw-bold text-success my-2" id="display-total-biaya">Rp 0</h2>
+            <span class="badge bg-white text-success border border-success-subtle px-3 py-1 font-monospace" id="display-total-item">0 Item Barang Masuk</span>
+            
+            <button type="button" class="btn btn-success btn-lg w-100 rounded-pill py-2 mt-3 fw-bold shadow d-flex align-items-center justify-content-center gap-2" id="btn-simpan-pembelian">
+                <i class="bi bi-check-circle-fill fs-5"></i> Simpan Transaksi Pembelian
+            </button>
+        </div>
+
+        <!-- 2. Informasi Faktur Supplier -->
         <div class="card-modern p-4 mb-4">
             <h6 class="fw-bold mb-3 text-dark border-bottom pb-2"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Informasi Faktur Supplier</h6>
             <div class="mb-3">
-                <label class="form-label small fw-bold">Nomor Nota Beli</label>
+                <label class="form-label small fw-bold mb-1">Nomor Nota Beli</label>
                 <input type="text" id="beli-no-beli" class="form-control form-control-sm font-monospace fw-bold text-primary bg-light" value="<?= esc($no_beli) ?>" readonly>
             </div>
             <div class="mb-3">
-                <label class="form-label small fw-bold">Tanggal Pembelian</label>
+                <label class="form-label small fw-bold mb-1">Tanggal Pembelian</label>
                 <input type="date" id="beli-tanggal" class="form-control form-control-sm" value="<?= date('Y-m-d') ?>">
             </div>
             <div class="mb-3">
-                <label class="form-label small fw-bold">Pilih Mitra Supplier <span class="text-danger">*</span></label>
+                <label class="form-label small fw-bold mb-1">Pilih Mitra Supplier <span class="text-danger">*</span></label>
                 <select id="beli-supplier" class="form-select form-select-sm" required>
                     <option value="">-- Pilih Supplier --</option>
                     <?php foreach ($suppliers as $s): ?>
@@ -38,27 +53,16 @@
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label small fw-bold">Status Pembayaran</label>
+                <label class="form-label small fw-bold mb-1">Status Pembayaran</label>
                 <select id="beli-status-bayar" class="form-select form-select-sm">
                     <option value="Lunas">Lunas (Potong Kas)</option>
                     <option value="Hutang / Tempo">Hutang / Tempo (Kredit)</option>
                 </select>
             </div>
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Catatan Pembelian</label>
-                <textarea id="beli-catatan" class="form-control form-control-sm" rows="3" placeholder="No. invoice supplier / ekspedisi / catatan..."></textarea>
+            <div class="mb-0">
+                <label class="form-label small fw-bold mb-1">Catatan Pembelian</label>
+                <textarea id="beli-catatan" class="form-control form-control-sm" rows="2" placeholder="No. invoice supplier / ekspedisi / catatan..."></textarea>
             </div>
-        </div>
-
-        <!-- Ringkasan Total Tagihan -->
-        <div class="card-modern p-4 text-center" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac;">
-            <span class="text-uppercase small fw-bold text-muted">TOTAL BIAYA PEMBELIAN</span>
-            <h2 class="display-6 fw-bold text-success my-2" id="display-total-biaya">Rp 0</h2>
-            <span class="small text-muted d-block" id="display-total-item">0 Item Barang Masuk</span>
-            
-            <button type="button" class="btn btn-success w-100 rounded-pill py-2 mt-3 fw-bold shadow-sm" id="btn-simpan-pembelian">
-                <i class="bi bi-check-circle-fill me-2"></i> Simpan Transaksi Pembelian
-            </button>
         </div>
     </div>
 
