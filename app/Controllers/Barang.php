@@ -130,6 +130,58 @@ class Barang extends BaseController
             }
         }
 
+        // Handle Upload Foto / Gambar Barang
+        $fileFoto = $this->request->getFile('foto_barang');
+        $hapusFoto = $this->request->getPost('hapus_foto') == '1';
+        $gambarLama = trim((string)$this->request->getPost('gambar_lama'));
+
+        $uploadDir = FCPATH . 'uploads/barang';
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+        $xamppDir = 'C:/xampp/htdocs/kios-sabun-parfum-pos/public/uploads/barang';
+        if (!is_dir($xamppDir) && is_dir('C:/xampp/htdocs/kios-sabun-parfum-pos')) {
+            @mkdir($xamppDir, 0777, true);
+        }
+
+        if ($fileFoto && $fileFoto->isValid() && !$fileFoto->hasMoved()) {
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+            $mime = $fileFoto->getMimeType();
+            if (!in_array($mime, $allowedMimes)) {
+                return redirect()->back()->withInput()->with('error', 'Format gambar harus berupa JPG, JPEG, PNG, atau WEBP!');
+            }
+            if ($fileFoto->getSize() > 3 * 1024 * 1024) {
+                return redirect()->back()->withInput()->with('error', 'Ukuran file foto maksimal 3MB!');
+            }
+
+            $ext = $fileFoto->guessExtension() ?: 'jpeg';
+            $newFileName = $idBarang . '.' . $ext;
+
+            if ($gambarLama && $gambarLama !== $newFileName) {
+                @unlink($uploadDir . '/' . $gambarLama);
+                if (is_dir($xamppDir)) @unlink($xamppDir . '/' . $gambarLama);
+            }
+
+            $fileFoto->move($uploadDir, $newFileName, true);
+            if (is_dir($xamppDir) && file_exists($uploadDir . '/' . $newFileName)) {
+                @copy($uploadDir . '/' . $newFileName, $xamppDir . '/' . $newFileName);
+            }
+
+            $data['gambar'] = $newFileName;
+        } elseif ($hapusFoto) {
+            if ($gambarLama) {
+                @unlink($uploadDir . '/' . $gambarLama);
+                if (is_dir($xamppDir)) @unlink($xamppDir . '/' . $gambarLama);
+            }
+            $data['gambar'] = null;
+        } else {
+            if ($existing) {
+                $data['gambar'] = $existing['gambar'] ?? ($gambarLama ?: null);
+            } elseif ($gambarLama) {
+                $data['gambar'] = $gambarLama;
+            }
+        }
+
         if ($id) {
             $barangModel->update($id, $data);
             return redirect()->to('/barang')->with('success', 'Data barang berhasil diperbarui!');

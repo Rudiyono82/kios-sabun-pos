@@ -36,6 +36,7 @@
         <table class="table table-hover align-middle" id="table-barang">
             <thead class="table-light small text-uppercase">
                 <tr>
+                    <th style="width: 50px;" class="text-center">Foto</th>
                     <th>Kode / Barcode</th>
                     <th>Nama Barang</th>
                     <th>Kategori</th>
@@ -52,6 +53,15 @@
             <tbody>
                 <?php foreach ($barang as $b): ?>
                     <tr>
+                        <td class="text-center">
+                            <?php if (!empty($b['gambar'])): ?>
+                                <img src="<?= base_url('uploads/barang/' . $b['gambar']) ?>" alt="<?= esc($b['nama_barang']) ?>" class="rounded border shadow-xs" style="width: 36px; height: 36px; object-fit: cover; cursor: zoom-in;" onclick="window.open('<?= base_url('uploads/barang/' . $b['gambar']) ?>', '_blank')" title="Klik perbesar foto" onerror="this.parentElement.innerHTML='<div class=\'rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto\' style=\'width: 36px; height: 36px; font-size: 0.8rem;\'><i class=\'bi bi-image\'></i></div>';">
+                            <?php else: ?>
+                                <div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto" style="width: 36px; height: 36px; font-size: 0.8rem;">
+                                    <i class="bi bi-image"></i>
+                                </div>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <div class="fw-bold text-dark"><?= esc($b['id_barang']) ?></div>
                             <small class="text-muted"><i class="bi bi-upc"></i> <?= esc($b['barcode'] ?: '-') ?></small>
@@ -123,7 +133,7 @@
 <div class="modal fade" id="modalTambahBarang" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl my-4">
         <div class="modal-content rounded-4 border-0 shadow-lg">
-            <form action="<?= base_url('barang/simpan') ?>" method="POST" id="formBarang">
+            <form action="<?= base_url('barang/simpan') ?>" method="POST" id="formBarang" enctype="multipart/form-data">
                 <input type="hidden" name="id" id="form-barang-id">
                 
                 <div class="modal-header bg-primary text-white py-3 px-4" id="modalBarangHeader">
@@ -222,6 +232,37 @@
                                 <label class="form-check-label fw-semibold text-dark" for="form-is_jerigen">
                                     <i class="bi bi-recycle text-success me-1"></i> Termasuk Produk Refill / Tukar Jerigen 5 Liter
                                 </label>
+                            </div>
+                        </div>
+
+                        <!-- Upload Foto Produk -->
+                        <div class="col-12">
+                            <div class="card border rounded-3 bg-light p-3">
+                                <h6 class="fw-bold mb-2 text-dark">
+                                    <i class="bi bi-image text-primary me-2"></i>Foto / Gambar Produk Kemasan
+                                </h6>
+                                <div class="row g-3 align-items-center">
+                                    <div class="col-auto">
+                                        <div id="preview-foto-box" class="rounded border bg-white d-flex align-items-center justify-content-center overflow-hidden position-relative shadow-sm" style="width: 100px; height: 100px;">
+                                            <i class="bi bi-image text-muted fs-1" id="preview-foto-icon"></i>
+                                            <img id="preview-foto-img" src="" alt="Preview Foto" class="img-fluid d-none" style="width: 100%; height: 100%; object-fit: contain;">
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <input type="hidden" name="gambar_lama" id="form-gambar_lama">
+                                        <label for="form-foto_barang" class="form-label small fw-semibold text-muted mb-1">Pilih File Foto Baru</label>
+                                        <input type="file" name="foto_barang" id="form-foto_barang" class="form-control" accept="image/jpeg,image/png,image/webp,image/jpg">
+                                        <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">
+                                            Format: <strong>JPG, JPEG, PNG, WEBP</strong> (Maks. 3MB). Foto akan otomatis muncul pada kasir POS, popup lookup, dan kartu stok.
+                                        </small>
+                                        <div class="form-check mt-2 d-none" id="container-hapus-foto">
+                                            <input class="form-check-input" type="checkbox" name="hapus_foto" id="form-hapus_foto" value="1">
+                                            <label class="form-check-label small text-danger fw-semibold" for="form-hapus_foto">
+                                                <i class="bi bi-trash me-1"></i>Hapus Foto Produk Ini
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -460,6 +501,21 @@
 
         $('#modalTambahBarang').modal('show');
 
+        // Setup Foto Produk
+        $('#form-foto_barang').val('');
+        $('#form-hapus_foto').prop('checked', false);
+        if (b.gambar) {
+            $('#form-gambar_lama').val(b.gambar);
+            $('#preview-foto-img').attr('src', '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(b.gambar)).removeClass('d-none');
+            $('#preview-foto-icon').addClass('d-none');
+            $('#container-hapus-foto').removeClass('d-none');
+        } else {
+            $('#form-gambar_lama').val('');
+            $('#preview-foto-img').attr('src', '').addClass('d-none');
+            $('#preview-foto-icon').removeClass('d-none');
+            $('#container-hapus-foto').addClass('d-none');
+        }
+
         // Pastikan seluruh input currency terformat dengan ribuan titik
         setTimeout(() => {
             $('#modalTambahBarang .input-currency').each(function() {
@@ -476,6 +532,12 @@
         $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
         $('#form-id_barang').prop('readonly', false);
         $('#formBarang')[0].reset();
+        $('#form-foto_barang').val('');
+        $('#form-gambar_lama').val('');
+        $('#preview-foto-img').attr('src', '').addClass('d-none');
+        $('#preview-foto-icon').removeClass('d-none');
+        $('#form-hapus_foto').prop('checked', false);
+        $('#container-hapus-foto').addClass('d-none');
         $('#form-kategori_id').val('').trigger('change');
         $('#form-satuan').val('').trigger('change');
         $('#form-kode_supplier_1').val('').trigger('change');
@@ -491,6 +553,35 @@
         $('#badge-header-harga').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-pencil-fill me-1"></i>Bisa Diinput</span>');
         $('#badge-header-paket').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-pencil-fill me-1"></i>Bisa Diinput</span>');
         $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
+    });
+
+    // Live Preview Upload Foto Produk Baru
+    $('#form-foto_barang').on('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#preview-foto-img').attr('src', e.target.result).removeClass('d-none');
+                $('#preview-foto-icon').addClass('d-none');
+            };
+            reader.readAsDataURL(file);
+            $('#form-hapus_foto').prop('checked', false);
+        }
+    });
+
+    // Checkbox Hapus Foto
+    $('#form-hapus_foto').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#preview-foto-img').addClass('d-none');
+            $('#preview-foto-icon').removeClass('d-none');
+            $('#form-foto_barang').val('');
+        } else {
+            const oldImg = $('#form-gambar_lama').val();
+            if (oldImg) {
+                $('#preview-foto-img').attr('src', '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(oldImg)).removeClass('d-none');
+                $('#preview-foto-icon').addClass('d-none');
+            }
+        }
     });
 
     // Event Klik Hapus Data (Validasi Password Admin untuk Kasir)
