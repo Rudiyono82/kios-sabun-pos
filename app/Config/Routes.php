@@ -18,6 +18,8 @@ $routes->post('profile/update', 'Auth::updateProfile', ['filter' => 'auth']);
 $routes->get('/', 'Dashboard::index', ['filter' => 'auth']);
 $routes->get('/dashboard', 'Dashboard::index', ['filter' => 'auth']);
 $routes->get('dashboard/grafik', 'Dashboard::grafik', ['filter' => 'auth']);
+$routes->get('dashboard/live-kasir', 'Dashboard::liveKasir', ['filter' => 'admin']);
+$routes->get('monitoring-kasir', 'Dashboard::liveKasir', ['filter' => 'admin']);
 
 // Point of Sales (Kasir)
 $routes->group('pos', ['filter' => 'auth'], function($routes) {
@@ -62,8 +64,24 @@ $routes->group('supplier', ['filter' => 'auth'], function($routes) {
 // Master Cabang & Profil Toko
 $routes->group('cabang', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Cabang::index');
-    $routes->post('update', 'Cabang::update', ['filter' => 'admin']);
+    $routes->post('simpan', 'Cabang::simpan', ['filter' => 'admin']);
+    $routes->post('update', 'Cabang::simpan', ['filter' => 'admin']);
+    $routes->match(['get', 'post'], 'switch/(:num)', 'Cabang::switchCabang/$1');
+    $routes->match(['get', 'post'], 'hapus/(:num)', 'Cabang::hapus/$1', ['filter' => 'admin']);
 });
+
+// Mutasi & Transfer Stok Antar Cabang
+$routes->group('transfer-stok', ['filter' => 'auth'], function($routes) {
+    $routes->get('/', 'TransferStok::index');
+    $routes->get('tambah', 'TransferStok::tambah');
+    $routes->post('simpan', 'TransferStok::simpan');
+    $routes->get('detail/(:num)', 'TransferStok::detail/$1');
+    $routes->match(['get', 'post'], 'terima/(:num)', 'TransferStok::terima/$1');
+    $routes->get('cetak/(:num)', 'TransferStok::cetak/$1');
+});
+
+// Audit Trail & Jejak Aktivitas Keamanan
+$routes->get('audit-trail', 'AuditTrail::index', ['filter' => 'admin']);
 
 // Pembelian / Restock
 $routes->group('pembelian', ['filter' => 'auth'], function($routes) {

@@ -51,9 +51,19 @@ abstract class BaseController extends Controller
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
 
-        // Preload any models, libraries, etc, here.
-
-        // E.g.: $this->session = \Config\Services::session();
+        // Inisialisasi Session Cabang jika belum ada
+        $session = session();
+        if ($session->get('is_logged_in')) {
+            if (!$session->has('id_cabang')) {
+                $session->set('id_cabang', 1);
+            }
+            if (!$session->has('nama_cabang')) {
+                $db = \Config\Database::connect();
+                $cab = $db->table('cabang')->where('id', $session->get('id_cabang'))->get()->getRowArray();
+                $session->set('nama_cabang', $cab ? $cab['nama_cabang'] : 'KSP Cileungsi (Pusat)');
+                $session->set('kode_cabang', $cab ? $cab['kode_cabang'] : 'CBG-01');
+            }
+        }
     }
 
     /**

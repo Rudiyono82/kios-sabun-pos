@@ -51,8 +51,9 @@ class Pos extends BaseController
     public function search()
     {
         $keyword = $this->request->getGet('term') ?? '';
+        $idCabang = session()->get('id_cabang') ?: 1;
         $barangModel = new BarangModel();
-        $items = $barangModel->cariBarangPOS($keyword);
+        $items = $barangModel->cariBarangPOS($keyword, $idCabang);
 
         $isAdmin = (session()->get('role') === 'admin');
         if (!$isAdmin) {
@@ -236,6 +237,9 @@ class Pos extends BaseController
         $detailRecords = [];
         $kartuStokRecords = [];
 
+        $idCabang = (int)(session()->get('id_cabang') ?: 1);
+        $stokCabangModel = new \App\Models\StokCabangModel();
+
         foreach ($json['items'] as $item) {
             $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
             if (!$barang) continue;
@@ -261,9 +265,11 @@ class Pos extends BaseController
                 'profit' => $itemProfit,
             ];
 
-            // Potong stok barang
-            $sisaStok = $barang['stok'] - $qty;
-            $db->table('barang')->where('id_barang', $item['id_barang'])->update(['stok' => $sisaStok]);
+            // Potong stok barang di cabang aktif
+            $sisaStok = $stokCabangModel->updateStok($item['id_barang'], $idCabang, -$qty);
+
+            // Update akumulasi stok di tabel master barang (untuk konsolidasi total)
+            $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$item['id_barang'], $item['id_barang']]);
 
             // Catat ke kartu stok
             $kartuStokRecords[] = [
@@ -274,7 +280,7 @@ class Pos extends BaseController
                 'masuk' => 0,
                 'keluar' => $qty,
                 'sisa' => $sisaStok,
-                'keterangan' => 'Penjualan Kasir ' . $noFaktur
+                'keterangan' => 'Penjualan Kasir ' . $noFaktur . ' (Cabang #' . $idCabang . ')'
             ];
         }
 
@@ -315,6 +321,7 @@ class Pos extends BaseController
 
         // Insert Master Penjualan
         $db->table('penjualan')->insert([
+            'id_cabang' => $idCabang,
             'no_faktur' => $noFaktur,
             'tanggal' => date('Y-m-d H:i:s'),
             'kode_user' => session()->get('kode_user') ?? 'KASIR1',
@@ -358,13 +365,17 @@ class Pos extends BaseController
 
         // Catat ke Arus Kas
         $db->table('data_keuangan')->insert([
+            'id_cabang' => $idCabang,
             'tanggal' => date('Y-m-d H:i:s'),
             'jenis_keuangan' => 'Pemasukan',
             'nama_keuangan' => 'Penjualan ' . $noFaktur . ' (' . ($json['metode_bayar'] ?? 'Cash') . ')',
             'total' => $grandTotal,
-            'keterangan' => 'Kasir POS',
+            'keterangan' => 'Kasir POS (' . (session()->get('nama_cabang') ?? 'Cabang') . ')',
             'kode_user' => session()->get('kode_user') ?? 'KASIR1'
         ]);
+
+        // Catat ke Audit Trail
+        \App\Models\AuditLogModel::log('TRANSAKSI_POS', 'POS', "Penjualan Faktur {$noFaktur} senilai Rp " . number_format($grandTotal, 0, ',', '.') . " (" . ($json['metode_bayar'] ?? 'Cash') . ") oleh " . (session()->get('nama_user') ?? 'Kasir'), null, ['no_faktur' => $noFaktur, 'grand_total' => $grandTotal, 'total_item' => $totalItem], $idCabang);
 
         // Jika ada member, tambah point & total belanja dan siapkan data WA
         $memberData = null;
@@ -465,12 +476,32 @@ class Pos extends BaseController
         }
 
         $items = $db->table('penjualan_detail')->where('no_faktur', $noFaktur)->get()->getResultArray();
+        
+        // Prioritaskan informasi cabang tempat transaksi dibuat
+        $cabang = null;
+        if (!empty($penjualan['id_cabang'])) {
+            $cabang = $db->table('cabang')->where('id', $penjualan['id_cabang'])->get()->getRowArray();
+        }
+        if (!$cabang) {
+            $cabang = $db->table('cabang')->where('is_pusat', 1)->get()->getRowArray();
+        }
+
         $profil = $db->table('profil_toko')->get()->getRowArray();
+        if ($cabang) {
+            $profil = [
+                'nama_toko'    => $cabang['nama_cabang'],
+                'alamat_1'     => $cabang['alamat'],
+                'alamat_2'     => $cabang['kota'],
+                'telepon'      => $cabang['telepon'],
+                'footer_struk' => $cabang['footer_struk'] ?? ($profil['footer_struk'] ?? 'Terima Kasih atas Kunjungan Anda!')
+            ];
+        }
 
         $data = [
             'penjualan' => $penjualan,
-            'items' => $items,
-            'profil' => $profil,
+            'items'     => $items,
+            'profil'    => $profil,
+            'cabang'    => $cabang
         ];
 
         return view('pos/struk', $data);

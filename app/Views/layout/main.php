@@ -586,9 +586,53 @@
             right: 12px !important;
             z-index: 10 !important;
         }
+
+        /* ============================================================ */
+        /* RESPONSIVE MOBILE NAVIGATION & OFF-CANVAS SIDEBAR            */
+        /* ============================================================ */
+        #sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 1040;
+            transition: opacity 0.3s ease;
+        }
+        #sidebar-backdrop.show {
+            display: block;
+        }
+
+        @media (max-width: 991.98px) {
+            #sidebar {
+                position: fixed !important;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                z-index: 1050;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.35);
+            }
+            #sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                padding: 16px !important;
+            }
+            .top-navbar {
+                padding: 10px 16px !important;
+            }
+        }
     </style>
 </head>
 <body>
+
+    <!-- Backdrop Overlay for Mobile Sidebar -->
+    <div id="sidebar-backdrop"></div>
 
     <!-- Sidebar Menu -->
     <aside id="sidebar">
@@ -611,9 +655,9 @@
         <?php
             $uri = uri_string();
             $isMasterActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'barang') || str_contains($uri, 'kategori') || str_contains($uri, 'satuan') || str_contains($uri, 'supplier') || str_contains($uri, 'member') || str_contains($uri, 'barcode')));
-            $isTransaksiActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || str_contains($uri, 'stok-opname')));
+            $isTransaksiActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || str_contains($uri, 'stok-opname') || str_contains($uri, 'transfer-stok')));
             $isLaporanActive = (str_contains($uri, 'laporan'));
-            $isConfigActive = (str_contains($uri, 'karyawan') || str_contains($uri, 'cabang') || str_contains($uri, 'profile'));
+            $isConfigActive = (str_contains($uri, 'karyawan') || str_contains($uri, 'cabang') || str_contains($uri, 'profile') || str_contains($uri, 'audit-trail') || str_contains($uri, 'live-kasir') || str_contains($uri, 'monitoring-kasir'));
         ?>
 
         <div class="sidebar-menu-wrapper">
@@ -704,6 +748,12 @@
                                 <a href="<?= base_url('penjualan') ?>" class="nav-link <?= ($uri === 'penjualan' || (str_contains($uri, 'penjualan') && !str_contains($uri, 'laporan'))) ? 'active' : '' ?>">
                                     <i class="bi bi-receipt-cutoff text-info"></i>
                                     <span>Faktur Penjualan</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('transfer-stok') ?>" class="nav-link <?= str_contains($uri, 'transfer-stok') ? 'active' : '' ?>">
+                                    <i class="bi bi-arrow-left-right text-info"></i>
+                                    <span>Mutasi / Transfer Stok</span>
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -835,6 +885,18 @@
                                     <span>Master Cabang & Toko</span>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('dashboard/live-kasir') ?>" class="nav-link <?= (str_contains($uri, 'live-kasir') || str_contains($uri, 'monitoring-kasir')) ? 'active' : '' ?>">
+                                    <i class="bi bi-broadcast text-danger"></i>
+                                    <span>Pantau Kinerja Kasir Live</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('audit-trail') ?>" class="nav-link <?= str_contains($uri, 'audit-trail') ? 'active' : '' ?>">
+                                    <i class="bi bi-shield-check text-success"></i>
+                                    <span>Audit Trail & Jejak Aktivitas</span>
+                                </a>
+                            </li>
                             <?php endif; ?>
                             <li class="nav-item">
                                 <a href="<?= base_url('profile') ?>" class="nav-link <?= str_contains($uri, 'profile') ? 'active' : '' ?>">
@@ -868,11 +930,61 @@
 
     <!-- Main Content Area -->
     <div id="content-wrapper">
+        <?php
+            $cabangModelLayout = new \App\Models\CabangModel();
+            $activeCabangList = $cabangModelLayout->getActiveBranches();
+            $currentCabangId = session()->get('id_cabang') ?? 1;
+            $currentCabangNama = session()->get('nama_cabang') ?? 'KSP Pusat';
+            $canSwitchCabang = (session()->get('role') === 'admin' || session()->get('can_switch_cabang') == 1);
+        ?>
         <!-- Top Navbar -->
         <header class="top-navbar">
-            <div class="d-flex align-items-center gap-3">
-                <h5 class="mb-0 fw-bold text-dark"><?= esc($title ?? 'Dashboard') ?></h5>
-                <span class="badge bg-light text-muted border px-2 py-1"><i class="bi bi-geo-alt-fill text-danger"></i> Metland Cileungsi</span>
+            <div class="d-flex align-items-center gap-2 gap-md-3">
+                <!-- Mobile Hamburger Toggle Button -->
+                <button type="button" class="btn btn-sm btn-light border d-lg-none p-1 px-2 text-dark shadow-sm" id="btn-toggle-sidebar" aria-label="Toggle navigation">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+
+                <h5 class="mb-0 fw-bold text-dark d-none d-sm-block"><?= esc($title ?? 'Dashboard') ?></h5>
+                
+                <!-- Branch Badge / Interactive Dropdown Switcher -->
+                <?php if ($canSwitchCabang): ?>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle rounded-pill px-3 py-1 fw-semibold d-flex align-items-center gap-2 shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Klik untuk beralih cabang operasional">
+                        <i class="bi bi-shop-window text-primary"></i>
+                        <span class="text-truncate" style="max-width: 170px;"><?= esc($currentCabangNama) ?></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-start shadow-lg border-0 py-2" style="min-width: 260px; border-radius: 12px; z-index: 9999;">
+                        <li class="dropdown-header text-uppercase fw-bold text-primary" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                            <i class="bi bi-arrow-repeat me-1"></i> Beralih Cabang Operasional
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php foreach ($activeCabangList as $cb): ?>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center justify-content-between py-2 <?= ($cb['id'] == $currentCabangId) ? 'active fw-bold' : '' ?>" href="<?= base_url('cabang/switch/' . $cb['id']) ?>">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-geo-alt<?= ($cb['id'] == $currentCabangId) ? '-fill text-warning' : '' ?>"></i>
+                                        <span><?= esc($cb['nama_cabang']) ?></span>
+                                    </div>
+                                    <?php if ($cb['is_pusat'] == 1): ?>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">PUSAT</span>
+                                    <?php endif; ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item small text-muted text-center py-1" href="<?= base_url('cabang') ?>">
+                                <i class="bi bi-gear me-1"></i> Kelola Jaringan Cabang
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <?php else: ?>
+                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-semibold d-flex align-items-center gap-1 shadow-sm">
+                    <i class="bi bi-geo-alt-fill text-danger"></i> <?= esc($currentCabangNama) ?>
+                </span>
+                <?php endif; ?>
             </div>
             
             <div class="d-flex align-items-center gap-3">
@@ -1292,6 +1404,21 @@
         });
 
         $(document).ready(function() {
+            // Kontrol Off-Canvas Mobile Sidebar Drawer
+            $('#btn-toggle-sidebar, #sidebar-backdrop').on('click', function(e) {
+                e.preventDefault();
+                $('#sidebar').toggleClass('show');
+                $('#sidebar-backdrop').toggleClass('show');
+            });
+
+            // Tutup drawer otomatis saat link menu diklik di perangkat mobile
+            $('#sidebar .nav-link:not(.parent-menu)').on('click', function() {
+                if ($(window).width() < 992) {
+                    $('#sidebar').removeClass('show');
+                    $('#sidebar-backdrop').removeClass('show');
+                }
+            });
+
             initSearchableSelects();
             applyGridTruncationAndTooltips();
             initDraggablePopups();

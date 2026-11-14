@@ -105,14 +105,27 @@ class Auth extends BaseController
         $session->remove('login_attempts');
         $session->remove('lock_until');
 
+        // Ambil Data Cabang Pengguna
+        $idCabang = (int)($user['id_cabang'] ?? 1);
+        if ($idCabang <= 0) $idCabang = 1;
+        $cabang = $db->table('cabang')->where('id', $idCabang)->get()->getRowArray();
+        $namaCabang = $cabang ? $cabang['nama_cabang'] : 'KSP Cileungsi (Pusat)';
+        $kodeCabang = $cabang ? $cabang['kode_cabang'] : 'CBG-01';
+
         // Set User Session
         $session->set([
-            'user_id' => $user['id'],
-            'kode_user' => $user['kode_user'],
-            'nama_user' => $user['nama_user'],
-            'role' => $user['role'],
-            'is_logged_in' => true,
+            'user_id'           => $user['id'],
+            'kode_user'         => $user['kode_user'],
+            'nama_user'         => $user['nama_user'],
+            'role'              => $user['role'],
+            'id_cabang'         => $idCabang,
+            'nama_cabang'       => $namaCabang,
+            'kode_cabang'       => $kodeCabang,
+            'can_switch_cabang' => (int)($user['can_switch_cabang'] ?? 1),
+            'is_logged_in'      => true,
         ]);
+
+        \App\Models\AuditLogModel::log('LOGIN', 'AUTH', "Pengguna {$user['nama_user']} ({$user['role']}) berhasil login di {$namaCabang}", null, null, $idCabang);
 
         // Cek Kas Awal Hari Ini (Alur Logika SimpanUangKasHarian VB6)
         $today = date('Y-m-d');
@@ -169,8 +182,10 @@ class Auth extends BaseController
             return redirect()->back()->with('error', 'Nominal kas awal harus lebih besar dari 0!');
         }
 
+        $idCabang = (int)($session->get('id_cabang') ?: 1);
         $db = \Config\Database::connect();
         $db->table('data_keuangan')->insert([
+            'id_cabang' => $idCabang,
             'tanggal' => date('Y-m-d H:i:s'),
             'jenis_keuangan' => 'Kas Awal',
             'nama_keuangan' => 'Uang Kas Awal Laci Kasir',
@@ -178,6 +193,8 @@ class Auth extends BaseController
             'keterangan' => 'Modal kembalian awal hari oleh ' . ($session->get('nama_user') ?: $session->get('kode_user')),
             'kode_user' => $session->get('kode_user')
         ]);
+
+        \App\Models\AuditLogModel::log('KAS_AWAL', 'KAS', "Menginput modal kas awal laci kasir sebesar Rp " . number_format($nominal, 0, ',', '.'), null, ['total' => $nominal], $idCabang);
 
         if ($this->request->isAJAX()) {
             return $this->response->setJSON([
@@ -247,6 +264,7 @@ class Auth extends BaseController
 
     public function logout()
     {
+        \App\Models\AuditLogModel::log('LOGOUT', 'AUTH', "Pengguna " . (session()->get('nama_user') ?? 'User') . " keluar dari sistem");
         session()->destroy();
         return redirect()->to('/login')->with('success', 'Anda telah berhasil keluar dari sistem POS.');
     }

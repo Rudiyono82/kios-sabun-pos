@@ -29,14 +29,16 @@ class BarangModel extends Model
         return $builder->orderBy('b.nama_barang', 'ASC')->get()->getResultArray();
     }
 
-    public function cariBarangPOS($keyword)
+    public function cariBarangPOS($keyword, $idCabang = 1)
     {
-        return $this->db->table('barang')
-            ->where('status', 'Aktif')
+        return $this->db->table('barang b')
+            ->select('b.*, COALESCE(sc.stok, b.stok) as stok, COALESCE(sc.min_stok, b.min_stok) as min_stok')
+            ->join('stok_cabang sc', 'sc.id_barang = b.id_barang AND sc.id_cabang = ' . (int)$idCabang, 'left')
+            ->where('b.status', 'Aktif')
             ->groupStart()
-                ->like('id_barang', $keyword)
-                ->orLike('barcode', $keyword)
-                ->orLike('nama_barang', $keyword)
+                ->like('b.id_barang', $keyword)
+                ->orLike('b.barcode', $keyword)
+                ->orLike('b.nama_barang', $keyword)
             ->groupEnd()
             ->limit(15)
             ->get()->getResultArray();

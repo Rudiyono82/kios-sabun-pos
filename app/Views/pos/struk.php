@@ -131,7 +131,7 @@
     <div class="divider"></div>
 
     <div class="text-center" style="font-size: 10px;">
-        <div>Terima Kasih Atas Kunjungan Anda!</div>
+        <div><?= esc($profil['footer_struk'] ?? 'Terima Kasih Atas Kunjungan Anda!') ?></div>
         <div>Barang yang dibeli dapat ditukar jika kemasan cacat / bocor saat pembelian.</div>
     </div>
 </body>

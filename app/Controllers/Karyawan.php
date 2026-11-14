@@ -13,12 +13,15 @@ class Karyawan extends BaseController
         }
 
         $db = \Config\Database::connect();
+        $cabangModel = new \App\Models\CabangModel();
+        $cabangList  = $cabangModel->getActiveBranches();
         
-        // Ambil list karyawan beserta riwayat performa penjualan masing-masing kasir
+        // Ambil list karyawan beserta riwayat performa penjualan masing-masing kasir dan nama cabang
         $users = $db->table('users u')
-            ->select('u.*, 
+            ->select('u.*, c.nama_cabang, c.kode_cabang,
                 COUNT(p.id) as total_transaksi, 
                 COALESCE(SUM(p.grand_total), 0) as total_omzet_kasir')
+            ->join('cabang c', 'c.id = u.id_cabang', 'left')
             ->join('penjualan p', 'p.kode_user = u.kode_user', 'left')
             ->groupBy('u.id')
             ->orderBy('u.role', 'ASC')
@@ -26,8 +29,9 @@ class Karyawan extends BaseController
             ->get()->getResultArray();
 
         $data = [
-            'title' => 'Monitoring Karyawan & Hak Akses User',
-            'users' => $users,
+            'title'      => 'Monitoring Karyawan & Hak Akses User',
+            'users'      => $users,
+            'cabangList' => $cabangList,
         ];
 
         return view('karyawan/index', $data);
@@ -49,16 +53,20 @@ class Karyawan extends BaseController
         $nip = trim($this->request->getPost('nip'));
         $telepon = trim($this->request->getPost('telepon'));
         $password = trim($this->request->getPost('password'));
+        $idCabang = (int)($this->request->getPost('id_cabang') ?? 1);
+        $canSwitchCabang = $this->request->getPost('can_switch_cabang') ? 1 : 0;
         $isActive = $this->request->getPost('is_active') ? 1 : 0;
 
         $data = [
-            'kode_user' => $kodeUser,
-            'nama_user' => $namaUser,
-            'role' => $role,
-            'nip' => $nip,
-            'telepon' => $telepon,
-            'is_active' => $isActive,
-            'updated_at' => date('Y-m-d H:i:s'),
+            'kode_user'         => $kodeUser,
+            'nama_user'         => $namaUser,
+            'role'              => $role,
+            'nip'               => $nip,
+            'telepon'           => $telepon,
+            'id_cabang'         => $idCabang,
+            'can_switch_cabang' => $canSwitchCabang,
+            'is_active'         => $isActive,
+            'updated_at'        => date('Y-m-d H:i:s'),
         ];
 
         if ($id) {

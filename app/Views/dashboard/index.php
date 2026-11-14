@@ -2,6 +2,31 @@
 
 <?= $this->section('content') ?>
 
+<!-- Banner Status Cabang Aktif -->
+<div class="card-modern p-3 mb-4 bg-white border d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="bg-primary text-white rounded-3 p-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px;">
+            <i class="bi bi-shop-window fs-4"></i>
+        </div>
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="fw-bold mb-0 text-dark"><?= esc(session()->get('nama_cabang') ?? 'KSP Cileungsi - Pusat') ?></h5>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0" style="font-size: 0.7rem;">
+                    <?= esc(session()->get('kode_cabang') ?? 'CBG-01') ?>
+                </span>
+            </div>
+            <small class="text-muted">
+                <?= esc(session()->get('role') === 'admin' ? 'Administrator Jaringan Toko' : 'Kasir Bertugas: ' . (session()->get('nama_user') ?? 'Petugas')) ?> &bull; Data transaksi, stok barang cabang, dan buku kas aktif terisolasi.
+            </small>
+        </div>
+    </div>
+    <?php if (session()->get('role') === 'admin' || session()->get('can_switch_cabang') == 1): ?>
+        <a href="<?= base_url('cabang') ?>" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold text-nowrap">
+            <i class="bi bi-arrow-repeat me-1"></i> Beralih Cabang Toko
+        </a>
+    <?php endif; ?>
+</div>
+
 <!-- Baris Metrik Operasional Hari Ini -->
 <div class="row g-3 mb-4">
     <!-- Omzet Hari Ini -->

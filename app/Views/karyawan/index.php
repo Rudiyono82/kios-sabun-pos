@@ -23,6 +23,7 @@
                     <th>Kode / NIP</th>
                     <th>Nama Karyawan</th>
                     <th>Hak Akses (Role)</th>
+                    <th>Cabang Home &amp; Roaming</th>
                     <th>Telepon / WA</th>
                     <th class="text-center">Total Transaksi</th>
                     <th class="text-end">Kontribusi Omzet</th>
@@ -47,6 +48,16 @@
                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-shield-check"></i> Administrator</span>
                             <?php else: ?>
                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-person"></i> Kasir (Operator)</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border px-2 py-1">
+                                <i class="bi bi-shop text-primary me-1"></i><?= esc($u['nama_cabang'] ?? 'Cabang Pusat') ?>
+                            </span>
+                            <?php if ($u['role'] === 'admin' || !empty($u['can_switch_cabang'])): ?>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle d-block mt-1" style="font-size: 0.65rem;" title="Bisa berpindah cabang operasional saat bertugas">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Kasir Roaming
+                                </span>
                             <?php endif; ?>
                         </td>
                         <td><?= esc($u['telepon'] ?: '-') ?></td>
@@ -114,6 +125,24 @@
                             <input type="text" name="telepon" id="form-telepon" class="form-control" placeholder="08xxxxxxxxxx">
                         </div>
                         <div class="col-12">
+                            <label class="form-label small fw-semibold text-muted">Cabang Penugasan (Home Branch)</label>
+                            <select name="id_cabang" id="form-id_cabang" class="form-select" required>
+                                <?php foreach ($cabangList as $cb): ?>
+                                    <option value="<?= $cb['id'] ?>">
+                                        <?= esc($cb['nama_cabang']) ?> (<?= esc($cb['kode_cabang']) ?>) <?= ($cb['is_pusat'] == 1 ? '- PUSAT' : '') ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="can_switch_cabang" id="form-can_switch_cabang" value="1">
+                                <label class="form-check-label fw-semibold text-dark small" for="form-can_switch_cabang">
+                                    Izin Kasir Fleksibel / Roaming (Dapat beralih bertugas di cabang mana saja)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12">
                             <label class="form-label small fw-semibold text-muted" id="label-pass">Password</label>
                             <input type="password" name="password" id="form-password" class="form-control" placeholder="Minimal 4 karakter">
                             <small class="text-muted" id="help-pass" style="font-size: 0.75rem;">Password default: <code>123456</code> (jika dikosongkan untuk user baru)</small>
@@ -157,6 +186,8 @@
         $('#form-nama_user').val(u.nama_user);
         $('#form-role').val(u.role);
         $('#form-telepon').val(u.telepon);
+        $('#form-id_cabang').val(u.id_cabang || 1);
+        $('#form-can_switch_cabang').prop('checked', u.can_switch_cabang == 1 || u.role === 'admin');
         $('#form-is_active').prop('checked', u.is_active == 1);
         $('#label-pass').text('Reset Password (Kosongkan jika tidak diubah)');
         $('#help-pass').text('Kosongkan jika ingin tetap memakai password lama.');
@@ -172,6 +203,7 @@
         $('#form-kode_user').prop('readonly', false);
         $('#label-pass').text('Password');
         $('#help-pass').html('Password default: <code>123456</code> (jika dikosongkan untuk user baru)');
+        $('#form-can_switch_cabang').prop('checked', false);
         $('form')[0].reset();
     });
 </script>
