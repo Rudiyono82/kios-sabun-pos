@@ -201,6 +201,12 @@
                     <span class="fw-bold" id="display-potongan-voucher">-Rp 0</span>
                 </div>
 
+                <!-- Pembulatan Otomatis (Kelipatan 500) -->
+                <div id="row-pembulatan" class="d-flex justify-content-between mb-2 small d-none text-info">
+                    <span><i class="bi bi-magic me-1"></i>Pembulatan Otomatis</span>
+                    <span class="fw-bold" id="display-pembulatan">Rp 0</span>
+                </div>
+
                 <!-- Tukar Jerigen 5 Liter (@ Rp 1.000) -->
                 <div class="p-2 bg-light rounded-3 border mb-3">
                     <div class="d-flex justify-content-between align-items-center">
@@ -265,6 +271,10 @@
                     </div>
                     <span class="text-muted small text-uppercase fw-bold" style="font-size: 0.72rem;">TOTAL HARUS DIBAYAR</span>
                     <h2 class="fw-bold text-success mb-0" id="popup-display-total" style="font-size: 2.2rem;">Rp 0</h2>
+                    <div class="d-flex justify-content-between text-info small pt-1 mt-1 border-top d-none" id="popup-row-pembulatan" style="font-size: 0.75rem;">
+                        <span><i class="bi bi-magic me-1"></i>Pembulatan:</span>
+                        <strong id="popup-display-pembulatan">Rp 0</strong>
+                    </div>
                 </div>
 
                 <!-- Pilihan Metode Pembayaran -->
@@ -507,6 +517,38 @@
 <?= $this->section('scripts') ?>
 <script>
     let hasKasAwal = <?= !empty($has_kas_awal) ? 'true' : 'false' ?>;
+
+    /**
+     * Logika Pembulatan Otomatis Hasil Perhitungan Akhir (Kelipatan 500)
+     * - Angka < 1000:
+     *     - Jika tepat 500 => tetap 500
+     *     - Selain 500 (misal 1 - 499 atau 501 - 999) => dinaikkan ke 1000
+     * - Angka >= 1000:
+     *     - Sisa bagi 500 <= 250 => dibulatkan turun ke bawah (base)
+     *     - Sisa bagi 500 > 250  => dibulatkan naik ke atas (base + 500)
+     * Contoh:
+     *   1001 - 1250 => 1000
+     *   1251 - 1500 => 1500
+     *   1501 - 1750 => 1500
+     *   1751 - 2000 => 2000
+     *   113.999     => 114.000
+     */
+    function roundPosTotal(amount) {
+        amount = parseFloat(amount) || 0;
+        if (amount <= 0) return 0;
+        if (amount < 1000) {
+            if (Math.round(amount) === 500) return 500;
+            return 1000;
+        }
+        let base = Math.floor(amount / 500) * 500;
+        let remainder = amount - base;
+        if (remainder > 0 && remainder <= 250) {
+            return base;
+        } else if (remainder > 250) {
+            return base + 500;
+        }
+        return amount;
+    }
 
     function bukaModalKasAwal() {
         let modalEl = bootstrap.Modal.getInstance(document.getElementById('modalWajibKasAwalPos'));
@@ -1139,12 +1181,24 @@
 
         const potonganVoucher = parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0;
 
-        let grandTotal = subtotal - diskon - potonganJerigen - potonganVoucher;
-        if (grandTotal < 0) grandTotal = 0;
+        let rawTotal = subtotal - diskon - potonganJerigen - potonganVoucher;
+        if (rawTotal < 0) rawTotal = 0;
+        let grandTotal = roundPosTotal(rawTotal);
+        let pembulatan = grandTotal - rawTotal;
 
         $('#display-subtotal').text('Rp ' + new Intl.NumberFormat('id-ID').format(subtotal));
         $('#display-grand-total').text('Rp ' + new Intl.NumberFormat('id-ID').format(grandTotal));
         $('#popup-display-total').text('Rp ' + new Intl.NumberFormat('id-ID').format(grandTotal));
+
+        if (pembulatan !== 0) {
+            $('#row-pembulatan').removeClass('d-none');
+            $('#display-pembulatan').text((pembulatan > 0 ? '+' : '') + 'Rp ' + new Intl.NumberFormat('id-ID').format(pembulatan));
+            $('#popup-row-pembulatan').removeClass('d-none');
+            $('#popup-display-pembulatan').text((pembulatan > 0 ? '+' : '') + 'Rp ' + new Intl.NumberFormat('id-ID').format(pembulatan));
+        } else {
+            $('#row-pembulatan').addClass('d-none');
+            $('#popup-row-pembulatan').addClass('d-none');
+        }
         
         $('#display-total-item').text(cart.length + ' Item');
         $('#display-total-qty').text(totalQty + ' Pcs/Liter');
@@ -1194,7 +1248,8 @@
         const diskon = unformatRupiah($('#input-diskon').val()) || 0;
         const potJerigen = $('#chk-jerigen').is(':checked') ? (parseInt($('#input-qty-jerigen').val()) || 1) * HARGA_POTONGAN_JERIGEN : 0;
         const potVoucher = parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0;
-        const grandTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+        const rawTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+        const grandTotal = roundPosTotal(rawTotal);
 
         if (!unformatRupiah($('#input-bayar').val())) {
             $('#input-bayar').val(formatRupiah(grandTotal));
@@ -1219,7 +1274,8 @@
         const diskon = parseFloat($('#input-diskon').val()) || 0;
         const potJerigen = $('#chk-jerigen').is(':checked') ? (parseInt($('#input-qty-jerigen').val()) || 1) * HARGA_POTONGAN_JERIGEN : 0;
         const potVoucher = parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0;
-        const grandTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+        const rawTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+        const grandTotal = roundPosTotal(rawTotal);
 
         if (val === 'pas') {
             $('#input-bayar').val(formatRupiah(grandTotal));
@@ -1241,7 +1297,8 @@
             const diskon = unformatRupiah($('#input-diskon').val()) || 0;
             const potJerigen = $('#chk-jerigen').is(':checked') ? (parseInt($('#input-qty-jerigen').val()) || 1) * HARGA_POTONGAN_JERIGEN : 0;
             const potVoucher = parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0;
-            const grandTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+            const rawTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+            const grandTotal = roundPosTotal(rawTotal);
             $('#input-bayar').val(formatRupiah(grandTotal));
         } else {
             $('#alert-non-tunai').addClass('d-none');
@@ -1287,7 +1344,8 @@
         const diskon = unformatRupiah($('#input-diskon').val()) || 0;
         const potJerigen = $('#chk-jerigen').is(':checked') ? (parseInt($('#input-qty-jerigen').val()) || 1) * HARGA_POTONGAN_JERIGEN : 0;
         const potVoucher = parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0;
-        const grandTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+        const rawTotal = Math.max(0, subtotal - diskon - potJerigen - potVoucher);
+        const grandTotal = roundPosTotal(rawTotal);
         const bayar = unformatRupiah($('#input-bayar').val()) || 0;
 
         if (bayar < grandTotal) {

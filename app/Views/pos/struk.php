@@ -102,6 +102,16 @@
             <td class="text-end">-Rp <?= number_format($penjualan['diskon'], 0, ',', '.') ?></td>
         </tr>
         <?php endif; ?>
+        <?php 
+            $rawTotal = (float)$penjualan['subtotal'] - (float)$penjualan['diskon'] - (float)$penjualan['potongan_tukar_jerigen'] - (float)($penjualan['potongan_voucher'] ?? 0);
+            $pembulatan = (float)$penjualan['grand_total'] - $rawTotal;
+        ?>
+        <?php if ($pembulatan != 0): ?>
+        <tr>
+            <td>Pembulatan</td>
+            <td class="text-end"><?= ($pembulatan > 0 ? '+' : '') . 'Rp ' . number_format($pembulatan, 0, ',', '.') ?></td>
+        </tr>
+        <?php endif; ?>
         <tr style="font-weight: bold; font-size: 12px;">
             <td>TOTAL</td>
             <td class="text-end">Rp <?= number_format($penjualan['grand_total'], 0, ',', '.') ?></td>

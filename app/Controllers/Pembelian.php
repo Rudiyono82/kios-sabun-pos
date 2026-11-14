@@ -124,6 +124,8 @@ class Pembelian extends BaseController
             ];
         }
 
+        $finalTotalBiaya = roundPosTotal($totalBiaya);
+
         // Insert Master
         $db->table('pembelian')->insert([
             'no_beli' => $noBeli,
@@ -131,7 +133,7 @@ class Pembelian extends BaseController
             'kode_supplier' => $json['kode_supplier'] ?? null,
             'nama_supplier' => $json['nama_supplier'] ?? null,
             'kode_user' => session()->get('kode_user') ?? 'ADMIN',
-            'total_biaya' => $totalBiaya,
+            'total_biaya' => $finalTotalBiaya,
             'status_bayar' => $json['status_bayar'] ?? 'Lunas',
             'catatan' => $json['catatan'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
@@ -170,7 +172,9 @@ class Pembelian extends BaseController
             'status' => 'success',
             'message' => 'Pembelian berhasil dicatat dan stok bertambah!',
             'no_beli' => $noBeli,
-            'total_biaya' => $totalBiaya
+            'total_biaya' => $finalTotalBiaya,
+            'raw_total' => $totalBiaya,
+            'pembulatan' => $finalTotalBiaya - $totalBiaya
         ]);
     }
 

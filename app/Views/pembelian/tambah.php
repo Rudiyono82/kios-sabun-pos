@@ -23,6 +23,7 @@
         <div class="card-modern p-4 mb-3 text-center" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #86efac; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15); position: sticky; top: 80px; z-index: 10;">
             <span class="text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">TOTAL BIAYA PEMBELIAN</span>
             <h2 class="display-6 fw-bold text-success my-2" id="display-total-biaya">Rp 0</h2>
+            <div id="beli-pembulatan-info" class="small text-muted mb-2 d-none font-monospace"></div>
             <span class="badge bg-white text-success border border-success-subtle px-3 py-1 font-monospace" id="display-total-item">0 Item Barang Masuk</span>
             
             <button type="button" class="btn btn-success btn-lg w-100 rounded-pill py-2 mt-3 fw-bold shadow d-flex align-items-center justify-content-center gap-2" id="btn-simpan-pembelian">
@@ -327,6 +328,26 @@
     let keranjangBeli = [];
     const isAdmin = <?= session()->get('role') === 'admin' ? 'true' : 'false' ?>;
 
+    /**
+     * Logika Pembulatan Otomatis Hasil Perhitungan Akhir (Kelipatan 500)
+     */
+    function roundPosTotal(amount) {
+        amount = parseFloat(amount) || 0;
+        if (amount <= 0) return 0;
+        if (amount < 1000) {
+            if (Math.round(amount) === 500) return 500;
+            return 1000;
+        }
+        let base = Math.floor(amount / 500) * 500;
+        let remainder = amount - base;
+        if (remainder > 0 && remainder <= 250) {
+            return base;
+        } else if (remainder > 250) {
+            return base + 500;
+        }
+        return amount;
+    }
+
     $(document).ready(function() {
         // Saat barang dipilih dari dropdown, isi harga beli default (terkunci dari master)
         $('#pilih-barang').on('change', function() {
@@ -575,6 +596,7 @@
                     </tr>
                 `);
                 $('#display-total-biaya').text('Rp 0');
+                $('#beli-pembulatan-info').addClass('d-none').text('');
                 $('#display-total-item').text('0 Item Barang Masuk');
                 return;
             }
@@ -605,7 +627,15 @@
                 `);
             });
 
-            $('#display-total-biaya').text('Rp ' + new Intl.NumberFormat('id-ID').format(total));
+            let roundedTotal = roundPosTotal(total);
+            let pembulatan = roundedTotal - total;
+
+            $('#display-total-biaya').text('Rp ' + new Intl.NumberFormat('id-ID').format(roundedTotal));
+            if (pembulatan !== 0) {
+                $('#beli-pembulatan-info').removeClass('d-none').text(`Pembulatan: ${pembulatan > 0 ? '+' : ''}Rp ${new Intl.NumberFormat('id-ID').format(pembulatan)} (Asli: Rp ${new Intl.NumberFormat('id-ID').format(total)})`);
+            } else {
+                $('#beli-pembulatan-info').addClass('d-none').text('');
+            }
             $('#display-total-item').text(`${keranjangBeli.length} Macam Produk (${new Intl.NumberFormat('id-ID').format(totalQty)} Satuan)`);
         }
 

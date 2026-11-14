@@ -313,8 +313,9 @@ class Pos extends BaseController
             }
         }
 
-        $grandTotal = $subtotal - $diskon - $potonganJerigen - $potonganVoucher;
-        if ($grandTotal < 0) $grandTotal = 0;
+        $rawGrandTotal = max(0, $subtotal - $diskon - $potonganJerigen - $potonganVoucher);
+        $grandTotal = roundPosTotal($rawGrandTotal);
+        $pembulatan = $grandTotal - $rawGrandTotal;
 
         $bayar = (float) str_replace(['.', ',', ' '], '', (string)($json['bayar'] ?? 0));
         $kembalian = $bayar - $grandTotal;
@@ -429,6 +430,9 @@ class Pos extends BaseController
             if ($potonganVoucher > 0) {
                 $msg .= "Potongan Voucher (" . $kodeVoucher . ") : -Rp " . number_format($potonganVoucher, 0, ',', '.') . "\n";
             }
+            if ($pembulatan != 0) {
+                $msg .= "Pembulatan : " . ($pembulatan > 0 ? "+" : "") . "Rp " . number_format($pembulatan, 0, ',', '.') . "\n";
+            }
             $msg .= "*TOTAL BAYAR : Rp " . number_format($grandTotal, 0, ',', '.') . "*\n";
             $msg .= "Bayar (" . ($json['metode_bayar'] ?? 'Cash') . ") : Rp " . number_format($bayar, 0, ',', '.') . "\n";
             $msg .= "Kembalian  : Rp " . number_format($kembalian > 0 ? $kembalian : 0, 0, ',', '.') . "\n";
@@ -457,6 +461,8 @@ class Pos extends BaseController
             'message' => 'Transaksi berhasil diproses!',
             'no_faktur' => $noFaktur,
             'grand_total' => $grandTotal,
+            'raw_total' => $rawGrandTotal,
+            'pembulatan' => $pembulatan,
             'bayar' => $bayar,
             'kembalian' => $kembalian,
             'is_member' => !empty($json['kode_member']),
