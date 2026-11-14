@@ -247,54 +247,57 @@
 <div class="modal fade" id="modalBayar" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
         <div class="modal-content rounded-4 border-0 shadow-lg">
-            <div class="modal-header bg-gradient text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
-                <div>
-                    <h5 class="modal-title fw-bold text-white mb-0"><i class="bi bi-credit-card-2-front-fill me-2"></i>Pembayaran Transaksi</h5>
-                    <small class="text-white-50" id="modal-bayar-faktur-label"></small>
+            <div class="modal-header bg-primary text-white py-2 px-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-wallet2 fs-5"></i>
+                    <h6 class="modal-title fw-bold text-white mb-0">Pembayaran Kasir</h6>
+                    <span class="badge bg-white text-primary font-monospace ms-2" id="modal-bayar-faktur-label"></span>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             
-            <div class="modal-body p-4">
+            <div class="modal-body p-3 pt-2 pb-2">
                 <!-- Display Total Tagihan Besar di Popup -->
-                <div class="text-center p-3 rounded-4 mb-3" style="background-color: #f0fdf4; border: 2px dashed #86efac;">
+                <div class="text-center p-2 rounded-3 mb-2" style="background-color: #f0fdf4; border: 2px dashed #86efac;">
                     <div class="d-flex justify-content-between text-success small pb-1 mb-1 border-bottom d-none" id="popup-row-voucher">
                         <span><i class="bi bi-ticket-perforated-fill me-1"></i>Voucher Member (<span id="popup-voucher-code"></span>):</span>
                         <strong id="popup-voucher-discount">-Rp 0</strong>
                     </div>
-                    <span class="text-muted small text-uppercase fw-bold">TOTAL HARUS DIBAYAR</span>
-                    <h1 class="display-5 fw-bold text-success mb-0" id="popup-display-total">Rp 0</h1>
+                    <span class="text-muted small text-uppercase fw-bold" style="font-size: 0.72rem;">TOTAL HARUS DIBAYAR</span>
+                    <h2 class="fw-bold text-success mb-0" id="popup-display-total" style="font-size: 2.2rem;">Rp 0</h2>
                 </div>
 
                 <!-- Pilihan Metode Pembayaran -->
-                <div class="mb-3">
-                    <label class="small text-muted fw-bold mb-1 d-block text-uppercase">Metode Pembayaran (Tekan 1 / 2 / 3)</label>
+                <div class="mb-2">
+                    <label class="small text-muted fw-bold mb-1 d-block text-uppercase" style="font-size: 0.72rem;">
+                        Metode Pembayaran (Tekan <kbd class="bg-primary text-white">C</kbd> / <kbd class="bg-info text-dark">Q</kbd> / <kbd class="bg-secondary text-white">T</kbd>)
+                    </label>
                     <div class="btn-group w-100" role="group">
                         <input type="radio" class="btn-check" name="metode_bayar" id="pay-cash" value="Cash" checked>
-                        <label class="btn btn-outline-primary py-2 fw-semibold" for="pay-cash">
-                            <i class="bi bi-cash me-1"></i> Tunai <kbd class="bg-light text-dark font-monospace border ms-1" style="font-size: 0.72rem;">[1]</kbd>
+                        <label class="btn btn-outline-primary py-2 fw-semibold d-flex align-items-center justify-content-center gap-1" for="pay-cash">
+                            <i class="bi bi-cash"></i> Cash <kbd class="bg-light text-dark font-monospace border ms-1" style="font-size: 0.72rem;">[C]</kbd>
                         </label>
 
                         <input type="radio" class="btn-check" name="metode_bayar" id="pay-qris" value="QRIS">
-                        <label class="btn btn-outline-primary py-2 fw-semibold" for="pay-qris">
-                            <i class="bi bi-qr-code me-1"></i> QRIS <kbd class="bg-light text-dark font-monospace border ms-1" style="font-size: 0.72rem;">[2]</kbd>
+                        <label class="btn btn-outline-primary py-2 fw-semibold d-flex align-items-center justify-content-center gap-1" for="pay-qris">
+                            <i class="bi bi-qr-code"></i> QRIS <kbd class="bg-light text-dark font-monospace border ms-1" style="font-size: 0.72rem;">[Q]</kbd>
                         </label>
 
                         <input type="radio" class="btn-check" name="metode_bayar" id="pay-tf" value="Transfer">
-                        <label class="btn btn-outline-primary py-2 fw-semibold" for="pay-tf">
-                            <i class="bi bi-bank me-1"></i> Transfer <kbd class="bg-light text-dark font-monospace border ms-1" style="font-size: 0.72rem;">[3]</kbd>
+                        <label class="btn btn-outline-primary py-2 fw-semibold d-flex align-items-center justify-content-center gap-1" for="pay-tf">
+                            <i class="bi bi-bank"></i> Transfer <kbd class="bg-light text-dark font-monospace border ms-1" style="font-size: 0.72rem;">[T]</kbd>
                         </label>
                     </div>
                 </div>
 
                 <!-- Input Uang Diterima (Rp) -->
                 <div class="mb-2">
-                    <label class="small text-muted fw-bold mb-1 text-uppercase">Uang Diterima dari Pelanggan (Rp)</label>
-                    <input type="text" inputmode="numeric" id="input-bayar" class="form-control form-control-lg text-end fw-bold fs-3 text-success font-monospace input-currency" placeholder="0">
+                    <label class="small text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.72rem;">Uang Diterima dari Pelanggan (Rp)</label>
+                    <input type="text" inputmode="numeric" id="input-bayar" class="form-control form-control-lg text-end fw-bold fs-3 text-success font-monospace input-currency py-1" placeholder="0">
                 </div>
 
                 <!-- Shortcut Tombol Uang Cepat -->
-                <div class="d-flex gap-1 mb-3">
+                <div class="d-flex gap-1 mb-2">
                     <button type="button" class="btn btn-light btn-sm flex-fill border btn-quick-cash py-1 fw-semibold" data-cash="pas">Uang Pas <kbd class="bg-white text-dark font-monospace border ms-1" style="font-size: 0.68rem;">[P]</kbd></button>
                     <button type="button" class="btn btn-light btn-sm flex-fill border btn-quick-cash py-1 fw-semibold" data-cash="50000">50k</button>
                     <button type="button" class="btn btn-light btn-sm flex-fill border btn-quick-cash py-1 fw-semibold" data-cash="100000">100k</button>
@@ -303,28 +306,31 @@
                 </div>
 
                 <!-- Tampilan Kembalian -->
-                <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold text-muted">KEMBALIAN:</span>
+                <div class="p-2 px-3 bg-light rounded-3 border d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold text-muted small">KEMBALIAN:</span>
                     <span class="fs-3 fw-bold text-dark font-monospace" id="display-kembalian">Rp 0</span>
                 </div>
 
                 <!-- Alert Non-Tunai -->
-                <div id="alert-non-tunai" class="alert alert-info border-info d-flex align-items-center gap-2 mb-0 py-2 d-none">
-                    <i class="bi bi-qr-code fs-4 text-info"></i>
-                    <div class="small">
+                <div id="alert-non-tunai" class="alert alert-info border-info d-flex align-items-center gap-2 mb-0 py-1 d-none">
+                    <i class="bi bi-qr-code fs-5 text-info"></i>
+                    <div class="small" style="font-size: 0.75rem;">
                         Mode <strong id="label-mode-non-tunai">QRIS</strong>: Pastikan dana pelanggan sudah masuk di mutasi/aplikasi toko.
                     </div>
                 </div>
             </div>
 
-            <div class="modal-footer border-0 pt-0 d-flex gap-2">
-                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">
-                    <i class="bi bi-arrow-left me-1"></i> Batal <kbd class="bg-secondary text-white font-monospace ms-1" style="font-size: 0.72rem;">[Esc]</kbd>
+            <div class="modal-footer border-0 p-2 px-3 bg-light d-flex gap-2">
+                <button type="button" class="btn btn-light rounded-pill px-3 py-2 border" data-bs-dismiss="modal">
+                    <i class="bi bi-arrow-left me-1"></i> Batal <kbd class="bg-secondary text-white font-monospace ms-1" style="font-size: 0.7rem;">[Esc]</kbd>
                 </button>
                 <button type="button" id="btn-proses-transaksi" class="btn btn-success flex-fill rounded-pill py-2 fw-bold shadow">
                     <i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI <kbd class="bg-white text-success font-monospace px-2 py-0 ms-1">[Enter]</kbd>
                 </button>
             </div>
+        </div>
+    </div>
+</div>
         </div>
     </div>
 </div>
@@ -1496,23 +1502,49 @@
         $('#input-bayar').focus().select();
     });
 
-    // Shortcut Cepat di Dalam Modal Pembayaran (Uang Pas [P], 1=Tunai, 2=QRIS, 3=Transfer)
+    // Shortcut Cepat di Dalam Modal Pembayaran
+    // C = Cash, Q = QRIS, T = Transfer, P = Uang Pas, Enter = Selesaikan Transaksi
     $(document).on('keydown', function(e) {
         if ($('#modalBayar').hasClass('show')) {
-            // Tekan 'P' untuk pilih Uang Pas jika tidak sedang fokus di input teks
-            if ((e.key === 'p' || e.key === 'P') && !$('#input-bayar').is(':focus')) {
+            const key = e.key.toLowerCase();
+
+            // P = Uang Pas
+            if (key === 'p') {
                 e.preventDefault();
                 $('.btn-quick-cash[data-cash="pas"]').click();
+                return;
             }
-            // Pilihan Metode Bayar Cepat jika tidak sedang input angka
+
+            // C = Cash
+            if (key === 'c') {
+                e.preventDefault();
+                $('#pay-cash').prop('checked', true).trigger('change');
+                return;
+            }
+
+            // Q = QRIS
+            if (key === 'q') {
+                e.preventDefault();
+                $('#pay-qris').prop('checked', true).trigger('change');
+                return;
+            }
+
+            // T = Transfer
+            if (key === 't') {
+                e.preventDefault();
+                $('#pay-tf').prop('checked', true).trigger('change');
+                return;
+            }
+
+            // Angka 1, 2, 3 jika tidak sedang fokus di input uang bayar
             if (!$('#input-bayar').is(':focus')) {
-                if (e.key === '1') {
+                if (key === '1') {
                     e.preventDefault();
                     $('#pay-cash').prop('checked', true).trigger('change');
-                } else if (e.key === '2') {
+                } else if (key === '2') {
                     e.preventDefault();
                     $('#pay-qris').prop('checked', true).trigger('change');
-                } else if (e.key === '3') {
+                } else if (key === '3') {
                     e.preventDefault();
                     $('#pay-tf').prop('checked', true).trigger('change');
                 }

@@ -90,7 +90,7 @@ class Dashboard extends BaseController
             $salesToday = $db->table('penjualan')
                 ->where('kode_user', $kodeUser)
                 ->where("DATE(tanggal) =", $today)
-                ->select("COUNT(id) as total_trx, COALESCE(SUM(grand_total), 0) as total_omset, COALESCE(SUM(CASE WHEN metode_bayar = 'Tunai' THEN grand_total ELSE 0 END), 0) as total_tunai")
+                ->select("COUNT(id) as total_trx, COALESCE(SUM(grand_total), 0) as total_omset, COALESCE(SUM(CASE WHEN metode_bayar IN ('Cash', 'Tunai') THEN grand_total ELSE 0 END), 0) as total_tunai")
                 ->get()->getRowArray();
 
             $trxCount   = (int)($salesToday['total_trx'] ?? 0);
