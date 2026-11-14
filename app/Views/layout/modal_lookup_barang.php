@@ -25,7 +25,7 @@
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                         <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
                             <!-- Filter Dropdown (Sejajar Horisontal) -->
-                            <div class="input-group input-group-sm flex-nowrap" style="width: 250px;">
+                            <div class="input-group input-group-sm flex-nowrap" style="width: 260px; min-width: 260px;">
                                 <span class="input-group-text bg-light text-dark fw-bold text-nowrap" style="font-size: 0.78rem;">
                                     <i class="bi bi-funnel me-1 text-primary"></i> Filter :
                                 </span>
@@ -44,7 +44,7 @@
                                     <i class="bi bi-search me-1 text-success"></i> Kata Cari :
                                 </span>
                                 <input type="text" id="lookup-search-keyword" class="form-control" placeholder="Ketik kata yang dicari lalu tekan Enter..." autocomplete="off">
-                                <button class="btn btn-success fw-bold px-3" type="button" id="btn-lookup-do-search" title="Mulai Pencarian [Enter]">
+                                <button class="btn btn-sm btn-success fw-bold px-3" type="button" id="btn-lookup-do-search" title="Mulai Pencarian [Enter]">
                                     <i class="bi bi-arrow-right"></i>
                                 </button>
                             </div>
