@@ -58,7 +58,7 @@ class BarangModel extends Model
             ->join('stok_cabang sc', "sc.id_barang = b.id_barang AND sc.id_cabang = {$cbg}", 'left')
             ->where('b.status', 'Aktif')
             ->where('(COALESCE(sc.stok, b.stok) <= COALESCE(sc.min_stok, b.min_stok) OR COALESCE(sc.stok, b.stok) <= 0)')
-            ->orderBy('COALESCE(sc.stok, b.stok)', 'ASC')
+            ->orderBy('stok', 'ASC')
             ->orderBy('b.nama_barang', 'ASC');
 
         if ($limit > 0) {
