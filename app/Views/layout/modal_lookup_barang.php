@@ -290,11 +290,18 @@ const StockLookup = {
                 ? `<td class="text-center"><span class="badge ${statusClass} small">${item.status}</span></td>`
                 : '';
 
+            const fotoThumbnail = item.gambar 
+                ? `<img src="<?= base_url('uploads/barang/') ?>/${encodeURIComponent(item.gambar)}" class="rounded border shadow-xs" style="width: 32px; height: 32px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none'">` 
+                : `<div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; flex-shrink: 0; font-size: 0.75rem;"><i class="bi bi-image"></i></div>`;
+
             const $tr = $(`
                 <tr class="lookup-item-row" data-index="${index}" style="cursor: pointer;">
                     <td class="fw-bold text-dark text-nowrap">${item.id_barang}</td>
-                    <td class="fw-semibold text-dark text-truncate" style="max-width: 240px;" title="${item.nama_barang}">
-                        ${item.nama_barang}
+                    <td class="fw-semibold text-dark text-truncate" style="max-width: 260px;" title="${item.nama_barang}">
+                        <div class="d-flex align-items-center gap-2">
+                            ${fotoThumbnail}
+                            <span class="text-truncate">${item.nama_barang}</span>
+                        </div>
                     </td>
                     <td><span class="badge bg-light text-dark border">${item.nama_kategori || 'Umum'}</span></td>
                     <td><span class="badge bg-secondary-subtle text-secondary">${item.satuan || '-'}</span></td>
@@ -333,6 +340,22 @@ const StockLookup = {
         $('#lookup-detail-kategori').text(item.nama_kategori || 'Umum');
         $('#lookup-detail-satuan').text(item.satuan || '-');
 
+        // Update Foto Box Preview
+        if (item.gambar) {
+            const imgUrl = '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(item.gambar);
+            $('#lookup-preview-box').html(`
+                <div class="position-relative w-100 h-100 d-flex align-items-center justify-content-center p-1">
+                    <img src="${imgUrl}" alt="${item.nama_barang}" class="img-fluid rounded shadow-sm" style="max-height: 165px; max-width: 100%; object-fit: contain; cursor: zoom-in;" onclick="window.open('${imgUrl}', '_blank')" title="Klik untuk perbesar foto produk" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'d-flex flex-column align-items-center justify-content-center text-muted\\'><i class=\\'bi bi-image fs-1 mb-1\\'></i><span class=\\'fw-bold text-dark fs-6\\'>Foto Tidak Ada</span></div>';">
+                </div>
+            `).css('background-color', '#f8fafc');
+        } else {
+            $('#lookup-preview-box').html(`
+                <i class="bi bi-image text-muted opacity-50 fs-1 mb-1"></i>
+                <span class="fw-bold text-dark fs-5" id="lookup-preview-foto-text">Foto Tidak Ada</span>
+                <small class="text-muted" style="font-size: 0.72rem;">Belum ada gambar katalog produk</small>
+            `).css('background-color', '#ffedd5');
+        }
+
         const harga = (this.mode === 'penjualan') ? parseFloat(item.harga_jual || 0) : parseFloat(item.harga_beli || 0);
         $('#lookup-detail-harga').text('Rp ' + new Intl.NumberFormat('id-ID').format(harga));
 
@@ -350,6 +373,11 @@ const StockLookup = {
     resetPreview: function() {
         this.selectedItem = null;
         $('#lookup-preview-nama').text('PILIH BARANG');
+        $('#lookup-preview-box').html(`
+            <i class="bi bi-image text-muted opacity-50 fs-1 mb-1"></i>
+            <span class="fw-bold text-dark fs-5" id="lookup-preview-foto-text">Foto Tidak Ada</span>
+            <small class="text-muted" style="font-size: 0.72rem;">Belum ada gambar katalog produk</small>
+        `).css('background-color', '#ffedd5');
         $('#lookup-detail-kode').text('-');
         $('#lookup-detail-barcode').text('-');
         $('#lookup-detail-kategori').text('-');
