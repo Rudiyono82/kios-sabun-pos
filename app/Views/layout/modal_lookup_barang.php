@@ -273,17 +273,6 @@ const StockLookup = {
             }
         });
     },
-                    self.renderTable(self.items);
-                } else {
-                    $('#lookup-items-tbody').html(`<tr><td colspan="8" class="text-center py-4 text-danger">Gagal memuat data</td></tr>`);
-                }
-            },
-            error: function(err) {
-                console.error('Error lookup:', err);
-                $('#lookup-items-tbody').html(`<tr><td colspan="8" class="text-center py-4 text-danger">Terjadi kesalahan koneksi server</td></tr>`);
-            }
-        });
-    },
 
     // Render Tabel Hasil Pencarian
     renderTable: function(items) {
