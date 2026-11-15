@@ -23,7 +23,7 @@ class PendingStok extends BaseController
         $filterStatus = $this->request->getGet('status') ?: 'all';
         $keyword      = trim($this->request->getGet('q') ?: '');
 
-        $builder = $this->pendingModel->select('barang_pending_stok.*, barang.stok as stok_master_saat_ini, barang.satuan, barang.kategori')
+        $builder = $this->pendingModel->select('barang_pending_stok.*, barang.stok as stok_master_saat_ini, barang.satuan')
             ->join('barang', 'barang.id_barang = barang_pending_stok.id_barang', 'left');
 
         if ($filterStatus === 'belum_setuju') {
