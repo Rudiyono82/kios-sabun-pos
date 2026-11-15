@@ -296,79 +296,7 @@ class Retur extends BaseController
         }
 
         if ($retur['status'] === 'Selesai') {
-            return redirect()->back()->with('error', 'Retur ini sudah diselesaikan sebelumnya.');
-        }
-
-        $tipePenyelesaian = $this->request->getPost('tipe_penyelesaian');
-        $catatanPenyelesaian = $this->request->getPost('catatan_penyelesaian');
-
-        $idBarangGanti = null;
-        $namaBarangGanti = null;
-        $qtyGanti = 0;
-        $nilaiGanti = 0;
-
-        if ($tipePenyelesaian === 'Ganti_Barang_Sama') {
-            // Supplier mengganti dengan barang yang sama (barang baru)
-            $idBarangGanti = $retur['id_barang_retur'];
-            $namaBarangGanti = $retur['nama_barang_retur'];
-            $qtyGanti = (float) $this->request->getPost('qty_ganti');
-
-            $barang = $db->table('barang')->where('id_barang', $idBarangGanti)->get()->getRowArray();
-            $stokBaru = $barang['stok'] + $qtyGanti;
-            $nilaiGanti = $qtyGanti * (float)($barang['harga_beli'] ?? 0);
-
-            $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $stokBaru]);
-
-            // Catat Kartu Stok MASUK
-            $db->table('kartu_stok')->insert([
-                'tanggal' => date('Y-m-d H:i:s'),
-                'id_barang' => $idBarangGanti,
-                'tipe' => 'MASUK',
-                'no_referensi' => $retur['no_retur'],
-                'masuk' => $qtyGanti,
-                'keluar' => 0,
-                'sisa' => $stokBaru,
-                'keterangan' => 'Penerimaan Barang Baru Pengganti Retur ' . $retur['no_retur'] . ' (' . $retur['nama_supplier'] . ')'
-            ]);
-        } elseif ($tipePenyelesaian === 'Ganti_Barang_Lain') {
-            // Supplier mengganti dengan barang lain (Barang B)
-            $idBarangGanti = $this->request->getPost('id_barang_ganti');
-            $qtyGanti = (float) $this->request->getPost('qty_ganti');
-
-            $barangB = $db->table('barang')->where('id_barang', $idBarangGanti)->get()->getRowArray();
-            if (!$barangB) {
-                return redirect()->back()->with('error', 'Barang pengganti tidak valid.');
-            }
-
-            $namaBarangGanti = $barangB['nama_barang'];
-            $stokBaruB = $barangB['stok'] + $qtyGanti;
-            $nilaiGanti = $qtyGanti * (float)($barangB['harga_beli'] ?? 0);
-
-            $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $stokBaruB]);
-
-            // Catat Kartu Stok MASUK
-            $db->table('kartu_stok')->insert([
-                'tanggal' => date('Y-m-d H:i:s'),
-                'id_barang' => $idBarangGanti,
-                'tipe' => 'MASUK',
-                'no_referensi' => $retur['no_retur'],
-                'masuk' => $qtyGanti,
-                'keluar' => 0,
-                'sisa' => $stokBaruB,
-                'keterangan' => 'Penerimaan Barang Lain Pengganti Retur ' . $retur['no_retur'] . ' (' . $retur['nama_barang_retur'] . ')'
-            ]);
-        } elseif ($tipePenyelesaian === 'Ganti_Uang_Kas') {
-            // Supplier mengganti dengan nilai uang (Cash / Potong Tagihan)
-            $nilaiGanti = (float) str_replace(['.', ',', ' '], '', (string)$this->request->getPost('nilai_ganti'));
-
-            $db->table('data_keuangan')->insert([
-                'tanggal' => date('Y-m-d H:i:s'),
-                'jenis_keuangan' => 'Pemasukan',
-                'nama_keuangan' => 'Kompensasi Penggantian Uang Retur ' . $retur['no_retur'],
-                'total' => $nilaiGanti,
-                'keterangan' => 'Penggantian Nilai Uang Retur ' . $retur['nama_barang_retur'] . ' (' . $retur['qty_retur'] . ') dari ' . $retur['nama_supplier'],
-                'kode_user' => session()->get('kode_user') ?? 'ADMIN'
-            ]);
+            return redirect()->back()->with('error', 'Retur ini sudah diselesaikan sebelumnya secara tuntas.');
         }
 
         $inputTglSelesai = trim((string)$this->request->getPost('tgl_selesai'));
@@ -378,35 +306,270 @@ class Retur extends BaseController
             $tglSelesai = date('Y-m-d H:i:s');
         }
         $userSelesai = session()->get('kode_user') ?? session()->get('username') ?? 'ADMIN';
+        $catatanPenyelesaian = $this->request->getPost('catatan_penyelesaian');
 
-        // Update Record Retur Menjadi Selesai
+        // Pastikan tabel detail memiliki data barang untuk dokumen retur ini
+        $existingDetails = $db->table('retur_supplier_detail')->where('no_retur', $retur['no_retur'])->get()->getResultArray();
+        if (empty($existingDetails) && !empty($retur['id_barang_retur'])) {
+            $db->table('retur_supplier_detail')->insert([
+                'no_retur'          => $retur['no_retur'],
+                'id_barang_retur'   => $retur['id_barang_retur'],
+                'nama_barang_retur' => $retur['nama_barang_retur'],
+                'satuan'            => 'Pcs',
+                'qty_retur'         => (float)$retur['qty_retur'],
+                'harga_beli'        => ($retur['qty_retur'] > 0 ? ((float)$retur['nilai_retur'] / (float)$retur['qty_retur']) : 0),
+                'subtotal_nilai'    => (float)$retur['nilai_retur'],
+                'alasan'            => $retur['alasan'] ?? 'Rijek / Bocor',
+                'qty_ganti'         => (float)$retur['qty_ganti'],
+                'nilai_ganti'       => (float)$retur['nilai_ganti'],
+                'status_item'       => $retur['status'],
+                'created_at'        => $retur['tanggal']
+            ]);
+            $existingDetails = $db->table('retur_supplier_detail')->where('no_retur', $retur['no_retur'])->get()->getResultArray();
+        }
+
+        $rawItemsJson = $this->request->getPost('items_json');
+        $items = !empty($rawItemsJson) ? json_decode($rawItemsJson, true) : [];
+
+        $processedCount = 0;
+        $processedSummary = [];
+
+        if (!empty($items)) {
+            // MODE MULTI-ITEM / PENYELESAIAN PARSIAL (BERTAHAP)
+            foreach ($items as $item) {
+                $idDetail = (int)($item['id_detail'] ?? 0);
+                $tipe = $item['tipe'] ?? 'Ganti_Barang_Sama';
+                $qtyDatang = (float)($item['qty_datang'] ?? 0);
+                $nilaiUang = (float)str_replace(['.', ',', ' '], '', (string)($item['nilai_uang'] ?? 0));
+                $idBarangGanti = $item['id_barang_ganti'] ?? null;
+
+                $det = $db->table('retur_supplier_detail')->where('id', $idDetail)->get()->getRowArray();
+                if (!$det) continue;
+
+                $sisaQty = (float)$det['qty_retur'] - (float)$det['qty_ganti'];
+                if ($sisaQty <= 0 && $det['status_item'] === 'Selesai') continue;
+
+                if ($tipe === 'Ganti_Barang_Sama') {
+                    if ($qtyDatang <= 0) continue;
+                    if ($qtyDatang > $sisaQty) $qtyDatang = $sisaQty;
+
+                    $idBrg = $det['id_barang_retur'];
+                    $brg = $db->table('barang')->where('id_barang', $idBrg)->get()->getRowArray();
+                    if ($brg) {
+                        $stokBaru = (float)$brg['stok'] + $qtyDatang;
+                        $db->table('barang')->where('id_barang', $idBrg)->update(['stok' => $stokBaru]);
+
+                        $db->table('kartu_stok')->insert([
+                            'tanggal'      => $tglSelesai,
+                            'id_barang'    => $idBrg,
+                            'tipe'         => 'MASUK',
+                            'no_referensi' => $retur['no_retur'],
+                            'masuk'        => $qtyDatang,
+                            'keluar'       => 0,
+                            'sisa'         => $stokBaru,
+                            'keterangan'   => 'Penerimaan Parsial Barang Baru Pengganti Retur ' . $retur['no_retur'] . ' (' . $retur['nama_supplier'] . ')'
+                        ]);
+                    }
+
+                    $newQtyGanti = (float)$det['qty_ganti'] + $qtyDatang;
+                    $newNilaiGanti = (float)$det['nilai_ganti'] + ($qtyDatang * (float)$det['harga_beli']);
+                    $newStatus = ($newQtyGanti >= (float)$det['qty_retur']) ? 'Selesai' : 'Proses Sebagian';
+
+                    $db->table('retur_supplier_detail')->where('id', $idDetail)->update([
+                        'qty_ganti'          => $newQtyGanti,
+                        'nilai_ganti'        => $newNilaiGanti,
+                        'status_item'        => $newStatus,
+                        'tipe_penyelesaian'  => 'Ganti_Barang_Sama',
+                        'tgl_selesai'        => $tglSelesai
+                    ]);
+
+                    $processedCount++;
+                    $processedSummary[] = "{$det['nama_barang_retur']} (Datang: {$qtyDatang} {$det['satuan']}, Status: {$newStatus})";
+
+                } elseif ($tipe === 'Ganti_Barang_Lain') {
+                    if ($qtyDatang <= 0) continue;
+                    if ($qtyDatang > $sisaQty) $qtyDatang = $sisaQty;
+
+                    $brgB = $db->table('barang')->where('id_barang', $idBarangGanti)->get()->getRowArray();
+                    if (!$brgB) continue;
+
+                    $stokBaruB = (float)$brgB['stok'] + $qtyDatang;
+                    $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $stokBaruB]);
+
+                    $db->table('kartu_stok')->insert([
+                        'tanggal'      => $tglSelesai,
+                        'id_barang'    => $idBarangGanti,
+                        'tipe'         => 'MASUK',
+                        'no_referensi' => $retur['no_retur'],
+                        'masuk'        => $qtyDatang,
+                        'keluar'       => 0,
+                        'sisa'         => $stokBaruB,
+                        'keterangan'   => 'Penerimaan Barang Lain Pengganti Retur ' . $retur['no_retur'] . ' (' . $brgB['nama_barang'] . ' x ' . $qtyDatang . ') dari ' . $retur['nama_supplier']
+                    ]);
+
+                    $newQtyGanti = (float)$det['qty_ganti'] + $qtyDatang;
+                    $newNilaiGanti = (float)$det['nilai_ganti'] + ($qtyDatang * (float)($brgB['harga_beli'] ?? 0));
+                    $newStatus = ($newQtyGanti >= (float)$det['qty_retur']) ? 'Selesai' : 'Proses Sebagian';
+
+                    $db->table('retur_supplier_detail')->where('id', $idDetail)->update([
+                        'id_barang_ganti'    => $idBarangGanti,
+                        'nama_barang_ganti'  => $brgB['nama_barang'],
+                        'qty_ganti'          => $newQtyGanti,
+                        'nilai_ganti'        => $newNilaiGanti,
+                        'status_item'        => $newStatus,
+                        'tipe_penyelesaian'  => 'Ganti_Barang_Lain',
+                        'tgl_selesai'        => $tglSelesai
+                    ]);
+
+                    $processedCount++;
+                    $processedSummary[] = "{$det['nama_barang_retur']} diganti {$brgB['nama_barang']} (Datang: {$qtyDatang}, Status: {$newStatus})";
+
+                } elseif ($tipe === 'Ganti_Uang_Kas') {
+                    if ($nilaiUang <= 0) {
+                        $nilaiUang = $sisaQty * (float)$det['harga_beli'];
+                    }
+
+                    $db->table('data_keuangan')->insert([
+                        'tanggal'        => $tglSelesai,
+                        'jenis_keuangan' => 'Pemasukan',
+                        'nama_keuangan'  => 'Kompensasi Penggantian Uang Retur ' . $retur['no_retur'],
+                        'total'          => $nilaiUang,
+                        'keterangan'     => 'Penggantian Nilai Uang Retur ' . $det['nama_barang_retur'] . ' dari ' . $retur['nama_supplier'],
+                        'kode_user'      => $userSelesai
+                    ]);
+
+                    $db->table('retur_supplier_detail')->where('id', $idDetail)->update([
+                        'qty_ganti'          => (float)$det['qty_retur'], // Dianggap tuntas karena sudah dikompensasi uang
+                        'nilai_ganti'        => (float)$det['nilai_ganti'] + $nilaiUang,
+                        'status_item'        => 'Selesai',
+                        'tipe_penyelesaian'  => 'Ganti_Uang_Kas',
+                        'tgl_selesai'        => $tglSelesai
+                    ]);
+
+                    $processedCount++;
+                    $processedSummary[] = "{$det['nama_barang_retur']} diganti uang Rp " . number_format($nilaiUang, 0, ',', '.') . " (Status: Selesai)";
+                }
+            }
+        } else {
+            // FALLBACK MODE LEGACY
+            $tipePenyelesaian = $this->request->getPost('tipe_penyelesaian') ?: 'Ganti_Barang_Sama';
+            $qtyGanti = (float)$this->request->getPost('qty_ganti');
+            $idBarangGanti = null;
+            $namaBarangGanti = null;
+            $nilaiGanti = 0;
+
+            if ($tipePenyelesaian === 'Ganti_Barang_Sama') {
+                $idBarangGanti = $retur['id_barang_retur'];
+                $namaBarangGanti = $retur['nama_barang_retur'];
+                $barang = $db->table('barang')->where('id_barang', $idBarangGanti)->get()->getRowArray();
+                if ($barang) {
+                    $stokBaru = (float)$barang['stok'] + $qtyGanti;
+                    $nilaiGanti = $qtyGanti * (float)($barang['harga_beli'] ?? 0);
+                    $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $stokBaru]);
+
+                    $db->table('kartu_stok')->insert([
+                        'tanggal' => $tglSelesai,
+                        'id_barang' => $idBarangGanti,
+                        'tipe' => 'MASUK',
+                        'no_referensi' => $retur['no_retur'],
+                        'masuk' => $qtyGanti,
+                        'keluar' => 0,
+                        'sisa' => $stokBaru,
+                        'keterangan' => 'Penerimaan Barang Baru Pengganti Retur ' . $retur['no_retur'] . ' (' . $retur['nama_supplier'] . ')'
+                    ]);
+                }
+            } elseif ($tipePenyelesaian === 'Ganti_Barang_Lain') {
+                $idBarangGanti = $this->request->getPost('id_barang_ganti');
+                $barangB = $db->table('barang')->where('id_barang', $idBarangGanti)->get()->getRowArray();
+                if ($barangB) {
+                    $namaBarangGanti = $barangB['nama_barang'];
+                    $stokBaruB = (float)$barangB['stok'] + $qtyGanti;
+                    $nilaiGanti = $qtyGanti * (float)($barangB['harga_beli'] ?? 0);
+                    $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $stokBaruB]);
+
+                    $db->table('kartu_stok')->insert([
+                        'tanggal' => $tglSelesai,
+                        'id_barang' => $idBarangGanti,
+                        'tipe' => 'MASUK',
+                        'no_referensi' => $retur['no_retur'],
+                        'masuk' => $qtyGanti,
+                        'keluar' => 0,
+                        'sisa' => $stokBaruB,
+                        'keterangan' => 'Penerimaan Barang Lain Pengganti Retur ' . $retur['no_retur'] . ' (' . $barangB['nama_barang'] . ')'
+                    ]);
+                }
+            } elseif ($tipePenyelesaian === 'Ganti_Uang_Kas') {
+                $nilaiGanti = (float)str_replace(['.', ',', ' '], '', (string)$this->request->getPost('nilai_ganti'));
+                $db->table('data_keuangan')->insert([
+                    'tanggal' => $tglSelesai,
+                    'jenis_keuangan' => 'Pemasukan',
+                    'nama_keuangan' => 'Kompensasi Penggantian Uang Retur ' . $retur['no_retur'],
+                    'total' => $nilaiGanti,
+                    'keterangan' => 'Penggantian Nilai Uang Retur ' . $retur['nama_barang_retur'] . ' dari ' . $retur['nama_supplier'],
+                    'kode_user' => $userSelesai
+                ]);
+            }
+
+            if (!empty($existingDetails)) {
+                $detId = $existingDetails[0]['id'];
+                $db->table('retur_supplier_detail')->where('id', $detId)->update([
+                    'id_barang_ganti'   => $idBarangGanti,
+                    'nama_barang_ganti' => $namaBarangGanti,
+                    'qty_ganti'         => $qtyGanti,
+                    'nilai_ganti'       => $nilaiGanti,
+                    'status_item'       => 'Selesai',
+                    'tipe_penyelesaian' => $tipePenyelesaian,
+                    'tgl_selesai'       => $tglSelesai
+                ]);
+            }
+            $processedCount++;
+            $processedSummary[] = "Selesai langsung: Qty {$qtyGanti}";
+        }
+
+        if ($processedCount === 0) {
+            $db->transRollback();
+            return redirect()->back()->with('error', 'Tidak ada barang pengganti yang diproses. Pastikan Anda mencentang minimal 1 barang yang belum lunas dan mengisi Qty datang.');
+        }
+
+        // EVALUASI STATUS KESELURUHAN DOKUMEN RETUR
+        $allDetails = $db->table('retur_supplier_detail')->where('no_retur', $retur['no_retur'])->get()->getResultArray();
+        $totalDetails = count($allDetails);
+        $finishedDetails = 0;
+        $totalSumQtyGanti = 0;
+        $totalSumNilaiGanti = 0;
+
+        foreach ($allDetails as $d) {
+            $totalSumQtyGanti += (float)$d['qty_ganti'];
+            $totalSumNilaiGanti += (float)$d['nilai_ganti'];
+            if ($d['status_item'] === 'Selesai') {
+                $finishedDetails++;
+            }
+        }
+
+        $isAllDone = ($totalDetails > 0 && $finishedDetails >= $totalDetails);
+        $newMasterStatus = $isAllDone ? 'Selesai' : 'Proses Sebagian';
+        $finalTglSelesai = $isAllDone ? $tglSelesai : null;
+
         $returModel->update($id, [
-            'status'               => 'Selesai',
-            'tgl_selesai'          => $tglSelesai,
+            'status'               => $newMasterStatus,
+            'tgl_selesai'          => $finalTglSelesai,
             'user_selesai'         => $userSelesai,
-            'tipe_penyelesaian'    => $tipePenyelesaian,
-            'id_barang_ganti'      => $idBarangGanti,
-            'nama_barang_ganti'    => $namaBarangGanti,
-            'qty_ganti'            => $qtyGanti,
-            'nilai_ganti'          => $nilaiGanti,
-            'catatan_penyelesaian' => $catatanPenyelesaian,
+            'qty_ganti'            => $totalSumQtyGanti,
+            'nilai_ganti'          => $totalSumNilaiGanti,
+            'catatan_penyelesaian' => $catatanPenyelesaian ?: $retur['catatan_penyelesaian'],
         ]);
 
-        // Audit Trail Penyelesaian Retur
+        // Catat Audit Trail Lengkap
         AuditLogModel::log(
-            'SELESAIKAN_RETUR',
+            $isAllDone ? 'SELESAIKAN_RETUR_TUNTAS' : 'SELESAIKAN_RETUR_PARSIAL',
             'RETUR_SUPPLIER',
-            "Menyelesaikan Realisasi Penggantian Retur {$retur['no_retur']} dari Supplier {$retur['nama_supplier']} [Bentuk: " . str_replace('_', ' ', $tipePenyelesaian) . "] pada " . date('d/m/Y H:i', strtotime($tglSelesai)),
+            "Realisasi Penggantian Retur {$retur['no_retur']} dari Supplier {$retur['nama_supplier']} [Status: {$newMasterStatus}] - " . implode('; ', $processedSummary),
             $retur,
             [
                 'no_retur'             => $retur['no_retur'],
-                'status'               => 'Selesai',
-                'tgl_selesai'          => $tglSelesai,
-                'user_selesai'         => $userSelesai,
-                'tipe_penyelesaian'    => $tipePenyelesaian,
-                'nama_barang_ganti'    => $namaBarangGanti,
-                'qty_ganti'            => $qtyGanti,
-                'nilai_ganti'          => $nilaiGanti,
+                'status'               => $newMasterStatus,
+                'total_qty_ganti'      => $totalSumQtyGanti,
+                'total_nilai_ganti'    => $totalSumNilaiGanti,
                 'catatan_penyelesaian' => $catatanPenyelesaian
             ]
         );
@@ -414,10 +577,14 @@ class Retur extends BaseController
         $db->transComplete();
 
         if ($db->transStatus() === false) {
-            return redirect()->back()->with('error', 'Gagal memproses penyelesaian retur barang!');
+            return redirect()->back()->with('error', 'Gagal memproses realisasi retur barang!');
         }
 
-        return redirect()->to(base_url('retur'))->with('success', 'Retur nomor ' . $retur['no_retur'] . ' telah SELESAI. Stok barang pengganti / kompensasi uang telah masuk ke sistem.');
+        $successMsg = $isAllDone
+            ? "Dokumen retur {$retur['no_retur']} telah TUNTAS SELESAI. Seluruh barang pengganti / kompensasi uang telah masuk ke sistem."
+            : "Penerimaan pengganti retur {$retur['no_retur']} berhasil disimpan sebagai PROSES SEBAGIAN (PARSIAL). Sisa barang yang belum diganti masih tercatat dan dapat diproses kembali.";
+
+        return redirect()->to(base_url('retur'))->with('success', $successMsg);
     }
 
     // Detail Data Retur (JSON untuk Modal Popup)
@@ -438,6 +605,27 @@ class Retur extends BaseController
             ->where('no_retur', $retur['no_retur'])
             ->orderBy('id', 'ASC')
             ->get()->getResultArray();
+
+        if (empty($items) && !empty($retur['id_barang_retur'])) {
+            $db->table('retur_supplier_detail')->insert([
+                'no_retur'          => $retur['no_retur'],
+                'id_barang_retur'   => $retur['id_barang_retur'],
+                'nama_barang_retur' => $retur['nama_barang_retur'],
+                'satuan'            => 'Pcs',
+                'qty_retur'         => (float)$retur['qty_retur'],
+                'harga_beli'        => ($retur['qty_retur'] > 0 ? ((float)$retur['nilai_retur'] / (float)$retur['qty_retur']) : 0),
+                'subtotal_nilai'    => (float)$retur['nilai_retur'],
+                'alasan'            => $retur['alasan'] ?? 'Rijek / Bocor',
+                'qty_ganti'         => (float)$retur['qty_ganti'],
+                'nilai_ganti'       => (float)$retur['nilai_ganti'],
+                'status_item'       => $retur['status'],
+                'created_at'        => $retur['tanggal']
+            ]);
+            $items = $db->table('retur_supplier_detail')
+                ->where('no_retur', $retur['no_retur'])
+                ->orderBy('id', 'ASC')
+                ->get()->getResultArray();
+        }
 
         $auditLogs = $db->table('audit_logs')
             ->groupStart()

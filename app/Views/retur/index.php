@@ -32,66 +32,82 @@
 <?php
     $totalRetur = count($retur_list);
     $totalProses = 0;
+    $totalParsial = 0;
     $totalSelesai = 0;
     $grandTotalNilaiRetur = 0;
     foreach ($retur_list as $r) {
         if ($r['status'] === 'Baru Proses') $totalProses++;
+        elseif ($r['status'] === 'Proses Sebagian') $totalParsial++;
         else $totalSelesai++;
         $grandTotalNilaiRetur += (float)($r['nilai_retur'] ?? 0);
     }
 ?>
 <div class="row g-3 mb-4">
-    <div class="col-12 col-md-3">
-        <div class="card-modern p-3 border-start border-4 border-primary">
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card-modern p-3 border-start border-4 border-primary h-100">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted small text-uppercase fw-semibold">Total Dokumen Retur</span>
+                    <span class="text-muted small text-uppercase fw-semibold">Total Retur</span>
                     <h3 class="fw-bold mt-1 mb-0 text-primary"><?= $totalRetur ?></h3>
-                    <small class="text-muted">Total transaksi retur</small>
+                    <small class="text-muted">Semua dokumen</small>
                 </div>
-                <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
+                <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-circle">
                     <i class="bi bi-file-earmark-text fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-3">
-        <div class="card-modern p-3 border-start border-4 border-danger">
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card-modern p-3 border-start border-4 border-danger h-100">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted small text-uppercase fw-semibold">Total Nilai Modal Retur</span>
-                    <h4 class="fw-bold mt-1 mb-0 text-danger">Rp <?= number_format($grandTotalNilaiRetur, 0, ',', '.') ?></h4>
-                    <small class="text-muted">Total modal barang rijek</small>
+                    <span class="text-muted small text-uppercase fw-semibold">Total Modal Retur</span>
+                    <h5 class="fw-bold mt-1 mb-0 text-danger">Rp <?= number_format($grandTotalNilaiRetur, 0, ',', '.') ?></h5>
+                    <small class="text-muted">Aset barang rijek</small>
                 </div>
-                <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle">
+                <div class="bg-danger bg-opacity-10 text-danger p-2 rounded-circle">
                     <i class="bi bi-cash-stack fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-3">
-        <div class="card-modern p-3 border-start border-4 border-warning">
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card-modern p-3 border-start border-4 border-warning h-100">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted small text-uppercase fw-semibold">Status: Baru Proses</span>
+                    <span class="text-muted small text-uppercase fw-semibold">Baru Proses</span>
                     <h3 class="fw-bold mt-1 mb-0 text-warning"><?= $totalProses ?></h3>
-                    <small class="text-muted">Menunggu penggantian</small>
+                    <small class="text-muted">Menunggu sales</small>
                 </div>
-                <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle">
+                <div class="bg-warning bg-opacity-10 text-warning p-2 rounded-circle">
                     <i class="bi bi-hourglass-split fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-3">
-        <div class="card-modern p-3 border-start border-4 border-success">
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card-modern p-3 border-start border-4 border-info h-100">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted small text-uppercase fw-semibold">Status: Selesai</span>
-                    <h3 class="fw-bold mt-1 mb-0 text-success"><?= $totalSelesai ?></h3>
-                    <small class="text-muted">Penggantian tuntas</small>
+                    <span class="text-muted small text-uppercase fw-semibold">Proses Sebagian</span>
+                    <h3 class="fw-bold mt-1 mb-0 text-info"><?= $totalParsial ?></h3>
+                    <small class="text-muted">Penggantian bertahap</small>
                 </div>
-                <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
+                <div class="bg-info bg-opacity-10 text-info p-2 rounded-circle">
+                    <i class="bi bi-pie-chart-fill fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3 col-xl">
+        <div class="card-modern p-3 border-start border-4 border-success h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Tuntas Selesai</span>
+                    <h3 class="fw-bold mt-1 mb-0 text-success"><?= $totalSelesai ?></h3>
+                    <small class="text-muted">Penggantian lunas</small>
+                </div>
+                <div class="bg-success bg-opacity-10 text-success p-2 rounded-circle">
                     <i class="bi bi-check-circle-fill fs-4"></i>
                 </div>
             </div>
@@ -157,6 +173,11 @@
                                         <i class="bi bi-hourglass-split me-1"></i> Baru Proses
                                     </span>
                                     <small class="d-block text-muted mt-1" style="font-size: 0.72rem;">Menunggu barang pengganti</small>
+                                <?php elseif ($r['status'] === 'Proses Sebagian'): ?>
+                                    <span class="badge bg-info text-dark py-2 px-3 rounded-pill fw-bold shadow-sm">
+                                        <i class="bi bi-pie-chart-fill me-1"></i> Proses Sebagian
+                                    </span>
+                                    <small class="d-block text-info-emphasis mt-1 fw-semibold" style="font-size: 0.72rem;">Sebagian sdh diganti</small>
                                 <?php else: ?>
                                     <span class="badge bg-success py-2 px-3 rounded-pill fw-bold">
                                         <i class="bi bi-check2-circle me-1"></i> Selesai
@@ -169,6 +190,11 @@
                             <td>
                                 <?php if ($r['status'] === 'Baru Proses'): ?>
                                     <span class="text-muted small fst-italic"><i class="bi bi-clock me-1"></i>Belum diganti supplier</span>
+                                <?php elseif ($r['status'] === 'Proses Sebagian'): ?>
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle d-block mb-1">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Penggantian Bertahap
+                                    </span>
+                                    <small class="text-dark fw-bold">Masuk: <?= number_format($r['qty_ganti'] ?? 0, 0, ',', '.') ?> unit (Sisa: <?= number_format(max(0, $r['qty_retur'] - ($r['qty_ganti'] ?? 0)), 0, ',', '.') ?>)</small>
                                 <?php else: ?>
                                     <?php if ($r['tipe_penyelesaian'] === 'Ganti_Barang_Sama'): ?>
                                         <span class="badge bg-success-subtle text-success border border-success-subtle d-block mb-1">
@@ -194,16 +220,15 @@
                                         <i class="bi bi-eye-fill"></i>
                                     </button>
                                     
-                                    <?php if ($r['status'] === 'Baru Proses'): ?>
-                                        <button type="button" class="btn btn-warning btn-sm rounded-pill px-2 fw-bold text-dark btn-selesaikan-retur shadow-sm"
+                                    <?php if ($r['status'] === 'Baru Proses' || $r['status'] === 'Proses Sebagian'): ?>
+                                        <button type="button" class="btn <?= ($r['status'] === 'Proses Sebagian') ? 'btn-info text-dark' : 'btn-warning text-dark' ?> btn-sm rounded-pill px-2 fw-bold btn-selesaikan-retur shadow-sm"
                                             data-id="<?= $r['id'] ?>"
                                             data-noretur="<?= esc($r['no_retur']) ?>"
                                             data-supplier="<?= esc($r['nama_supplier']) ?>"
                                             data-barang="<?= esc($r['nama_barang_retur']) ?>"
-                                            data-qty="<?= $r['qty_retur'] ?>"
-                                            data-nilai="<?= $r['nilai_retur'] ?>"
-                                            title="Terima Penggantian dari Supplier">
-                                            <i class="bi bi-box-arrow-in-down-right me-1"></i> Terima Ganti
+                                            data-status="<?= esc($r['status']) ?>"
+                                            title="<?= ($r['status'] === 'Proses Sebagian') ? 'Lanjutkan Penerimaan Sisa Pengganti' : 'Terima Penggantian dari Supplier' ?>">
+                                            <i class="bi bi-box-arrow-in-down-right me-1"></i> <?= ($r['status'] === 'Proses Sebagian') ? 'Lanjut Terima' : 'Terima Ganti' ?>
                                         </button>
                                     <?php else: ?>
                                         <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2 rounded-pill small">
@@ -526,126 +551,104 @@
     </div>
 </div>
 
+<template id="tpl-barang-options">
+    <option value="">-- Pilih Produk Pengganti --</option>
+    <?php foreach ($barang_list as $b): ?>
+        <option value="<?= esc($b['id_barang']) ?>">
+            <?= esc($b['nama_barang']) ?> [Kode: <?= $b['id_barang'] ?>]
+        </option>
+    <?php endforeach; ?>
+</template>
+
 <!-- ========================================================================= -->
-<!-- 2. MODAL TERIMA PENGGANTIAN / SELESAIKAN RETUR (Setelah Beberapa Hari)     -->
+<!-- 2. MODAL TERIMA PENGGANTIAN / SELESAIKAN RETUR (MENDUKUNG PARSIAL)          -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="modalSelesaikanRetur" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <div class="modal-header bg-success text-white py-3">
-                <h5 class="modal-title fw-bold mb-0"><i class="bi bi-check2-circle me-2"></i>Penyelesaian Penggantian Retur Supplier</h5>
+                <h5 class="modal-title fw-bold mb-0">
+                    <i class="bi bi-box-seam me-2"></i>Penyelesaian &amp; Realisasi Penggantian Retur (Bisa Parsial / Bertahap)
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             
             <form action="<?= base_url('retur/selesaikan') ?>" method="POST" id="form-selesaikan-retur">
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" id="selesaikan-id">
+                <input type="hidden" name="items_json" id="selesaikan-items-json">
 
                 <div class="modal-body p-4">
+                    <!-- Ringkasan Dokumen Retur -->
                     <div class="p-3 bg-light rounded-3 border mb-3">
-                        <div class="row g-2">
+                        <div class="row g-2 align-items-center">
                             <div class="col-6 col-md-3">
                                 <small class="text-muted d-block">No. Bukti Retur:</small>
-                                <span class="fw-bold text-primary font-monospace" id="selesaikan-label-noretur">-</span>
+                                <span class="fw-bold text-primary font-monospace fs-6" id="selesaikan-label-noretur">-</span>
                             </div>
                             <div class="col-6 col-md-4">
                                 <small class="text-muted d-block">Mitra Supplier:</small>
-                                <span class="fw-bold text-dark" id="selesaikan-label-supplier">-</span>
+                                <span class="fw-bold text-dark fs-6" id="selesaikan-label-supplier">-</span>
                             </div>
-                            <div class="col-12 col-md-5">
-                                <small class="text-muted d-block">Barang Rijek yang Diretur:</small>
-                                <span class="fw-bold text-danger" id="selesaikan-label-barang">-</span>
+                            <div class="col-6 col-md-2">
+                                <small class="text-muted d-block">Status Saat Ini:</small>
+                                <span id="selesaikan-label-status-badge">-</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-bold text-dark mb-1">
+                                    <i class="bi bi-calendar-check text-success me-1"></i>Tgl Realisasi <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" name="tgl_selesai" id="selesaikan-tgl-selesai" class="form-control form-control-sm fw-bold border-success text-success bg-white" value="<?= date('Y-m-d') ?>" required>
                             </div>
                         </div>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-12 col-md-6">
-                            <label class="form-label small fw-bold text-dark mb-1">
-                                <i class="bi bi-calendar-check text-success me-1"></i>Tanggal Realisasi Penyelesaian <span class="text-danger">*</span>
+                    <!-- TABEL MULTI-BARANG UNTUK REALISASI PENGGANTIAN (MENDUKUNG PARSIAL) -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label small fw-bold text-dark mb-0">
+                                <i class="bi bi-list-check text-primary me-1"></i>Pilih &amp; Atur Barang yang Diterima Penggantinya Hari Ini:
                             </label>
-                            <input type="date" name="tgl_selesai" id="selesaikan-tgl-selesai" class="form-control form-control-sm fw-bold border-success text-success bg-white" value="<?= date('Y-m-d') ?>" required>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle small px-2 py-1">
+                                <i class="bi bi-info-circle me-1"></i>Centang barang yang datang &amp; isi kuantitasnya (bisa bertahap / sebagian)
+                            </span>
                         </div>
-                    </div>
 
-                    <label class="form-label small fw-bold text-dark mb-2">Bentuk Realisasi Penggantian dari Supplier: <span class="text-danger">*</span></label>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-4">
-                            <div class="form-check border bg-white p-3 rounded h-100">
-                                <input class="form-check-input" type="radio" name="tipe_penyelesaian" id="modal2-solusi1" value="Ganti_Barang_Sama" checked>
-                                <label class="form-check-label fw-bold text-dark" for="modal2-solusi1">
-                                    <i class="bi bi-arrow-repeat text-success me-1"></i> Barang Sama (Baru)
-                                </label>
-                                <small class="text-muted d-block mt-1">Diganti dengan barang baru yang sama persis.</small>
-                            </div>
+                        <div class="table-responsive border rounded-3 bg-white">
+                            <table class="table table-bordered table-sm align-middle mb-0" id="table-selesaikan-items">
+                                <thead class="table-light">
+                                    <tr class="small text-muted text-nowrap">
+                                        <th class="text-center" style="width: 45px;">Pilih</th>
+                                        <th>Barang yang Diretur</th>
+                                        <th class="text-center" style="width: 75px;">Retur</th>
+                                        <th class="text-center" style="width: 80px;">Sdh Diganti</th>
+                                        <th class="text-center" style="width: 90px;">Sisa Kurang</th>
+                                        <th style="min-width: 175px;">Bentuk Penggantian</th>
+                                        <th style="min-width: 250px;">Realisasi Pengganti Hari Ini</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-selesaikan-items">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-3 text-muted">
+                                            <span class="spinner-border spinner-border-sm me-1"></span> Memuat daftar barang retur...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-check border bg-white p-3 rounded h-100">
-                                <input class="form-check-input" type="radio" name="tipe_penyelesaian" id="modal2-solusi2" value="Ganti_Barang_Lain">
-                                <label class="form-check-label fw-bold text-dark" for="modal2-solusi2">
-                                    <i class="bi bi-box-arrow-in-right text-primary me-1"></i> Barang Lain
-                                </label>
-                                <small class="text-muted d-block mt-1">Diganti dengan barang lain (beda aroma/ukuran/jenis).</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-check border bg-white p-3 rounded h-100">
-                                <input class="form-check-input" type="radio" name="tipe_penyelesaian" id="modal2-solusi3" value="Ganti_Uang_Kas">
-                                <label class="form-check-label fw-bold text-dark" for="modal2-solusi3">
-                                    <i class="bi bi-cash-stack text-warning me-1"></i> Penggantian Uang
-                                </label>
-                                <small class="text-muted d-block mt-1">Diganti uang kas atau potong nota tagihan supplier.</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 1. Jika Barang Sama -->
-                    <div id="modal2-box-barang-sama" class="p-3 bg-light rounded-3 border mb-3">
-                        <label class="form-label small fw-bold text-dark">Jumlah Qty Barang Baru yang Diterima</label>
-                        <input type="number" name="qty_ganti" id="modal2-qty-sama" class="form-control text-center fw-bold fs-5 text-success" min="1" step="any" value="1">
-                        <small class="text-success mt-1 d-block"><i class="bi bi-check-circle me-1"></i>Stok barang di toko akan otomatis bertambah kembali sejumlah barang pengganti ini.</small>
-                    </div>
-
-                    <!-- 2. Jika Barang Lain -->
-                    <div id="modal2-box-barang-lain" class="p-3 bg-light rounded-3 border mb-3 d-none">
-                        <div class="row g-2">
-                            <div class="col-md-8">
-                                <label class="form-label small fw-bold text-dark">Pilih Barang Pengganti (Barang B)</label>
-                                <select name="id_barang_ganti" id="modal2-select-barang-ganti" class="form-select select2">
-                                    <option value="">-- Pilih Produk Pengganti --</option>
-                                    <?php foreach ($barang_list as $b): ?>
-                                        <option value="<?= esc($b['id_barang']) ?>">
-                                            <?= esc($b['nama_barang']) ?> [Kode: <?= $b['id_barang'] ?>]
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label small fw-bold text-dark">Qty Barang Pengganti</label>
-                                <input type="number" name="qty_ganti" id="modal2-qty-lain" class="form-control text-center fw-bold fs-5" min="1" step="any" value="1" disabled>
-                            </div>
-                        </div>
-                        <small class="text-primary mt-1 d-block"><i class="bi bi-check-circle me-1"></i>Stok barang pengganti di atas akan otomatis bertambah ke inventori toko.</small>
-                    </div>
-
-                    <!-- 3. Jika Nilai Uang -->
-                    <div id="modal2-box-uang" class="p-3 bg-light rounded-3 border mb-3 d-none">
-                        <label class="form-label small fw-bold text-dark">Nominal Penggantian Uang dari Supplier (Rp)</label>
-                        <input type="text" inputmode="numeric" name="nilai_ganti" id="modal2-input-nilai-uang" class="form-control fw-bold fs-4 text-success input-currency" placeholder="0" disabled>
-                        <small class="text-muted mt-1 d-block"><i class="bi bi-wallet2 me-1"></i>Uang ini otomatis masuk ke Buku Kas Pemasukan Toko.</small>
                     </div>
 
                     <!-- Catatan Penyelesaian -->
                     <div class="mb-2">
-                        <label class="form-label small fw-bold">Catatan Penyelesaian</label>
-                        <textarea name="catatan_penyelesaian" class="form-control" rows="2" placeholder="Contoh: Pengganti diantar oleh sopir supplier Bp. Rian, kondisi tersegel bagus dan lengkap..."></textarea>
+                        <label class="form-label small fw-bold text-dark">Catatan Penyelesaian / Keterangan Tambahan</label>
+                        <textarea name="catatan_penyelesaian" class="form-control form-control-sm" rows="2" placeholder="Contoh: Barang A diganti 10 pcs lengkap tersegel, Barang B menyusul minggu depan..."></textarea>
                     </div>
                 </div>
 
                 <div class="modal-footer bg-light py-2 px-4">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm">
-                        <i class="bi bi-check-circle-fill me-1"></i> Konfirmasi Selesai &amp; Perbarui Stok
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" id="btn-submit-selesaikan-retur">
+                        <i class="bi bi-check-circle-fill me-1"></i> Konfirmasi Terima Pengganti &amp; Perbarui Stok
                     </button>
                 </div>
             </form>
@@ -700,15 +703,16 @@
                                 <tr>
                                     <th class="text-center" style="width: 35px;">No</th>
                                     <th>Nama Produk &amp; Kode</th>
-                                    <th class="text-center" style="width: 80px;">Qty</th>
-                                    <th class="text-end" style="width: 120px;">Harga Modal (Rp)</th>
+                                    <th class="text-center" style="width: 80px;">Qty Retur</th>
+                                    <th class="text-center" style="width: 100px;">Realisasi</th>
+                                    <th class="text-end" style="width: 110px;">Harga Modal</th>
                                     <th>Alasan Retur</th>
-                                    <th class="text-end" style="width: 140px;">Subtotal Nilai (Rp)</th>
+                                    <th class="text-end" style="width: 130px;">Subtotal Nilai</th>
                                 </tr>
                             </thead>
                             <tbody id="dtl-tbody-items">
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-2 small">Memuat rincian barang...</td>
+                                    <td colspan="7" class="text-center text-muted py-2 small">Memuat rincian barang...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1194,67 +1198,205 @@
         });
 
         // =========================================================================
-        // TERIMA PENGGANTIAN / SELESAIKAN RETUR
+        // TERIMA PENGGANTIAN / SELESAIKAN RETUR (MENDUKUNG MULTI-ITEM & PARSIAL)
         // =========================================================================
+        const barangOptionsHtml = $('#tpl-barang-options').html();
+
+        function renderSelesaikanItems(items) {
+            const $tbody = $('#tbody-selesaikan-items');
+            $tbody.empty();
+
+            if (!items || items.length === 0) {
+                $tbody.html('<tr><td colspan="7" class="text-center py-3 text-muted">Tidak ada rincian barang ditemukan untuk dokumen retur ini.</td></tr>');
+                return;
+            }
+
+            let pendingCount = 0;
+
+            items.forEach((item, idx) => {
+                const qtyRetur = parseFloat(item.qty_retur) || 0;
+                const qtyGanti = parseFloat(item.qty_ganti) || 0;
+                const sisa = Math.max(0, qtyRetur - qtyGanti);
+                const isDone = (sisa <= 0 || item.status_item === 'Selesai');
+                const hargaBeli = parseFloat(item.harga_beli) || 0;
+                const estimasiUang = Math.round(sisa * hargaBeli);
+
+                if (!isDone) pendingCount++;
+
+                let rowHtml = '';
+                if (isDone) {
+                    rowHtml = `
+                        <tr class="table-light text-muted opacity-75">
+                            <td class="text-center">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle" title="Item ini sudah tuntas diganti">
+                                    <i class="bi bi-check2-circle"></i>
+                                </span>
+                            </td>
+                            <td>
+                                <strong class="text-secondary">${escapeHtml(item.nama_barang_retur)}</strong>
+                                <div class="small text-muted font-monospace">[${item.id_barang_retur}]</div>
+                            </td>
+                            <td class="text-center small">${qtyRetur} ${item.satuan || 'Pcs'}</td>
+                            <td class="text-center small"><span class="badge bg-success">${qtyGanti}</span></td>
+                            <td class="text-center small"><span class="badge bg-secondary-subtle text-muted">0</span></td>
+                            <td class="small text-muted"><i class="bi bi-check-circle text-success me-1"></i>${item.tipe_penyelesaian || 'Selesai'}</td>
+                            <td class="small text-muted fst-italic">Tuntas &bull; tidak ada sisa</td>
+                        </tr>
+                    `;
+                } else {
+                    rowHtml = `
+                        <tr id="row-selesai-${item.id}" class="item-selesai-row align-middle" data-id="${item.id}" data-sisa="${sisa}" data-harga="${hargaBeli}" data-nama="${escapeHtml(item.nama_barang_retur)}">
+                            <td class="text-center">
+                                <div class="form-check d-flex justify-content-center mb-0">
+                                    <input class="form-check-input chk-selesai-item" type="checkbox" checked value="${item.id}" data-id="${item.id}" id="chk-selesai-${item.id}">
+                                </div>
+                            </td>
+                            <td>
+                                <label class="form-check-label fw-bold text-dark d-block mb-0" for="chk-selesai-${item.id}">
+                                    ${escapeHtml(item.nama_barang_retur)}
+                                </label>
+                                <div class="small text-muted">
+                                    <span class="font-monospace">[${item.id_barang_retur}]</span>
+                                    <span class="mx-1">&bull;</span>
+                                    <span>Modal: Rp ${formatRupiah(hargaBeli)}</span>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border">${qtyRetur} ${item.satuan || 'Pcs'}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge ${qtyGanti > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border'}">${qtyGanti}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-danger fs-7 shadow-sm px-2 py-1">${sisa} ${item.satuan || 'Pcs'}</span>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm sel-tipe-selesai border-secondary-subtle" data-id="${item.id}">
+                                    <option value="Ganti_Barang_Sama" selected>Barang Sama (Stok Masuk)</option>
+                                    <option value="Ganti_Barang_Lain">Ganti Barang Lain</option>
+                                    <option value="Ganti_Uang_Kas">Penggantian Uang</option>
+                                </select>
+                            </td>
+                            <td>
+                                <!-- OPSI 1: BARANG SAMA -->
+                                <div class="box-tipe-sama" id="box-sama-${item.id}">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light text-muted small">Qty Datang</span>
+                                        <input type="number" step="any" min="0.01" max="${sisa}" value="${sisa}" class="form-control form-control-sm text-end fw-bold text-success inp-qty-datang" data-id="${item.id}">
+                                        <span class="input-group-text small">${item.satuan || 'Pcs'}</span>
+                                    </div>
+                                    <div class="small text-muted fst-italic mt-1" style="font-size: 0.73rem;">
+                                        *Isi &lt; ${sisa} jika baru datang bertahap/sebagian
+                                    </div>
+                                </div>
+
+                                <!-- OPSI 2: BARANG LAIN -->
+                                <div class="box-tipe-lain d-none" id="box-lain-${item.id}">
+                                    <div class="mb-1">
+                                        <select class="form-select form-select-sm sel-barang-lain border-primary" data-id="${item.id}">
+                                            ${barangOptionsHtml}
+                                        </select>
+                                    </div>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light text-muted small">Qty Pengganti</span>
+                                        <input type="number" step="any" min="0.01" value="${sisa}" class="form-control form-control-sm text-end fw-bold text-primary inp-qty-lain" data-id="${item.id}">
+                                        <span class="input-group-text small">Unit</span>
+                                    </div>
+                                </div>
+
+                                <!-- OPSI 3: PENGGANTIAN UANG -->
+                                <div class="box-tipe-uang d-none" id="box-uang-${item.id}">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light text-muted small">Rp</span>
+                                        <input type="text" class="form-control form-control-sm text-end fw-bold text-warning-emphasis inp-nilai-uang" data-id="${item.id}" value="${formatRupiah(estimasiUang)}">
+                                    </div>
+                                    <div class="small text-muted fst-italic mt-1" style="font-size: 0.73rem;">
+                                        *Tercatat otomatis sebagai Pemasukan Kas Toko
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+                $tbody.append(rowHtml);
+            });
+
+            if (pendingCount === 0) {
+                $('#btn-submit-selesaikan-retur').prop('disabled', true).html('<i class="bi bi-check2-all me-1"></i> Seluruh Barang Telah Selesai');
+            } else {
+                $('#btn-submit-selesaikan-retur').prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Konfirmasi Terima Pengganti &amp; Perbarui Stok');
+            }
+        }
+
         $(document).on('click', '.btn-selesaikan-retur', function() {
             const id = $(this).data('id');
             const noRetur = $(this).data('noretur');
             const supplier = $(this).data('supplier');
-            const barang = $(this).data('barang');
-            const qty = $(this).data('qty');
-            const nilai = $(this).data('nilai');
 
             $('#selesaikan-id').val(id);
             $('#selesaikan-label-noretur').text(noRetur);
             $('#selesaikan-label-supplier').text(supplier);
-            $('#selesaikan-label-barang').text(barang);
-
-            $('#modal2-qty-sama').val(qty);
-            $('#modal2-qty-lain').val(qty);
-            $('#modal2-input-nilai-uang').val(new Intl.NumberFormat('id-ID').format(nilai || 0));
-
-            $('#modal2-solusi1').prop('checked', true);
-            $('#form-selesaikan-retur input[name="tipe_penyelesaian"]:checked').trigger('change');
+            $('#selesaikan-label-status-badge').html('<span class="spinner-border spinner-border-sm text-secondary"></span>');
+            $('#tbody-selesaikan-items').html('<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>Memuat daftar barang retur...</td></tr>');
+            
             $('#modalSelesaikanRetur').modal('show');
+
+            $.get('<?= base_url('retur/detail') ?>/' + id, function(res) {
+                if (res.status === 'success') {
+                    const retur = res.retur;
+                    let badgeClass = 'bg-warning text-dark';
+                    if (retur.status === 'Proses Sebagian') badgeClass = 'bg-info text-white';
+                    else if (retur.status === 'Selesai') badgeClass = 'bg-success text-white';
+                    $('#selesaikan-label-status-badge').html(`<span class="badge ${badgeClass} fs-7">${retur.status}</span>`);
+
+                    renderSelesaikanItems(res.items);
+                } else {
+                    $('#tbody-selesaikan-items').html('<tr><td colspan="7" class="text-center py-3 text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Gagal memuat rincian barang retur.</td></tr>');
+                }
+            }).fail(function() {
+                $('#tbody-selesaikan-items').html('<tr><td colspan="7" class="text-center py-3 text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Terjadi kesalahan saat memuat data.</td></tr>');
+            });
         });
 
-        $('#form-selesaikan-retur input[name="tipe_penyelesaian"]').on('change', function() {
+        // Toggle bentuk penggantian per row
+        $(document).on('change', '.sel-tipe-selesai', function() {
+            const id = $(this).data('id');
             const val = $(this).val();
-            
+
+            const $row = $(`#row-selesai-${id}`);
+            $row.find('.box-tipe-sama, .box-tipe-lain, .box-tipe-uang').addClass('d-none');
+
             if (val === 'Ganti_Barang_Sama') {
-                $('#modal2-box-barang-sama').removeClass('d-none');
-                $('#modal2-qty-sama').prop('disabled', false);
-
-                $('#modal2-box-barang-lain').addClass('d-none');
-                $('#modal2-qty-lain').prop('disabled', true);
-                $('#modal2-select-barang-ganti').prop('required', false);
-
-                $('#modal2-box-uang').addClass('d-none');
-                $('#modal2-input-nilai-uang').prop('disabled', true);
+                $row.find('.box-tipe-sama').removeClass('d-none');
             } else if (val === 'Ganti_Barang_Lain') {
-                $('#modal2-box-barang-lain').removeClass('d-none');
-                $('#modal2-qty-lain').prop('disabled', false);
-                $('#modal2-select-barang-ganti').prop('required', true);
-
-                $('#modal2-box-barang-sama').addClass('d-none');
-                $('#modal2-qty-sama').prop('disabled', true);
-
-                $('#modal2-box-uang').addClass('d-none');
-                $('#modal2-input-nilai-uang').prop('disabled', true);
+                $row.find('.box-tipe-lain').removeClass('d-none');
             } else if (val === 'Ganti_Uang_Kas') {
-                $('#modal2-box-uang').removeClass('d-none');
-                $('#modal2-input-nilai-uang').prop('disabled', false);
-
-                $('#modal2-box-barang-sama').addClass('d-none');
-                $('#modal2-qty-sama').prop('disabled', true);
-
-                $('#modal2-box-barang-lain').addClass('d-none');
-                $('#modal2-qty-lain').prop('disabled', true);
-                $('#modal2-select-barang-ganti').prop('required', false);
+                $row.find('.box-tipe-uang').removeClass('d-none');
             }
         });
 
-        // Submit Form Selesaikan Retur dengan Konfirmasi Ya/Tidak
+        // Toggle checkbox centang per row
+        $(document).on('change', '.chk-selesai-item', function() {
+            const id = $(this).data('id');
+            const isChecked = $(this).is(':checked');
+            const $row = $(`#row-selesai-${id}`);
+
+            if (isChecked) {
+                $row.removeClass('table-light opacity-50');
+                $row.find('input:not(.chk-selesai-item), select').prop('disabled', false);
+            } else {
+                $row.addClass('table-light opacity-50');
+                $row.find('input:not(.chk-selesai-item), select').prop('disabled', true);
+            }
+        });
+
+        // Format rupiah pada input nilai uang
+        $(document).on('input', '.inp-nilai-uang', function() {
+            let val = $(this).val().replace(/\D/g, '');
+            $(this).val(val ? formatRupiah(val) : '');
+        });
+
+        // Submit Form Selesaikan Retur dengan Konfirmasi Ya/Tidak & Multi-Item Payload
         let isFormSelesaikanConfirmed = false;
         $('#form-selesaikan-retur').on('submit', function(e) {
             if (isFormSelesaikanConfirmed) {
@@ -1265,16 +1407,96 @@
 
             const noRetur = $('#selesaikan-label-noretur').text();
             const supplier = $('#selesaikan-label-supplier').text();
-            const tipe = $('input[name="tipe_penyelesaian"]:checked', this).val();
-            let tipeLabel = 'Ganti Barang Sama Sesuai Daftar Item';
-            if (tipe === 'Ganti_Barang_Lain') tipeLabel = 'Ganti Barang Lain';
-            else if (tipe === 'Ganti_Uang_Kas') tipeLabel = 'Ganti Uang Kas (Pemasukan Kas Toko)';
+
+            const itemsPayload = [];
+            let validationError = null;
+            let summaryTextArr = [];
+
+            $('.chk-selesai-item:checked').each(function() {
+                const id = $(this).data('id');
+                const $row = $(`#row-selesai-${id}`);
+                const nama = $row.data('nama');
+                const sisa = parseFloat($row.data('sisa')) || 0;
+                const tipe = $row.find('.sel-tipe-selesai').val();
+
+                let qtyDatang = 0;
+                let idBarangGanti = null;
+                let nilaiUang = 0;
+                let ringkasanItem = '';
+
+                if (tipe === 'Ganti_Barang_Sama') {
+                    qtyDatang = parseFloat($row.find('.inp-qty-datang').val()) || 0;
+                    if (qtyDatang <= 0) {
+                        validationError = `Qty datang untuk barang "${nama}" harus lebih besar dari 0!`;
+                        return false;
+                    }
+                    if (qtyDatang > sisa) {
+                        validationError = `Qty datang (${qtyDatang}) untuk "${nama}" melebihi sisa yang belum diganti (${sisa})!`;
+                        return false;
+                    }
+                    ringkasanItem = `${nama}: Datang ${qtyDatang} unit (Barang Sama)`;
+                } else if (tipe === 'Ganti_Barang_Lain') {
+                    idBarangGanti = $row.find('.sel-barang-lain').val();
+                    const textBarangLain = $row.find('.sel-barang-lain option:selected').text().trim();
+                    qtyDatang = parseFloat($row.find('.inp-qty-lain').val()) || 0;
+                    if (!idBarangGanti) {
+                        validationError = `Silakan pilih produk pengganti lain untuk barang "${nama}"!`;
+                        return false;
+                    }
+                    if (qtyDatang <= 0) {
+                        validationError = `Qty pengganti untuk barang "${nama}" harus lebih besar dari 0!`;
+                        return false;
+                    }
+                    ringkasanItem = `${nama} &rarr; Diganti ${textBarangLain} (${qtyDatang} unit)`;
+                } else if (tipe === 'Ganti_Uang_Kas') {
+                    const rawNilai = $row.find('.inp-nilai-uang').val().replace(/\D/g, '');
+                    nilaiUang = parseFloat(rawNilai) || 0;
+                    if (nilaiUang <= 0) {
+                        validationError = `Nominal penggantian uang untuk barang "${nama}" harus lebih dari 0!`;
+                        return false;
+                    }
+                    ringkasanItem = `${nama}: Diganti Uang Kas Rp ${formatRupiah(nilaiUang)}`;
+                }
+
+                itemsPayload.push({
+                    id_detail: id,
+                    tipe: tipe,
+                    qty_datang: qtyDatang,
+                    id_barang_ganti: idBarangGanti,
+                    nilai_uang: nilaiUang
+                });
+
+                summaryTextArr.push(ringkasanItem);
+            });
+
+            if (validationError) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Periksa Inputan Anda',
+                    text: validationError
+                });
+                return false;
+            }
+
+            if (itemsPayload.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih Barang Pengganti',
+                    text: 'Centang minimal 1 barang yang ingin diselesaikan / diterima penggantinya hari ini!'
+                });
+                return false;
+            }
+
+            // Simpan JSON ke hidden input
+            $('#selesaikan-items-json').val(JSON.stringify(itemsPayload));
+
+            const listSummaryHtml = summaryTextArr.map(s => `<li class="mb-1">${s}</li>`).join('');
 
             Swal.fire({
-                title: 'Konfirmasi Selesaikan Retur',
+                title: 'Konfirmasi Realisasi Retur',
                 html: `
                     <div class="text-start fs-7 p-2">
-                        <p class="mb-2 text-dark">Apakah Anda yakin ingin menyelesaikan dokumen retur ini dan menerima barang/uang pengganti dari supplier?</p>
+                        <p class="mb-2 text-dark">Apakah Anda yakin ingin memproses penerimaan pengganti retur untuk barang-barang berikut?</p>
                         <div class="card bg-light border p-2 mb-2">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="text-muted">No. Bukti Retur:</span>
@@ -1284,10 +1506,12 @@
                                 <span class="text-muted">Mitra Supplier:</span>
                                 <span class="fw-bold text-dark">${supplier}</span>
                             </div>
-                            <div class="d-flex justify-content-between">
-                                <span class="text-muted">Penyelesaian:</span>
-                                <span class="fw-bold text-success">${tipeLabel}</span>
-                            </div>
+                        </div>
+                        <div class="alert alert-info py-2 px-3 mb-0 small">
+                            <strong class="d-block mb-1"><i class="bi bi-box-seam me-1"></i>Rincian yang akan diproses:</strong>
+                            <ul class="mb-0 ps-3">
+                                ${listSummaryHtml}
+                            </ul>
                         </div>
                     </div>
                 `,
@@ -1295,14 +1519,14 @@
                 showCancelButton: true,
                 confirmButtonColor: '#198754',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="bi bi-check2-circle me-1"></i> Ya, Selesaikan Retur',
+                confirmButtonText: '<i class="bi bi-check2-circle me-1"></i> Ya, Simpan Penggantian',
                 cancelButtonText: '<i class="bi bi-x-circle me-1"></i> Batal',
                 reverseButtons: true,
                 allowOutsideClick: false
             }).then((result) => {
                 if (result.isConfirmed) {
                     isFormSelesaikanConfirmed = true;
-                    $('#form-selesaikan-retur button[type="submit"]').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Memproses...');
+                    $('#btn-submit-selesaikan-retur').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Memproses &amp; Menambah Stok...');
                     $('#form-selesaikan-retur').submit();
                 }
             });
@@ -1312,7 +1536,7 @@
 
         $('#modalSelesaikanRetur').on('hidden.bs.modal', function () {
             isFormSelesaikanConfirmed = false;
-            $('#form-selesaikan-retur button[type="submit"]').prop('disabled', false).html('<i class="bi bi-check2-circle me-1"></i> Simpan Penyelesaian Retur');
+            $('#btn-submit-selesaikan-retur').prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Konfirmasi Terima Pengganti &amp; Perbarui Stok');
         });
 
         // =========================================================================
@@ -1340,10 +1564,21 @@
                         $('#dtl-retur-user-selesai').text(r.user_selesai || '-');
                         $('#dtl-retur-tgl-selesai').text(r.tgl_selesai || '-');
                         $('#dtl-tipe-ganti').text(r.tipe_penyelesaian ? r.tipe_penyelesaian.replace(/_/g, ' ') : 'Selesai');
-                        $('#dtl-nama-ganti').text(r.nama_barang_ganti ? r.nama_barang_ganti + ' (Qty: ' + r.qty_ganti + ')' : '-');
+                        $('#dtl-nama-ganti').text(r.nama_barang_ganti ? r.nama_barang_ganti + ' (Qty: ' + r.qty_ganti + ')' : 'Selesai Sesuai Item');
                         $('#dtl-nilai-ganti').text('Rp ' + new Intl.NumberFormat('id-ID').format(r.nilai_ganti || 0));
                         $('#dtl-tgl-selesai').text('Tuntas: ' + (r.tgl_selesai || '-'));
                         $('#dtl-catatan-selesai').text('Catatan Penggantian: ' + (r.catatan_penyelesaian || '-'));
+                    } else if (r.status === 'Proses Sebagian') {
+                        $('#dtl-retur-status-badge').html('<span class="badge bg-info text-white fw-bold"><i class="bi bi-pie-chart me-1"></i>Proses Sebagian (Parsial)</span>');
+                        $('#dtl-box-penggantian').removeClass('d-none');
+                        $('#dtl-box-user-selesai').removeClass('d-none');
+                        $('#dtl-box-tgl-selesai').addClass('d-none');
+                        $('#dtl-retur-user-selesai').text(r.user_selesai || '-');
+                        $('#dtl-tipe-ganti').text('Realisasi Sebagian');
+                        $('#dtl-nama-ganti').text('Telah Diterima: ' + (r.qty_ganti || 0) + ' unit');
+                        $('#dtl-nilai-ganti').text('Rp ' + new Intl.NumberFormat('id-ID').format(r.nilai_ganti || 0));
+                        $('#dtl-tgl-selesai').text('Masih Menunggu Sisa Barang');
+                        $('#dtl-catatan-selesai').text('Catatan: ' + (r.catatan_penyelesaian || 'Masih ada sisa barang yang belum diganti supplier.'));
                     } else {
                         $('#dtl-retur-status-badge').html('<span class="badge bg-warning text-dark fw-bold"><i class="bi bi-hourglass-split me-1"></i>Baru Proses</span>');
                         $('#dtl-box-penggantian').addClass('d-none');
@@ -1359,28 +1594,44 @@
                         let totalQty = 0;
                         let totalNilai = 0;
                         items.forEach((it, idx) => {
-                            totalQty += parseFloat(it.qty_retur);
-                            totalNilai += parseFloat(it.subtotal_nilai);
+                            const qRetur = parseFloat(it.qty_retur) || 0;
+                            const qGanti = parseFloat(it.qty_ganti) || 0;
+                            const subtotal = parseFloat(it.subtotal_nilai) || 0;
+                            totalQty += qRetur;
+                            totalNilai += subtotal;
+
+                            let realisasiBadge = '';
+                            if (it.status_item === 'Selesai' || qGanti >= qRetur) {
+                                realisasiBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2 me-1"></i>${qGanti} Diganti</span>`;
+                            } else if (qGanti > 0) {
+                                realisasiBadge = `<span class="badge bg-info-subtle text-info border border-info-subtle">${qGanti} / ${qRetur}</span>`;
+                            } else {
+                                realisasiBadge = `<span class="badge bg-warning-subtle text-warning border border-warning-subtle">0 / ${qRetur}</span>`;
+                            }
+
                             $dtlTbody.append(`
                                 <tr>
                                     <td class="text-center text-muted small">${idx + 1}</td>
                                     <td>
-                                        <div class="fw-bold text-dark fs-7">${it.nama_barang_retur}</div>
+                                        <div class="fw-bold text-dark fs-7">${escapeHtml(it.nama_barang_retur)}</div>
                                         <small class="text-muted font-monospace">${it.id_barang_retur}</small>
                                     </td>
                                     <td class="text-center fw-bold text-danger fs-7">
-                                        ${new Intl.NumberFormat('id-ID').format(it.qty_retur)} ${it.satuan || ''}
+                                        ${new Intl.NumberFormat('id-ID').format(qRetur)} ${it.satuan || ''}
+                                    </td>
+                                    <td class="text-center fs-7">
+                                        ${realisasiBadge}
                                     </td>
                                     <td class="text-end fw-semibold text-dark fs-8">
                                         Rp ${new Intl.NumberFormat('id-ID').format(it.harga_beli)}
                                     </td>
                                     <td>
                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">
-                                            ${it.alasan}
+                                            ${escapeHtml(it.alasan)}
                                         </span>
                                     </td>
                                     <td class="text-end fw-bold text-danger fs-7">
-                                        Rp ${new Intl.NumberFormat('id-ID').format(it.subtotal_nilai)}
+                                        Rp ${new Intl.NumberFormat('id-ID').format(subtotal)}
                                     </td>
                                 </tr>
                             `);
@@ -1389,6 +1640,7 @@
                             <tr class="table-light fw-bold border-top">
                                 <td colspan="2" class="text-end">TOTAL KESELURUHAN:</td>
                                 <td class="text-center text-danger fs-7">${new Intl.NumberFormat('id-ID').format(totalQty)}</td>
+                                <td></td>
                                 <td></td>
                                 <td></td>
                                 <td class="text-end text-danger fs-6">Rp ${new Intl.NumberFormat('id-ID').format(totalNilai)}</td>
