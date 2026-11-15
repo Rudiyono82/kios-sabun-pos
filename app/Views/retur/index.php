@@ -33,18 +33,21 @@
     $totalRetur = count($retur_list);
     $totalProses = 0;
     $totalSelesai = 0;
+    $grandTotalNilaiRetur = 0;
     foreach ($retur_list as $r) {
         if ($r['status'] === 'Baru Proses') $totalProses++;
         else $totalSelesai++;
+        $grandTotalNilaiRetur += (float)($r['nilai_retur'] ?? 0);
     }
 ?>
 <div class="row g-3 mb-4">
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
         <div class="card-modern p-3 border-start border-4 border-primary">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Total Dokumen Retur</span>
                     <h3 class="fw-bold mt-1 mb-0 text-primary"><?= $totalRetur ?></h3>
+                    <small class="text-muted">Total transaksi retur</small>
                 </div>
                 <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
                     <i class="bi bi-file-earmark-text fs-4"></i>
@@ -52,13 +55,27 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
+        <div class="card-modern p-3 border-start border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Total Nilai Modal Retur</span>
+                    <h4 class="fw-bold mt-1 mb-0 text-danger">Rp <?= number_format($grandTotalNilaiRetur, 0, ',', '.') ?></h4>
+                    <small class="text-muted">Total modal barang rijek</small>
+                </div>
+                <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle">
+                    <i class="bi bi-cash-stack fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
         <div class="card-modern p-3 border-start border-4 border-warning">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Status: Baru Proses</span>
                     <h3 class="fw-bold mt-1 mb-0 text-warning"><?= $totalProses ?></h3>
-                    <small class="text-muted">Menunggu penggantian dari supplier</small>
+                    <small class="text-muted">Menunggu penggantian</small>
                 </div>
                 <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle">
                     <i class="bi bi-hourglass-split fs-4"></i>
@@ -66,13 +83,13 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
         <div class="card-modern p-3 border-start border-4 border-success">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Status: Selesai</span>
                     <h3 class="fw-bold mt-1 mb-0 text-success"><?= $totalSelesai ?></h3>
-                    <small class="text-muted">Penggantian barang / uang tuntas</small>
+                    <small class="text-muted">Penggantian tuntas</small>
                 </div>
                 <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
                     <i class="bi bi-check-circle-fill fs-4"></i>
@@ -93,6 +110,7 @@
                     <th>Supplier</th>
                     <th>Barang Diretur (Rijek)</th>
                     <th class="text-center">Total Qty</th>
+                    <th class="text-end">Total Nilai Modal (Rp)</th>
                     <th>Keterangan / Alasan</th>
                     <th>Status Retur</th>
                     <th>Bentuk Penggantian</th>
@@ -117,6 +135,9 @@
                                 <?php endif; ?>
                             </td>
                             <td class="text-center fw-bold text-danger fs-6"><?= number_format($r['qty_retur'], 0, ',', '.') ?></td>
+                            <td class="text-end fw-bold text-danger fs-7">
+                                Rp <?= number_format((float)($r['nilai_retur'] ?? 0), 0, ',', '.') ?>
+                            </td>
                             <td>
                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
                                     <?= esc($r['alasan']) ?>
@@ -166,7 +187,6 @@
                                     </button>
                                     
                                     <?php if ($r['status'] === 'Baru Proses'): ?>
-                                        <!-- Tombol Selesaikan Retur (Jika supplier baru mengantar pengganti beberapa hari kemudian) -->
                                         <button type="button" class="btn btn-warning btn-sm rounded-pill px-2 fw-bold text-dark btn-selesaikan-retur shadow-sm"
                                             data-id="<?= $r['id'] ?>"
                                             data-noretur="<?= esc($r['no_retur']) ?>"
@@ -183,7 +203,6 @@
                                         </span>
                                     <?php endif; ?>
 
-                                    <!-- Tombol Hapus Retur (Wajib Password Super Admin) -->
                                     <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2 btn-hapus-retur"
                                         data-id="<?= $r['id'] ?>"
                                         data-noretur="<?= esc($r['no_retur']) ?>"
@@ -224,6 +243,22 @@
                 <input type="hidden" name="items_json" id="input-items-json">
 
                 <div class="modal-body p-4">
+                    <!-- RINGKASAN BESAR: TOTAL SEMUA BARANG & NILAI MODAL (Sticky Header Kontras) -->
+                    <div class="card border-0 rounded-3 p-3 mb-3 text-center" style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 2px solid #fca5a5 !important; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12);">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="text-start">
+                                <span class="text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">TOTAL ESTIMASI NILAI MODAL SEMUA BARANG RETUR</span>
+                                <h2 class="display-6 fw-bold text-danger my-1" id="display-total-nilai-modal">Rp 0</h2>
+                            </div>
+                            <div class="text-end">
+                                <span class="text-uppercase small fw-bold text-muted d-block" style="letter-spacing: 0.5px;">TOTAL KUANTITAS SEMUA BARANG</span>
+                                <span class="badge bg-white text-danger border border-danger-subtle px-3 py-2 fs-6 fw-bold font-monospace mt-1" id="display-total-qty-barang">
+                                    0 Macam Produk (0 Kuantitas)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- BARIS 1: INFORMASI SUPPLIER & BUKTI RETUR -->
                     <div class="card border-0 bg-light rounded-3 p-3 mb-3 border">
                         <div class="row g-3 align-items-center">
@@ -265,7 +300,7 @@
 
                         <div class="row g-2 align-items-end">
                             <!-- 1. Dropdown / Pilih Barang -->
-                            <div class="col-12 col-md-5">
+                            <div class="col-12 col-md-4">
                                 <label class="form-label small fw-bold text-dark mb-1">Pilih Produk Supplier <span class="text-danger">*</span></label>
                                 <select id="select-barang-retur" class="form-select form-select-sm" disabled>
                                     <option value="">-- Wajib Pilih Supplier Dahulu --</option>
@@ -294,22 +329,40 @@
                                 <input type="number" id="input-item-qty" class="form-control form-control-sm text-center fw-bold fs-6 text-danger" min="0.1" step="any" value="1" disabled>
                             </div>
 
-                            <!-- 3. Alasan Retur -->
-                            <div class="col-6 col-md-3">
-                                <label class="form-label small fw-bold text-dark mb-1">Alasan Retur <span class="text-danger">*</span></label>
+                            <!-- 3. Harga Modal Barang (Beli) -->
+                            <div class="col-6 col-md-2">
+                                <label class="form-label small fw-bold text-dark mb-1">Harga Modal (Rp)</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white text-muted">Rp</span>
+                                    <input type="text" id="input-item-harga-beli" class="form-control form-control-sm text-end fw-bold bg-light" readonly placeholder="0">
+                                </div>
+                            </div>
+
+                            <!-- 4. Subtotal Nilai Modal -->
+                            <div class="col-6 col-md-2">
+                                <label class="form-label small fw-bold text-dark mb-1">Subtotal Modal</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white text-muted">Rp</span>
+                                    <input type="text" id="input-item-subtotal-display" class="form-control form-control-sm text-end fw-bold text-danger bg-light" readonly placeholder="0">
+                                </div>
+                            </div>
+
+                            <!-- 5. Tombol Tambah ke Keranjang -->
+                            <div class="col-6 col-md-2">
+                                <button type="button" class="btn btn-danger btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-sm" id="btn-tambah-item-retur" disabled style="height: 31px;">
+                                    <i class="bi bi-plus-lg"></i> Tambahkan
+                                </button>
+                            </div>
+
+                            <!-- 6. Alasan Retur (Full Baris di Bawahnya) -->
+                            <div class="col-12 mt-2">
+                                <label class="form-label small fw-bold text-dark mb-1">Alasan Kerusakan / Retur Produk Ini: <span class="text-danger">*</span></label>
                                 <select id="input-item-alasan" class="form-select form-select-sm" disabled>
                                     <option value="Rijek / Bocor">Rijek / Jerigen Bocor</option>
                                     <option value="Expired / Kadaluarsa">Expired / Kadaluarsa</option>
                                     <option value="Cacat Kemasan / Segel Rusak">Cacat Kemasan / Segel Rusak</option>
                                     <option value="Kualitas / Aroma Berubah">Kualitas / Aroma Berubah</option>
                                 </select>
-                            </div>
-
-                            <!-- 4. Tombol Tambah ke Keranjang -->
-                            <div class="col-12 col-md-2">
-                                <button type="button" class="btn btn-danger btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-sm" id="btn-tambah-item-retur" disabled style="height: 31px;">
-                                    <i class="bi bi-plus-lg"></i> Tambahkan
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -332,25 +385,27 @@
                                         <th class="text-center" style="width: 40px;">No</th>
                                         <th>Nama Barang &amp; Kode</th>
                                         <th class="text-center" style="width: 100px;">Qty Retur</th>
-                                        <th style="width: 180px;">Alasan Retur</th>
-                                        <th class="text-end" style="width: 140px;">Estimasi Nilai (Rp)</th>
+                                        <th class="text-end" style="width: 130px;">Harga Modal (Rp)</th>
+                                        <th>Alasan Retur</th>
+                                        <th class="text-end" style="width: 150px;">Subtotal Nilai Modal (Rp)</th>
                                         <th class="text-center" style="width: 50px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-keranjang-retur">
                                     <tr id="empty-row-retur">
-                                        <td colspan="6" class="text-center text-muted py-4 small">
+                                        <td colspan="7" class="text-center text-muted py-4 small">
                                             <i class="bi bi-inbox fs-2 opacity-25 d-block mb-1"></i>
                                             Belum ada barang rijek yang dimasukkan. Silakan pilih supplier tujuan di atas lalu tambahkan produk rijek.
                                         </td>
                                     </tr>
                                 </tbody>
-                                <tfoot class="table-light fw-bold fs-8 border-top d-none" id="tfoot-keranjang-retur">
-                                    <tr>
-                                        <td colspan="2" class="text-end">TOTAL KESELURUHAN:</td>
-                                        <td class="text-center text-danger fs-7" id="summary-total-qty-retur">0</td>
+                                <tfoot class="table-light fw-bold fs-7 border-top d-none" id="tfoot-keranjang-retur">
+                                    <tr class="bg-light">
+                                        <td colspan="2" class="text-end fw-bold">TOTAL SEMUA BARANG:</td>
+                                        <td class="text-center text-danger fw-bold fs-6" id="summary-total-qty-retur">0</td>
                                         <td></td>
-                                        <td class="text-end text-danger fs-7" id="summary-total-nilai-retur">Rp 0</td>
+                                        <td></td>
+                                        <td class="text-end text-danger fw-bold fs-6" id="summary-total-nilai-retur">Rp 0</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -615,13 +670,14 @@
                                     <th class="text-center" style="width: 35px;">No</th>
                                     <th>Nama Produk &amp; Kode</th>
                                     <th class="text-center" style="width: 80px;">Qty</th>
+                                    <th class="text-end" style="width: 120px;">Harga Modal (Rp)</th>
                                     <th>Alasan Retur</th>
-                                    <th class="text-end" style="width: 120px;">Subtotal Nilai</th>
+                                    <th class="text-end" style="width: 140px;">Subtotal Nilai (Rp)</th>
                                 </tr>
                             </thead>
                             <tbody id="dtl-tbody-items">
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-2 small">Memuat rincian barang...</td>
+                                    <td colspan="6" class="text-center text-muted py-2 small">Memuat rincian barang...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -674,9 +730,23 @@
         }
 
         // =========================================================================
-        // LOGIKA MULTI-BARANG RETUR & FILTER SUPPLIER WAJIB TERLEBIH DAHULU
+        // LOGIKA MULTI-BARANG RETUR, HARGA MODAL, & TOTAL SELURUH BARANG
         // =========================================================================
         let keranjangRetur = [];
+
+        // Helper update input harga beli modal & subtotal di form baris
+        function updateItemRowSubtotal() {
+            const $opt = $('#select-barang-retur').find('option:selected');
+            const hargaBeli = parseFloat($opt.data('harga')) || 0;
+            const qty = parseFloat($('#input-item-qty').val()) || 0;
+            const subtotal = qty * hargaBeli;
+
+            $('#input-item-harga-beli').val(new Intl.NumberFormat('id-ID').format(hargaBeli));
+            $('#input-item-subtotal-display').val(new Intl.NumberFormat('id-ID').format(subtotal));
+        }
+
+        $('#select-barang-retur').on('change', updateItemRowSubtotal);
+        $('#input-item-qty').on('input', updateItemRowSubtotal);
 
         // 1. Pilih Supplier Tujuan: Aktifkan Input Barang Khusus Supplier Tersebut
         $('#select-supplier-retur').on('change', function() {
@@ -698,7 +768,7 @@
                     .html('<i class="bi bi-check-circle-fill me-1"></i>Supplier Terpilih: <strong>' + namaSupplier + '</strong> (' + kodeSupplier + '). Silakan pilih produk rijek milik supplier ini.');
 
                 // Filter opsi dropdown barang agar hanya barang milik supplier terpilih yang muncul
-                $('#select-barang-retur').val('');
+                $('#select-barang-retur').val('').trigger('change');
                 let matchingCount = 0;
                 $('#select-barang-retur option.opt-barang-item').each(function() {
                     const s1 = $(this).data('supp1');
@@ -729,7 +799,7 @@
                 }
             } else {
                 // Kunci kembali kontrol jika supplier dikosongkan
-                $('#select-barang-retur').prop('disabled', true).val('');
+                $('#select-barang-retur').prop('disabled', true).val('').trigger('change');
                 $('#input-item-qty').prop('disabled', true);
                 $('#input-item-alasan').prop('disabled', true);
                 $('#btn-tambah-item-retur').prop('disabled', true);
@@ -765,7 +835,6 @@
                 mode: 'pembelian',
                 supplier: selectedSupplier,
                 onSelect: function(item) {
-                    // Cari atau tambahkan opsi di select-barang-retur
                     let $existingOpt = $('#select-barang-retur').find('option[value="' + item.id_barang + '"]');
                     if ($existingOpt.length === 0) {
                         const stokText = ' [Stok: ' + new Intl.NumberFormat('id-ID').format(item.stok_cabang || item.stok_total || 0) + ' ' + (item.satuan || '') + ']';
@@ -824,7 +893,6 @@
             // Cek apakah barang sudah ada di keranjang
             const existingIndex = keranjangRetur.findIndex(item => item.id_barang === idBarang);
             if (existingIndex > -1) {
-                // Update qty jika sudah ada
                 keranjangRetur[existingIndex].qty += qty;
                 keranjangRetur[existingIndex].subtotal = keranjangRetur[existingIndex].qty * hargaBeli;
                 keranjangRetur[existingIndex].alasan = alasan;
@@ -847,7 +915,7 @@
             $('#input-item-qty').val(1);
         });
 
-        // 4. Render Tabel Keranjang Retur
+        // 4. Render Tabel Keranjang Retur Beserta Total Modal & Kuantitas
         function renderKeranjangRetur() {
             const $tbody = $('#tbody-keranjang-retur');
             $tbody.empty();
@@ -855,13 +923,15 @@
             if (keranjangRetur.length === 0) {
                 $tbody.append(`
                     <tr id="empty-row-retur">
-                        <td colspan="6" class="text-center text-muted py-4 small">
+                        <td colspan="7" class="text-center text-muted py-4 small">
                             <i class="bi bi-inbox fs-2 opacity-25 d-block mb-1"></i>
                             Belum ada barang rijek yang dimasukkan. Silakan pilih supplier tujuan di atas lalu tambahkan produk rijek.
                         </td>
                     </tr>
                 `);
                 $('#badge-total-items-retur').text('0 Item Barang');
+                $('#display-total-nilai-modal').text('Rp 0');
+                $('#display-total-qty-barang').text('0 Macam Produk (0 Kuantitas)');
                 $('#tfoot-keranjang-retur').addClass('d-none');
                 $('#input-items-json').val('');
                 return;
@@ -884,12 +954,15 @@
                         <td class="text-center fw-bold text-danger fs-7">
                             ${new Intl.NumberFormat('id-ID').format(item.qty)} ${item.satuan}
                         </td>
+                        <td class="text-end fw-semibold text-dark fs-8">
+                            Rp ${new Intl.NumberFormat('id-ID').format(item.harga_beli)}
+                        </td>
                         <td>
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">
                                 ${item.alasan}
                             </span>
                         </td>
-                        <td class="text-end fw-semibold text-dark fs-8">
+                        <td class="text-end fw-bold text-danger fs-7">
                             Rp ${new Intl.NumberFormat('id-ID').format(item.subtotal)}
                         </td>
                         <td class="text-center">
@@ -901,7 +974,11 @@
                 `);
             });
 
+            // Update Semua Tampilan Total
             $('#badge-total-items-retur').text(keranjangRetur.length + ' Macam Produk (' + new Intl.NumberFormat('id-ID').format(totalQty) + ' Satuan)');
+            $('#display-total-nilai-modal').text('Rp ' + new Intl.NumberFormat('id-ID').format(totalNilai));
+            $('#display-total-qty-barang').text(keranjangRetur.length + ' Macam Produk (' + new Intl.NumberFormat('id-ID').format(totalQty) + ' Satuan)');
+
             $('#summary-total-qty-retur').text(new Intl.NumberFormat('id-ID').format(totalQty));
             $('#summary-total-nilai-retur').text('Rp ' + new Intl.NumberFormat('id-ID').format(totalNilai));
             $('#tfoot-keranjang-retur').removeClass('d-none');
@@ -940,7 +1017,6 @@
                 return false;
             }
 
-            // Pastikan items_json terisi
             $('#input-items-json').val(JSON.stringify(keranjangRetur));
             return true;
         });
@@ -1038,7 +1114,7 @@
         });
 
         // =========================================================================
-        // LIHAT DETAIL DOKUMEN RETUR (DENGAN TABEL MULTI-BARANG)
+        // LIHAT DETAIL DOKUMEN RETUR (DENGAN TABEL MULTI-BARANG & HARGA MODAL)
         // =========================================================================
         $(document).on('click', '.btn-detail-retur', function() {
             const id = $(this).data('id');
@@ -1087,12 +1163,15 @@
                                     <td class="text-center fw-bold text-danger fs-7">
                                         ${new Intl.NumberFormat('id-ID').format(it.qty_retur)} ${it.satuan || ''}
                                     </td>
+                                    <td class="text-end fw-semibold text-dark fs-8">
+                                        Rp ${new Intl.NumberFormat('id-ID').format(it.harga_beli)}
+                                    </td>
                                     <td>
                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">
                                             ${it.alasan}
                                         </span>
                                     </td>
-                                    <td class="text-end fw-semibold text-dark fs-8">
+                                    <td class="text-end fw-bold text-danger fs-7">
                                         Rp ${new Intl.NumberFormat('id-ID').format(it.subtotal_nilai)}
                                     </td>
                                 </tr>
@@ -1100,10 +1179,11 @@
                         });
                         $dtlTbody.append(`
                             <tr class="table-light fw-bold border-top">
-                                <td colspan="2" class="text-end">TOTAL:</td>
+                                <td colspan="2" class="text-end">TOTAL KESELURUHAN:</td>
                                 <td class="text-center text-danger fs-7">${new Intl.NumberFormat('id-ID').format(totalQty)}</td>
                                 <td></td>
-                                <td class="text-end text-danger fs-7">Rp ${new Intl.NumberFormat('id-ID').format(totalNilai)}</td>
+                                <td></td>
+                                <td class="text-end text-danger fs-6">Rp ${new Intl.NumberFormat('id-ID').format(totalNilai)}</td>
                             </tr>
                         `);
                     } else {
@@ -1116,8 +1196,9 @@
                                     <small class="text-muted font-monospace">${r.id_barang_retur}</small>
                                 </td>
                                 <td class="text-center fw-bold text-danger fs-7">${new Intl.NumberFormat('id-ID').format(r.qty_retur)}</td>
+                                <td class="text-end fw-semibold text-dark fs-8">Rp ${new Intl.NumberFormat('id-ID').format((r.qty_retur > 0 ? (r.nilai_retur / r.qty_retur) : 0))}</td>
                                 <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">${r.alasan}</span></td>
-                                <td class="text-end fw-semibold text-dark fs-8">Rp ${new Intl.NumberFormat('id-ID').format(r.nilai_retur || 0)}</td>
+                                <td class="text-end fw-bold text-danger fs-7">Rp ${new Intl.NumberFormat('id-ID').format(r.nilai_retur || 0)}</td>
                             </tr>
                         `);
                     }
