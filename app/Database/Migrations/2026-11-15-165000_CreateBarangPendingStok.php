@@ -135,3 +135,4 @@ class CreateBarangPendingStok extends Migration
         $this->forge->dropTable('barang_pending_stok', true);
     }
 }
+

@@ -10,7 +10,7 @@ class ReturSupplierModel extends Model
     protected $primaryKey = 'id';
     protected $allowedFields = [
         'no_retur', 'tanggal', 'tgl_selesai', 'kode_supplier', 'nama_supplier',
-        'id_barang_retur', 'nama_barang_retur', 'qty_retur', 'nilai_retur',
+        'id_barang_retur', 'nama_barang_retur', 'qty_retur', 'nilai_retur', 'total_item',
         'alasan', 'tipe_penyelesaian', 'id_barang_ganti', 'nama_barang_ganti',
         'qty_ganti', 'nilai_ganti', 'status', 'keterangan', 'catatan_penyelesaian',
         'kode_user', 'created_at'

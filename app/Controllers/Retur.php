@@ -33,39 +33,99 @@ class Retur extends BaseController
         $returModel = new ReturSupplierModel();
         $noRetur = $returModel->generateNoRetur();
 
-        $idBarangRetur = $this->request->getPost('id_barang_retur');
-        $qtyRetur = (float) $this->request->getPost('qty_retur');
-        $kodeSupplier = $this->request->getPost('kode_supplier');
-        $alasan = $this->request->getPost('alasan');
-        $statusAwal = $this->request->getPost('status') ?: 'Baru Proses';
-        $tipePenyelesaian = $this->request->getPost('tipe_penyelesaian');
-        $keterangan = $this->request->getPost('keterangan');
-
-        $barangRetur = $db->table('barang')->where('id_barang', $idBarangRetur)->get()->getRowArray();
-        if (!$barangRetur) {
-            return redirect()->back()->with('error', 'Barang yang diretur tidak valid.');
+        $kodeSupplier = trim((string)$this->request->getPost('kode_supplier'));
+        if (empty($kodeSupplier)) {
+            return redirect()->back()->with('error', 'Wajib memilih Mitra Supplier Tujuan retur!');
         }
 
         $supplier = $db->table('supplier')->where('kode_supplier', $kodeSupplier)->get()->getRowArray();
         $namaSupplier = $supplier ? $supplier['nama_supplier'] : 'Supplier Umum';
 
-        $nilaiRetur = $qtyRetur * (float)$barangRetur['harga_beli'];
+        $statusAwal = $this->request->getPost('status') ?: 'Baru Proses';
+        $tipePenyelesaian = $this->request->getPost('tipe_penyelesaian');
+        $keterangan = $this->request->getPost('keterangan');
 
-        // 1. MUTASI STOK: Barang rijek/expired SELALU DIPOTONG KELUAR dari stok toko hari ini
-        $sisaStokRetur = $barangRetur['stok'] - $qtyRetur;
-        $db->table('barang')->where('id_barang', $idBarangRetur)->update(['stok' => $sisaStokRetur]);
+        // Ambil data items (bisa dari JSON string di input items_json atau POST items)
+        $rawItemsJson = $this->request->getPost('items_json');
+        $items = [];
+        if (!empty($rawItemsJson)) {
+            $items = json_decode($rawItemsJson, true);
+        }
 
-        // Catat kartu stok KELUAR untuk barang rijek
-        $db->table('kartu_stok')->insert([
-            'tanggal' => date('Y-m-d H:i:s'),
-            'id_barang' => $idBarangRetur,
-            'tipe' => 'KELUAR',
-            'no_referensi' => $noRetur,
-            'masuk' => 0,
-            'keluar' => $qtyRetur,
-            'sisa' => $sisaStokRetur,
-            'keterangan' => 'Retur ke Supplier (' . $alasan . ') - ' . $namaSupplier . ' [' . $statusAwal . ']'
-        ]);
+        // Fallback untuk single-item (jika submit langsung)
+        if (empty($items)) {
+            $idBarangSingle = $this->request->getPost('id_barang_retur');
+            $qtySingle = (float) $this->request->getPost('qty_retur');
+            $alasanSingle = $this->request->getPost('alasan') ?: 'Rijek / Bocor';
+            if (!empty($idBarangSingle) && $qtySingle > 0) {
+                $items[] = [
+                    'id_barang' => $idBarangSingle,
+                    'qty'       => $qtySingle,
+                    'alasan'    => $alasanSingle,
+                ];
+            }
+        }
+
+        if (empty($items)) {
+            return redirect()->back()->with('error', 'Daftar barang yang diretur tidak boleh kosong! Tambahkan minimal 1 barang ke dalam tabel keranjang retur.');
+        }
+
+        $totalQtyRetur = 0;
+        $totalNilaiRetur = 0;
+        $detailRecords = [];
+        $namaBarangSummary = [];
+
+        foreach ($items as $item) {
+            $idBarang = $item['id_barang'];
+            $qty = (float) $item['qty'];
+            $alasan = $item['alasan'] ?? 'Rijek / Bocor';
+
+            $barang = $db->table('barang')->where('id_barang', $idBarang)->get()->getRowArray();
+            if (!$barang) continue;
+
+            $hargaBeli = (float) $barang['harga_beli'];
+            $subtotal = $qty * $hargaBeli;
+
+            $totalQtyRetur += $qty;
+            $totalNilaiRetur += $subtotal;
+            $namaBarangSummary[] = $barang['nama_barang'] . " (" . number_format($qty, 0, ',', '.') . ")";
+
+            // 1. MUTASI STOK: Barang rijek/expired SELALU DIPOTONG KELUAR dari stok toko hari ini
+            $sisaStok = $barang['stok'] - $qty;
+            $db->table('barang')->where('id_barang', $idBarang)->update(['stok' => $sisaStok]);
+
+            // Catat kartu stok KELUAR untuk barang rijek
+            $db->table('kartu_stok')->insert([
+                'tanggal'      => date('Y-m-d H:i:s'),
+                'id_barang'    => $idBarang,
+                'tipe'         => 'KELUAR',
+                'no_referensi' => $noRetur,
+                'masuk'        => 0,
+                'keluar'       => $qty,
+                'sisa'         => $sisaStok,
+                'keterangan'   => 'Retur ke Supplier (' . $alasan . ') - ' . $namaSupplier . ' [' . $statusAwal . ']'
+            ]);
+
+            $detailRecords[] = [
+                'no_retur'          => $noRetur,
+                'id_barang_retur'   => $idBarang,
+                'nama_barang_retur' => $barang['nama_barang'],
+                'satuan'            => $barang['satuan'] ?? 'Pcs',
+                'qty_retur'         => $qty,
+                'harga_beli'        => $hargaBeli,
+                'subtotal_nilai'    => $subtotal,
+                'alasan'            => $alasan,
+                'status_item'       => $statusAwal,
+                'created_at'        => date('Y-m-d H:i:s')
+            ];
+        }
+
+        if (empty($detailRecords)) {
+            $db->transRollback();
+            return redirect()->back()->with('error', 'Semua barang dalam keranjang retur tidak valid di sistem.');
+        }
+
+        $db->table('retur_supplier_detail')->insertBatch($detailRecords);
 
         $idBarangGanti = null;
         $namaBarangGanti = null;
@@ -78,24 +138,28 @@ class Retur extends BaseController
             $tglSelesai = date('Y-m-d H:i:s');
 
             if ($tipePenyelesaian === 'Ganti_Barang_Sama') {
-                $idBarangGanti = $idBarangRetur;
-                $namaBarangGanti = $barangRetur['nama_barang'];
-                $qtyGanti = (float) ($this->request->getPost('qty_ganti') ?: $qtyRetur);
-                $nilaiGanti = $qtyGanti * (float)$barangRetur['harga_beli'];
+                // Semua barang di detail otomatis diganti dengan barang baru yang sama
+                foreach ($detailRecords as $det) {
+                    $brg = $db->table('barang')->where('id_barang', $det['id_barang_retur'])->get()->getRowArray();
+                    if ($brg) {
+                        $sisaSetelahGanti = $brg['stok'] + (float)$det['qty_retur'];
+                        $db->table('barang')->where('id_barang', $det['id_barang_retur'])->update(['stok' => $sisaSetelahGanti]);
 
-                $sisaSetelahGanti = $sisaStokRetur + $qtyGanti;
-                $db->table('barang')->where('id_barang', $idBarangRetur)->update(['stok' => $sisaSetelahGanti]);
-
-                $db->table('kartu_stok')->insert([
-                    'tanggal' => date('Y-m-d H:i:s'),
-                    'id_barang' => $idBarangRetur,
-                    'tipe' => 'MASUK',
-                    'no_referensi' => $noRetur,
-                    'masuk' => $qtyGanti,
-                    'keluar' => 0,
-                    'sisa' => $sisaSetelahGanti,
-                    'keterangan' => 'Penggantian Barang Baru dari Retur ' . $noRetur . ' (' . $namaSupplier . ')'
-                ]);
+                        $db->table('kartu_stok')->insert([
+                            'tanggal'      => date('Y-m-d H:i:s'),
+                            'id_barang'    => $det['id_barang_retur'],
+                            'tipe'         => 'MASUK',
+                            'no_referensi' => $noRetur,
+                            'masuk'        => $det['qty_retur'],
+                            'keluar'       => 0,
+                            'sisa'         => $sisaSetelahGanti,
+                            'keterangan'   => 'Penggantian Barang Baru dari Retur ' . $noRetur . ' (' . $namaSupplier . ')'
+                        ]);
+                    }
+                }
+                $namaBarangGanti = 'Barang Sama Sesuai Daftar Item Retur';
+                $qtyGanti = $totalQtyRetur;
+                $nilaiGanti = $totalNilaiRetur;
             } elseif ($tipePenyelesaian === 'Ganti_Barang_Lain') {
                 $idBarangGanti = $this->request->getPost('id_barang_ganti');
                 $qtyGanti = (float) $this->request->getPost('qty_ganti');
@@ -109,54 +173,59 @@ class Retur extends BaseController
                     $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $sisaBarangGanti]);
 
                     $db->table('kartu_stok')->insert([
-                        'tanggal' => date('Y-m-d H:i:s'),
-                        'id_barang' => $idBarangGanti,
-                        'tipe' => 'MASUK',
+                        'tanggal'      => date('Y-m-d H:i:s'),
+                        'id_barang'    => $idBarangGanti,
+                        'tipe'         => 'MASUK',
                         'no_referensi' => $noRetur,
-                        'masuk' => $qtyGanti,
-                        'keluar' => 0,
-                        'sisa' => $sisaBarangGanti,
-                        'keterangan' => 'Barang Pengganti dari Retur ' . $noRetur . ' (' . $barangRetur['nama_barang'] . ')'
+                        'masuk'        => $qtyGanti,
+                        'keluar'       => 0,
+                        'sisa'         => $sisaBarangGanti,
+                        'keterangan'   => 'Barang Pengganti dari Retur ' . $noRetur . ' (' . $namaSupplier . ')'
                     ]);
                 }
             } elseif ($tipePenyelesaian === 'Ganti_Uang_Kas') {
                 $rawNilaiGanti = $this->request->getPost('nilai_ganti');
-                $nilaiGanti = $rawNilaiGanti !== null && $rawNilaiGanti !== '' ? (float) str_replace(['.', ',', ' '], '', (string)$rawNilaiGanti) : (float)$nilaiRetur;
+                $nilaiGanti = $rawNilaiGanti !== null && $rawNilaiGanti !== '' ? (float) str_replace(['.', ',', ' '], '', (string)$rawNilaiGanti) : (float)$totalNilaiRetur;
                 $db->table('data_keuangan')->insert([
-                    'tanggal' => date('Y-m-d H:i:s'),
+                    'tanggal'        => date('Y-m-d H:i:s'),
                     'jenis_keuangan' => 'Pemasukan',
-                    'nama_keuangan' => 'Kompensasi Uang Retur ' . $noRetur . ' (' . $namaSupplier . ')',
-                    'total' => $nilaiGanti,
-                    'keterangan' => 'Penggantian Nilai Uang Retur: ' . $barangRetur['nama_barang'] . ' (' . $qtyRetur . ' ' . $barangRetur['satuan'] . ')',
-                    'kode_user' => session()->get('kode_user') ?? 'ADMIN'
+                    'nama_keuangan'  => 'Kompensasi Uang Retur ' . $noRetur . ' (' . $namaSupplier . ')',
+                    'total'          => $nilaiGanti,
+                    'keterangan'     => 'Penggantian Nilai Uang Retur: ' . count($detailRecords) . ' Macam Barang (' . $namaSupplier . ')',
+                    'kode_user'      => session()->get('kode_user') ?? 'ADMIN'
                 ]);
             }
         } else {
-            // Status: Baru Proses (Menunggu Supplier membawa pengganti beberapa hari ke depan)
             $tipePenyelesaian = 'Menunggu Penggantian Supplier';
         }
 
-        // Simpan Record Retur
+        // Ringkasan Tampilan Barang Diretur di Master Record
+        $summaryBarang = (count($namaBarangSummary) > 1) 
+            ? count($namaBarangSummary) . ' Macam Barang: ' . implode(', ', array_slice($namaBarangSummary, 0, 2)) . (count($namaBarangSummary) > 2 ? '...' : '')
+            : ($namaBarangSummary[0] ?? '-');
+
+        // Simpan Record Retur Master
         $returModel->insert([
-            'no_retur' => $noRetur,
-            'tanggal' => date('Y-m-d H:i:s'),
-            'tgl_selesai' => $tglSelesai,
-            'kode_supplier' => $kodeSupplier,
-            'nama_supplier' => $namaSupplier,
-            'id_barang_retur' => $idBarangRetur,
-            'nama_barang_retur' => $barangRetur['nama_barang'],
-            'qty_retur' => $qtyRetur,
-            'nilai_retur' => $nilaiRetur,
-            'alasan' => $alasan,
+            'no_retur'          => $noRetur,
+            'tanggal'           => date('Y-m-d H:i:s'),
+            'tgl_selesai'       => $tglSelesai,
+            'kode_supplier'     => $kodeSupplier,
+            'nama_supplier'     => $namaSupplier,
+            'id_barang_retur'   => $detailRecords[0]['id_barang_retur'] ?? '',
+            'nama_barang_retur' => $summaryBarang,
+            'qty_retur'         => $totalQtyRetur,
+            'nilai_retur'       => $totalNilaiRetur,
+            'total_item'        => count($detailRecords),
+            'alasan'            => (count($detailRecords) > 1) ? 'Multi-Barang (' . count($detailRecords) . ' Item)' : ($detailRecords[0]['alasan'] ?? 'Rijek / Bocor'),
             'tipe_penyelesaian' => $tipePenyelesaian,
-            'id_barang_ganti' => $idBarangGanti,
+            'id_barang_ganti'   => $idBarangGanti,
             'nama_barang_ganti' => $namaBarangGanti,
-            'qty_ganti' => $qtyGanti,
-            'nilai_ganti' => $nilaiGanti,
-            'status' => $statusAwal,
-            'keterangan' => $keterangan,
-            'kode_user' => session()->get('kode_user') ?? 'ADMIN',
-            'created_at' => date('Y-m-d H:i:s')
+            'qty_ganti'         => $qtyGanti,
+            'nilai_ganti'       => $nilaiGanti,
+            'status'            => $statusAwal,
+            'keterangan'        => $keterangan,
+            'kode_user'         => session()->get('kode_user') ?? 'ADMIN',
+            'created_at'        => date('Y-m-d H:i:s')
         ]);
 
         $db->transComplete();
@@ -166,8 +235,8 @@ class Retur extends BaseController
         }
 
         $pesan = ($statusAwal === 'Baru Proses')
-            ? 'Retur nomor ' . $noRetur . ' dicatat dengan status BARU PROSES. Barang rijek telah dikeluarkan dari stok toko dan menunggu penggantian dari supplier.'
-            : 'Transaksi retur nomor ' . $noRetur . ' berhasil diproses dan diselesaikan langsung.';
+            ? 'Retur nomor ' . $noRetur . ' (' . count($detailRecords) . ' macam barang) dicatat dengan status BARU PROSES. Seluruh barang rijek telah dikeluarkan dari stok toko dan menunggu penggantian dari supplier.'
+            : 'Transaksi retur nomor ' . $noRetur . ' (' . count($detailRecords) . ' macam barang) berhasil diproses dan diselesaikan langsung.';
 
         return redirect()->to(base_url('retur'))->with('success', $pesan);
     }
@@ -295,9 +364,16 @@ class Retur extends BaseController
             ]);
         }
 
+        $db = \Config\Database::connect();
+        $items = $db->table('retur_supplier_detail')
+            ->where('no_retur', $retur['no_retur'])
+            ->orderBy('id', 'ASC')
+            ->get()->getResultArray();
+
         return $this->response->setJSON([
             'status' => 'success',
-            'retur' => $retur
+            'retur' => $retur,
+            'items' => $items
         ]);
     }
 
@@ -330,21 +406,44 @@ class Retur extends BaseController
         $db->transStart();
 
         // 2. Kembalikan stok barang yang diretur (karena retur dibatalkan/dihapus)
-        $barangRetur = $db->table('barang')->where('id_barang', $retur['id_barang_retur'])->get()->getRowArray();
-        if ($barangRetur) {
-            $stokBaruRetur = $barangRetur['stok'] + (float)$retur['qty_retur'];
-            $db->table('barang')->where('id_barang', $retur['id_barang_retur'])->update(['stok' => $stokBaruRetur]);
+        $detailItems = $db->table('retur_supplier_detail')->where('no_retur', $retur['no_retur'])->get()->getResultArray();
+        if (!empty($detailItems)) {
+            foreach ($detailItems as $det) {
+                $brg = $db->table('barang')->where('id_barang', $det['id_barang_retur'])->get()->getRowArray();
+                if ($brg) {
+                    $stokBaru = $brg['stok'] + (float)$det['qty_retur'];
+                    $db->table('barang')->where('id_barang', $det['id_barang_retur'])->update(['stok' => $stokBaru]);
 
-            $db->table('kartu_stok')->insert([
-                'tanggal' => date('Y-m-d H:i:s'),
-                'id_barang' => $retur['id_barang_retur'],
-                'tipe' => 'MASUK',
-                'no_referensi' => $retur['no_retur'],
-                'masuk' => (float)$retur['qty_retur'],
-                'keluar' => 0,
-                'sisa' => $stokBaruRetur,
-                'keterangan' => 'Pembatalan Retur Supplier ' . $retur['no_retur'] . ' (Otorisasi Super Admin)'
-            ]);
+                    $db->table('kartu_stok')->insert([
+                        'tanggal'      => date('Y-m-d H:i:s'),
+                        'id_barang'    => $det['id_barang_retur'],
+                        'tipe'         => 'MASUK',
+                        'no_referensi' => $retur['no_retur'],
+                        'masuk'        => (float)$det['qty_retur'],
+                        'keluar'       => 0,
+                        'sisa'         => $stokBaru,
+                        'keterangan'   => 'Pembatalan Retur Supplier ' . $retur['no_retur'] . ' (Otorisasi Super Admin)'
+                    ]);
+                }
+            }
+            $db->table('retur_supplier_detail')->where('no_retur', $retur['no_retur'])->delete();
+        } else {
+            $barangRetur = $db->table('barang')->where('id_barang', $retur['id_barang_retur'])->get()->getRowArray();
+            if ($barangRetur) {
+                $stokBaruRetur = $barangRetur['stok'] + (float)$retur['qty_retur'];
+                $db->table('barang')->where('id_barang', $retur['id_barang_retur'])->update(['stok' => $stokBaruRetur]);
+
+                $db->table('kartu_stok')->insert([
+                    'tanggal'      => date('Y-m-d H:i:s'),
+                    'id_barang'    => $retur['id_barang_retur'],
+                    'tipe'         => 'MASUK',
+                    'no_referensi' => $retur['no_retur'],
+                    'masuk'        => (float)$retur['qty_retur'],
+                    'keluar'       => 0,
+                    'sisa'         => $stokBaruRetur,
+                    'keterangan'   => 'Pembatalan Retur Supplier ' . $retur['no_retur'] . ' (Otorisasi Super Admin)'
+                ]);
+            }
         }
 
         // 3. Jika status retur sudah SELESAI, batalkan barang pengganti atau uang kompensasi yang sudah diterima

@@ -147,3 +147,4 @@ class BarangPendingStokModel extends Model
         ];
     }
 }
+
