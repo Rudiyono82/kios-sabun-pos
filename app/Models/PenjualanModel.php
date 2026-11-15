@@ -36,13 +36,16 @@ class PenjualanModel extends Model
     {
         $today = date('Y-m-d');
         $builder = $this->db->table('penjualan')
-            ->select('
+            ->select("
                 COUNT(id) as total_transaksi,
                 COALESCE(SUM(grand_total), 0) as total_omzet,
                 COALESCE(SUM(total_profit), 0) as total_profit,
                 COALESCE(SUM(total_qty), 0) as total_terjual,
-                COALESCE(SUM(potongan_tukar_jerigen), 0) as total_tukar_jerigen
-            ')
+                COALESCE(SUM(potongan_tukar_jerigen), 0) as total_tukar_jerigen,
+                COALESCE(SUM(CASE WHEN UPPER(TRIM(metode_bayar)) IN ('CASH', 'TUNAI') THEN grand_total ELSE 0 END), 0) as omzet_cash,
+                COALESCE(SUM(CASE WHEN UPPER(TRIM(metode_bayar)) = 'QRIS' THEN grand_total ELSE 0 END), 0) as omzet_qris,
+                COALESCE(SUM(CASE WHEN UPPER(TRIM(metode_bayar)) = 'TRANSFER' THEN grand_total ELSE 0 END), 0) as omzet_transfer
+            ")
             ->where("DATE(tanggal)", $today);
         
         if (!empty($idCabang)) {

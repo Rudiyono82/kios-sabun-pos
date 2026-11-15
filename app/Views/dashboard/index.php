@@ -36,9 +36,16 @@
                 <div>
                     <span class="text-muted small fw-semibold text-uppercase">Omzet Hari Ini</span>
                     <h3 class="fw-bold mt-2 mb-1 text-primary">Rp <?= number_format($summary['total_omzet'] ?? 0, 0, ',', '.') ?></h3>
-                    <span class="badge badge-subtle-primary"><i class="bi bi-cart-check"></i> <?= $summary['total_transaksi'] ?? 0 ?> Transaksi</span>
+                    <div class="d-flex flex-wrap gap-1 align-items-center mb-2">
+                        <span class="badge badge-subtle-primary"><i class="bi bi-cart-check"></i> <?= $summary['total_transaksi'] ?? 0 ?> Transaksi</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 align-items-center pt-2 border-top">
+                        <span class="badge bg-light text-dark border fw-normal" title="Pembayaran Tunai (Cash)"><i class="bi bi-cash text-success"></i> Cash: <strong>Rp <?= number_format($summary['omzet_cash'] ?? 0, 0, ',', '.') ?></strong></span>
+                        <span class="badge bg-light text-dark border fw-normal" title="Pembayaran QRIS"><i class="bi bi-qr-code text-primary"></i> QRIS: <strong>Rp <?= number_format($summary['omzet_qris'] ?? 0, 0, ',', '.') ?></strong></span>
+                        <span class="badge bg-light text-dark border fw-normal" title="Pembayaran Transfer Bank"><i class="bi bi-arrow-left-right text-info"></i> TF: <strong>Rp <?= number_format($summary['omzet_transfer'] ?? 0, 0, ',', '.') ?></strong></span>
+                    </div>
                 </div>
-                <div class="metric-icon badge-subtle-primary">
+                <div class="metric-icon badge-subtle-primary align-self-start mt-1">
                     <i class="bi bi-cash-stack"></i>
                 </div>
             </div>
