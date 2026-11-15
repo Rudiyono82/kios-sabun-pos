@@ -309,7 +309,7 @@
                                 <label class="form-label small fw-bold text-dark mb-1">
                                     <i class="bi bi-truck text-primary me-1"></i>Pilih Supplier Tujuan Retur <span class="text-danger">* (Wajib Dipilih Pertama)</span>
                                 </label>
-                                <select name="kode_supplier" id="select-supplier-retur" class="form-select form-select-sm fw-bold border-primary no-select2" required>
+                                <select name="kode_supplier" id="select-supplier-retur" class="form-select form-select-sm fw-bold border-primary" required>
                                     <option value="">-- Pilih Mitra Supplier Tujuan Terlebih Dahulu --</option>
                                     <?php foreach ($suppliers as $s): ?>
                                         <option value="<?= esc($s['kode_supplier']) ?>" data-nama="<?= esc($s['nama_supplier']) ?>">
@@ -341,7 +341,7 @@
                             <!-- 1. Dropdown / Pilih Barang -->
                             <div class="col-12 col-md-4">
                                 <label class="form-label small fw-bold text-dark mb-1">Pilih Produk Supplier <span class="text-danger">*</span></label>
-                                <select id="select-barang-retur" class="form-select form-select-sm no-select2" disabled>
+                                <select id="select-barang-retur" class="form-select form-select-sm" disabled>
                                     <option value="">-- Wajib Pilih Supplier Dahulu --</option>
                                     <?php 
                                     $isAdmin = (session()->get('role') === 'admin');
@@ -816,7 +816,7 @@
                     .html('<i class="bi bi-check-circle-fill me-1"></i>Supplier Terpilih: <strong>' + namaSupplier + '</strong> (' + kodeSupplier + '). Silakan pilih produk rijek milik supplier ini.');
 
                 // Ambil daftar barang yang berelasi dengan supplier terpilih (dari Master & Riwayat Pembelian)
-                $('#select-barang-retur').html('<option value="">Memuat produk supplier...</option>');
+                $('#select-barang-retur').html('<option value="">Memuat produk supplier...</option>').trigger('change');
                 $.get('<?= base_url('barang/lookup') ?>', { tipe: 'pembelian', supplier: kodeSupplier }, function(res) {
                     if (res.status === 'success' && res.data && res.data.length > 0) {
                         $('#select-barang-retur').empty().append('<option value="">-- Pilih Barang Supplier (' + res.data.length + ' Produk Tersedia) --</option>');
@@ -835,8 +835,9 @@
                                 .addClass('opt-barang-item');
                             $('#select-barang-retur').append($opt);
                         });
+                        $('#select-barang-retur').trigger('change');
                     } else {
-                        $('#select-barang-retur').empty().append('<option value="">-- Belum ada produk terhubung supplier ini (Gunakan LookUp [F5] untuk melihat semua) --</option>');
+                        $('#select-barang-retur').empty().append('<option value="">-- Belum ada produk terhubung supplier ini (Gunakan LookUp [F5] untuk melihat semua) --</option>').trigger('change');
                     }
                 });
 

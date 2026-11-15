@@ -1391,13 +1391,10 @@
                     if ($sel.hasClass('select2-hidden-accessible')) return;
 
                     const $modal = $sel.closest('.modal');
-                    // Sesuai permintaan: Hapus textbox pencarian di semua dropdown jika isi list sedikit (<= 8) atau tanpa scrollbar
-                    const minResults = $sel.data('min-results') !== undefined ? parseInt($sel.data('min-results')) : 8;
 
                     $sel.select2({
                         theme: 'bootstrap-5',
                         width: '100%',
-                        minimumResultsForSearch: minResults,
                         dropdownParent: $modal.length ? $modal : $(document.body),
                         language: {
                             noResults: function() {
@@ -1414,28 +1411,14 @@
             }
         }
 
-        // Listener global select2:open untuk memastikan textbox pencarian otomatis disembunyikan jika list sedikit atau tidak ada scrollbar
+        // Listener global select2:open untuk memastikan search box otomatis fokus saat dibuka dan tidak tertutup spontan
         $(document).on('select2:open', function(e) {
             setTimeout(() => {
-                const $dropdown = $('.select2-dropdown:visible');
-                if (!$dropdown.length) return;
-                const $results = $dropdown.find('.select2-results__options');
-                const $search = $dropdown.find('.select2-search--dropdown');
-                if ($results.length && $search.length) {
-                    const optionCount = $results.find('.select2-results__option').length;
-                    const hasScrollbar = $results[0].scrollHeight > ($results[0].clientHeight + 4);
-                    if (optionCount <= 8 || !hasScrollbar) {
-                        // Jangan gunakan hide() jika sedang fokus karena memicu blur event & menutup dropdown otomatis
-                        $search.css({
-                            'display': 'none'
-                        });
-                    } else {
-                        $search.css({
-                            'display': 'block'
-                        });
-                    }
+                const searchField = document.querySelector('.select2-container--open .select2-search__field');
+                if (searchField) {
+                    searchField.focus();
                 }
-            }, 10);
+            }, 50);
         });
 
         // Auto-Truncate Kolom Grid Panjang dengan Ellipsis (...) & Tooltip Lengkap
