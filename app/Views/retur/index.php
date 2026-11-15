@@ -1198,6 +1198,30 @@
         });
 
         // =========================================================================
+        // HELPER FUNCTIONS (ESCAPE HTML & FORMAT RUPIAH)
+        // =========================================================================
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+        window.escapeHtml = escapeHtml;
+
+        function formatRupiahVal(val) {
+            if (val === null || val === undefined || val === '') return '0';
+            if (typeof val === 'number') {
+                return new Intl.NumberFormat('id-ID').format(Math.round(val));
+            }
+            let clean = String(val).replace(/[^0-9.-]/g, '');
+            let num = Math.round(parseFloat(clean) || 0);
+            return new Intl.NumberFormat('id-ID').format(num);
+        }
+
+        // =========================================================================
         // TERIMA PENGGANTIAN / SELESAIKAN RETUR (MENDUKUNG MULTI-ITEM & PARSIAL)
         // =========================================================================
         const barangOptionsHtml = $('#tpl-barang-options').html();
@@ -1206,125 +1230,130 @@
             const $tbody = $('#tbody-selesaikan-items');
             $tbody.empty();
 
-            if (!items || items.length === 0) {
-                $tbody.html('<tr><td colspan="7" class="text-center py-3 text-muted">Tidak ada rincian barang ditemukan untuk dokumen retur ini.</td></tr>');
-                return;
-            }
-
-            let pendingCount = 0;
-
-            items.forEach((item, idx) => {
-                const qtyRetur = parseFloat(item.qty_retur) || 0;
-                const qtyGanti = parseFloat(item.qty_ganti) || 0;
-                const sisa = Math.max(0, qtyRetur - qtyGanti);
-                const isDone = (sisa <= 0 || item.status_item === 'Selesai');
-                const hargaBeli = parseFloat(item.harga_beli) || 0;
-                const estimasiUang = Math.round(sisa * hargaBeli);
-
-                if (!isDone) pendingCount++;
-
-                let rowHtml = '';
-                if (isDone) {
-                    rowHtml = `
-                        <tr class="table-light text-muted opacity-75">
-                            <td class="text-center">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle" title="Item ini sudah tuntas diganti">
-                                    <i class="bi bi-check2-circle"></i>
-                                </span>
-                            </td>
-                            <td>
-                                <strong class="text-secondary">${escapeHtml(item.nama_barang_retur)}</strong>
-                                <div class="small text-muted font-monospace">[${item.id_barang_retur}]</div>
-                            </td>
-                            <td class="text-center small">${qtyRetur} ${item.satuan || 'Pcs'}</td>
-                            <td class="text-center small"><span class="badge bg-success">${qtyGanti}</span></td>
-                            <td class="text-center small"><span class="badge bg-secondary-subtle text-muted">0</span></td>
-                            <td class="small text-muted"><i class="bi bi-check-circle text-success me-1"></i>${item.tipe_penyelesaian || 'Selesai'}</td>
-                            <td class="small text-muted fst-italic">Tuntas &bull; tidak ada sisa</td>
-                        </tr>
-                    `;
-                } else {
-                    rowHtml = `
-                        <tr id="row-selesai-${item.id}" class="item-selesai-row align-middle" data-id="${item.id}" data-sisa="${sisa}" data-harga="${hargaBeli}" data-nama="${escapeHtml(item.nama_barang_retur)}">
-                            <td class="text-center">
-                                <div class="form-check d-flex justify-content-center mb-0">
-                                    <input class="form-check-input chk-selesai-item" type="checkbox" checked value="${item.id}" data-id="${item.id}" id="chk-selesai-${item.id}">
-                                </div>
-                            </td>
-                            <td>
-                                <label class="form-check-label fw-bold text-dark d-block mb-0" for="chk-selesai-${item.id}">
-                                    ${escapeHtml(item.nama_barang_retur)}
-                                </label>
-                                <div class="small text-muted">
-                                    <span class="font-monospace">[${item.id_barang_retur}]</span>
-                                    <span class="mx-1">&bull;</span>
-                                    <span>Modal: Rp ${formatRupiah(hargaBeli)}</span>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-light text-dark border">${qtyRetur} ${item.satuan || 'Pcs'}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge ${qtyGanti > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border'}">${qtyGanti}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-danger fs-7 shadow-sm px-2 py-1">${sisa} ${item.satuan || 'Pcs'}</span>
-                            </td>
-                            <td>
-                                <select class="form-select form-select-sm sel-tipe-selesai border-secondary-subtle" data-id="${item.id}">
-                                    <option value="Ganti_Barang_Sama" selected>Barang Sama (Stok Masuk)</option>
-                                    <option value="Ganti_Barang_Lain">Ganti Barang Lain</option>
-                                    <option value="Ganti_Uang_Kas">Penggantian Uang</option>
-                                </select>
-                            </td>
-                            <td>
-                                <!-- OPSI 1: BARANG SAMA -->
-                                <div class="box-tipe-sama" id="box-sama-${item.id}">
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light text-muted small">Qty Datang</span>
-                                        <input type="number" step="any" min="0.01" max="${sisa}" value="${sisa}" class="form-control form-control-sm text-end fw-bold text-success inp-qty-datang" data-id="${item.id}">
-                                        <span class="input-group-text small">${item.satuan || 'Pcs'}</span>
-                                    </div>
-                                    <div class="small text-muted fst-italic mt-1" style="font-size: 0.73rem;">
-                                        *Isi &lt; ${sisa} jika baru datang bertahap/sebagian
-                                    </div>
-                                </div>
-
-                                <!-- OPSI 2: BARANG LAIN -->
-                                <div class="box-tipe-lain d-none" id="box-lain-${item.id}">
-                                    <div class="mb-1">
-                                        <select class="form-select form-select-sm sel-barang-lain border-primary" data-id="${item.id}">
-                                            ${barangOptionsHtml}
-                                        </select>
-                                    </div>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light text-muted small">Qty Pengganti</span>
-                                        <input type="number" step="any" min="0.01" value="${sisa}" class="form-control form-control-sm text-end fw-bold text-primary inp-qty-lain" data-id="${item.id}">
-                                        <span class="input-group-text small">Unit</span>
-                                    </div>
-                                </div>
-
-                                <!-- OPSI 3: PENGGANTIAN UANG -->
-                                <div class="box-tipe-uang d-none" id="box-uang-${item.id}">
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light text-muted small">Rp</span>
-                                        <input type="text" class="form-control form-control-sm text-end fw-bold text-warning-emphasis inp-nilai-uang" data-id="${item.id}" value="${formatRupiah(estimasiUang)}">
-                                    </div>
-                                    <div class="small text-muted fst-italic mt-1" style="font-size: 0.73rem;">
-                                        *Tercatat otomatis sebagai Pemasukan Kas Toko
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
+            try {
+                if (!items || items.length === 0) {
+                    $tbody.html('<tr><td colspan="7" class="text-center py-3 text-muted">Tidak ada rincian barang ditemukan untuk dokumen retur ini.</td></tr>');
+                    return;
                 }
-                $tbody.append(rowHtml);
-            });
 
-            if (pendingCount === 0) {
-                $('#btn-submit-selesaikan-retur').prop('disabled', true).html('<i class="bi bi-check2-all me-1"></i> Seluruh Barang Telah Selesai');
-            } else {
-                $('#btn-submit-selesaikan-retur').prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Konfirmasi Terima Pengganti &amp; Perbarui Stok');
+                let pendingCount = 0;
+
+                items.forEach((item, idx) => {
+                    const qtyRetur = parseFloat(item.qty_retur) || 0;
+                    const qtyGanti = parseFloat(item.qty_ganti) || 0;
+                    const sisa = Math.max(0, qtyRetur - qtyGanti);
+                    const isDone = (sisa <= 0 || item.status_item === 'Selesai');
+                    const hargaBeli = parseFloat(item.harga_beli) || 0;
+                    const estimasiUang = Math.round(sisa * hargaBeli);
+
+                    if (!isDone) pendingCount++;
+
+                    let rowHtml = '';
+                    if (isDone) {
+                        rowHtml = `
+                            <tr class="table-light text-muted opacity-75">
+                                <td class="text-center">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" title="Item ini sudah tuntas diganti">
+                                        <i class="bi bi-check2-circle"></i>
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="text-secondary">${escapeHtml(item.nama_barang_retur)}</strong>
+                                    <div class="small text-muted font-monospace">[${escapeHtml(item.id_barang_retur)}]</div>
+                                </td>
+                                <td class="text-center small">${qtyRetur} ${escapeHtml(item.satuan || 'Pcs')}</td>
+                                <td class="text-center small"><span class="badge bg-success">${qtyGanti}</span></td>
+                                <td class="text-center small"><span class="badge bg-secondary-subtle text-muted">0</span></td>
+                                <td class="small text-muted"><i class="bi bi-check-circle text-success me-1"></i>${escapeHtml(item.tipe_penyelesaian || 'Selesai')}</td>
+                                <td class="small text-muted fst-italic">Tuntas &bull; tidak ada sisa</td>
+                            </tr>
+                        `;
+                    } else {
+                        rowHtml = `
+                            <tr id="row-selesai-${item.id}" class="item-selesai-row align-middle" data-id="${item.id}" data-sisa="${sisa}" data-harga="${hargaBeli}" data-nama="${escapeHtml(item.nama_barang_retur)}">
+                                <td class="text-center">
+                                    <div class="form-check d-flex justify-content-center mb-0">
+                                        <input class="form-check-input chk-selesai-item" type="checkbox" checked value="${item.id}" data-id="${item.id}" id="chk-selesai-${item.id}">
+                                    </div>
+                                </td>
+                                <td>
+                                    <label class="form-check-label fw-bold text-dark d-block mb-0" for="chk-selesai-${item.id}">
+                                        ${escapeHtml(item.nama_barang_retur)}
+                                    </label>
+                                    <div class="small text-muted">
+                                        <span class="font-monospace">[${escapeHtml(item.id_barang_retur)}]</span>
+                                        <span class="mx-1">&bull;</span>
+                                        <span>Modal: Rp ${formatRupiahVal(hargaBeli)}</span>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border">${qtyRetur} ${escapeHtml(item.satuan || 'Pcs')}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge ${qtyGanti > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-muted border'}">${qtyGanti}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger fs-7 shadow-sm px-2 py-1">${sisa} ${escapeHtml(item.satuan || 'Pcs')}</span>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm sel-tipe-selesai border-secondary-subtle" data-id="${item.id}">
+                                        <option value="Ganti_Barang_Sama" selected>Barang Sama (Stok Masuk)</option>
+                                        <option value="Ganti_Barang_Lain">Ganti Barang Lain</option>
+                                        <option value="Ganti_Uang_Kas">Penggantian Uang</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <!-- OPSI 1: BARANG SAMA -->
+                                    <div class="box-tipe-sama" id="box-sama-${item.id}">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light text-muted small">Qty Datang</span>
+                                            <input type="number" step="any" min="0.01" max="${sisa}" value="${sisa}" class="form-control form-control-sm text-end fw-bold text-success inp-qty-datang" data-id="${item.id}">
+                                            <span class="input-group-text small">${escapeHtml(item.satuan || 'Pcs')}</span>
+                                        </div>
+                                        <div class="small text-muted fst-italic mt-1" style="font-size: 0.73rem;">
+                                            *Isi &lt; ${sisa} jika baru datang bertahap/sebagian
+                                        </div>
+                                    </div>
+
+                                    <!-- OPSI 2: BARANG LAIN -->
+                                    <div class="box-tipe-lain d-none" id="box-lain-${item.id}">
+                                        <div class="mb-1">
+                                            <select class="form-select form-select-sm sel-barang-lain border-primary" data-id="${item.id}">
+                                                ${barangOptionsHtml}
+                                            </select>
+                                        </div>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light text-muted small">Qty Pengganti</span>
+                                            <input type="number" step="any" min="0.01" value="${sisa}" class="form-control form-control-sm text-end fw-bold text-primary inp-qty-lain" data-id="${item.id}">
+                                            <span class="input-group-text small">Unit</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- OPSI 3: PENGGANTIAN UANG -->
+                                    <div class="box-tipe-uang d-none" id="box-uang-${item.id}">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light text-muted small">Rp</span>
+                                            <input type="text" class="form-control form-control-sm text-end fw-bold text-warning-emphasis inp-nilai-uang" data-id="${item.id}" value="${formatRupiahVal(estimasiUang)}">
+                                        </div>
+                                        <div class="small text-muted fst-italic mt-1" style="font-size: 0.73rem;">
+                                            *Tercatat otomatis sebagai Pemasukan Kas Toko
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    $tbody.append(rowHtml);
+                });
+
+                if (pendingCount === 0) {
+                    $('#btn-submit-selesaikan-retur').prop('disabled', true).html('<i class="bi bi-check2-all me-1"></i> Seluruh Barang Telah Selesai');
+                } else {
+                    $('#btn-submit-selesaikan-retur').prop('disabled', false).html('<i class="bi bi-check-circle-fill me-1"></i> Konfirmasi Terima Pengganti &amp; Perbarui Stok');
+                }
+            } catch (err) {
+                console.error("Error in renderSelesaikanItems:", err);
+                $tbody.html(`<tr><td colspan="7" class="text-center py-3 text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Gagal memproses rincian: ${err.message}</td></tr>`);
             }
         }
 
@@ -1393,7 +1422,7 @@
         // Format rupiah pada input nilai uang
         $(document).on('input', '.inp-nilai-uang', function() {
             let val = $(this).val().replace(/\D/g, '');
-            $(this).val(val ? formatRupiah(val) : '');
+            $(this).val(val ? formatRupiahVal(val) : '');
         });
 
         // Submit Form Selesaikan Retur dengan Konfirmasi Ya/Tidak & Multi-Item Payload
@@ -1455,7 +1484,7 @@
                         validationError = `Nominal penggantian uang untuk barang "${nama}" harus lebih dari 0!`;
                         return false;
                     }
-                    ringkasanItem = `${nama}: Diganti Uang Kas Rp ${formatRupiah(nilaiUang)}`;
+                    ringkasanItem = `${nama}: Diganti Uang Kas Rp ${formatRupiahVal(nilaiUang)}`;
                 }
 
                 itemsPayload.push({
