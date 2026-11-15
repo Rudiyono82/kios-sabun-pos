@@ -70,7 +70,12 @@
                 <div>
                     <span class="text-muted small fw-semibold text-uppercase">Saldo Kas di Toko</span>
                     <h3 class="fw-bold mt-2 mb-1 text-dark">Rp <?= number_format($kas['saldo_akhir'] ?? 0, 0, ',', '.') ?></h3>
-                    <span class="badge badge-subtle-warning"><i class="bi bi-safe"></i> Kas Awal: Rp <?= number_format($kas['kas_awal'] ?? 0, 0, ',', '.') ?></span>
+                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                        <span class="badge badge-subtle-warning"><i class="bi bi-safe"></i> Kas Awal: Rp <?= number_format($kas['kas_awal'] ?? 0, 0, ',', '.') ?></span>
+                        <?php if (!empty($kas['penjualan_tunai'])): ?>
+                            <span class="badge badge-subtle-success"><i class="bi bi-cash"></i> Cash: Rp <?= number_format($kas['penjualan_tunai'], 0, ',', '.') ?></span>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <div class="metric-icon badge-subtle-warning">
                     <i class="bi bi-wallet2"></i>

@@ -42,12 +42,13 @@ class Keuangan extends BaseController
 
         foreach ($transaksiList as $t) {
             $nominal = (float)$t['total'];
-            if ($t['jenis_keuangan'] === 'Pemasukan') {
+            $isKasAwal = ($t['jenis_keuangan'] === 'Kas Awal' || stripos($t['nama_keuangan'], 'Kas Awal') !== false || stripos($t['nama_keuangan'], 'Modal Awal') !== false);
+            if ($isKasAwal) {
+                $totalKasAwal += $nominal;
+            } elseif ($t['jenis_keuangan'] === 'Pemasukan') {
                 $totalMasuk += $nominal;
             } elseif ($t['jenis_keuangan'] === 'Pengeluaran') {
                 $totalKeluar += $nominal;
-            } elseif ($t['jenis_keuangan'] === 'Kas Awal') {
-                $totalKasAwal += $nominal;
             }
         }
 
