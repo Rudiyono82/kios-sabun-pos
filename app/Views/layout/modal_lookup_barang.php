@@ -47,13 +47,18 @@
     <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 1140px;">
         <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
             <!-- Header Modal -->
-            <div class="modal-header py-2 px-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0284c7 100%); border-bottom: 3px solid #38bdf8;">
+            <div class="modal-header modal-header-draggable py-2 px-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0284c7 100%); border-bottom: 3px solid #38bdf8;">
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-white text-primary p-2 rounded-3 shadow-sm">
                         <i class="bi bi-card-checklist fs-6"></i>
                     </span>
                     <div>
-                        <h6 class="modal-title fw-bold text-white mb-0" id="lookup-modal-title">List of Stock</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="modal-title fw-bold text-white mb-0" id="lookup-modal-title">List of Stock</h6>
+                            <span class="badge bg-white bg-opacity-25 text-white px-2 py-0 small d-inline-flex align-items-center gap-1 border border-white-50" style="font-size: 0.68rem; font-weight: 500;" title="Klik dan tahan untuk menggeser popup ini">
+                                <i class="bi bi-arrows-move"></i> Geser
+                            </span>
+                        </div>
                         <small class="text-white-50" style="font-size: 0.72rem;" id="lookup-modal-subtitle">View and manage Item Stocks</small>
                     </div>
                 </div>

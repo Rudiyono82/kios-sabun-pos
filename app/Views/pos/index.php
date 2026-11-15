@@ -2,6 +2,16 @@
 
 <?= $this->section('content') ?>
 
+<style>
+.modal-header-draggable {
+    cursor: grab !important;
+    user-select: none;
+}
+.modal-header-draggable:active {
+    cursor: grabbing !important;
+}
+</style>
+
 <!-- Baris Petunjuk Shortcut Keyboard Kasir POS Cepat -->
 <div class="card-modern p-2 px-3 mb-3 bg-white border d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-sm">
     <div class="d-flex flex-wrap align-items-center gap-2 small">
@@ -257,11 +267,14 @@
 <div class="modal fade" id="modalBayar" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
         <div class="modal-content rounded-4 border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white py-2 px-3 d-flex align-items-center justify-content-between">
+            <div class="modal-header modal-header-draggable bg-primary text-white py-2 px-3 d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-wallet2 fs-5"></i>
                     <h6 class="modal-title fw-bold text-white mb-0">Pembayaran Kasir</h6>
                     <span class="badge bg-white text-primary font-monospace ms-2" id="modal-bayar-faktur-label"></span>
+                    <span class="badge bg-white bg-opacity-25 text-white ms-1 px-2 py-1 small d-inline-flex align-items-center gap-1 border border-white-50" style="font-size: 0.7rem; font-weight: 500;" title="Klik dan tahan untuk menggeser popup ini">
+                        <i class="bi bi-arrows-move"></i> Geser
+                    </span>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -523,13 +536,18 @@
     <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
         <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
             <!-- Header Modal -->
-            <div class="modal-header py-2 px-3 text-white" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0284c7 100%); border-bottom: 3px solid #38bdf8;">
+            <div class="modal-header modal-header-draggable py-2 px-3 text-white" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #0284c7 100%); border-bottom: 3px solid #38bdf8;">
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-white text-primary p-2 rounded-3 shadow-sm">
                         <i class="bi bi-cart-plus-fill fs-6"></i>
                     </span>
                     <div>
-                        <h6 class="modal-title fw-bold text-white mb-0">Konfirmasi Jumlah (Qty)</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="modal-title fw-bold text-white mb-0">Konfirmasi Jumlah (Qty)</h6>
+                            <span class="badge bg-white bg-opacity-25 text-white px-2 py-0 small d-inline-flex align-items-center gap-1 border border-white-50" style="font-size: 0.68rem; font-weight: 500;" title="Klik dan tahan untuk menggeser popup ini">
+                                <i class="bi bi-arrows-move"></i> Geser
+                            </span>
+                        </div>
                         <small class="text-white-50" style="font-size: 0.72rem;">Tentukan kuantiti barang yang masuk ke keranjang</small>
                     </div>
                 </div>
@@ -1831,6 +1849,105 @@
             }
         });
     });
+
+    // =========================================================================
+    // FITUR DRAGGABLE POPUP MODAL (BISA DIGESER-GESER DENGAN MOUSE / TOUCHSCREEN)
+    // =========================================================================
+    function makeModalDraggable(modalSelector) {
+        const $modal = $(modalSelector);
+        const $dialog = $modal.find('.modal-dialog');
+        const $header = $dialog.find('.modal-header');
+
+        $header.addClass('modal-header-draggable');
+
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let initialLeft = 0, initialTop = 0;
+
+        function startDrag(clientX, clientY, e) {
+            // Jangan geser jika yang diklik adalah tombol close, input, atau elemen link/button
+            if ($(e.target).closest('button, .btn-close, input, select, textarea, a').length) {
+                return false;
+            }
+            isDragging = true;
+            $header.css('cursor', 'grabbing');
+            $('body').addClass('user-select-none');
+
+            startX = clientX;
+            startY = clientY;
+
+            initialLeft = parseFloat($dialog.css('left')) || 0;
+            initialTop = parseFloat($dialog.css('top')) || 0;
+            return true;
+        }
+
+        function moveDrag(clientX, clientY) {
+            if (!isDragging) return;
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            $dialog.css({
+                'position': 'relative',
+                'left': (initialLeft + dx) + 'px',
+                'top': (initialTop + dy) + 'px',
+                'margin-left': 'auto',
+                'margin-right': 'auto'
+            });
+        }
+
+        function endDrag() {
+            if (isDragging) {
+                isDragging = false;
+                $header.css('cursor', 'grab');
+                $('body').removeClass('user-select-none');
+                $(document).off('.modalDrag');
+            }
+        }
+
+        // Event Mouse Desktop
+        $header.on('mousedown', function(e) {
+            if (startDrag(e.clientX, e.clientY, e)) {
+                $(document).on('mousemove.modalDrag', function(e) {
+                    moveDrag(e.clientX, e.clientY);
+                });
+                $(document).on('mouseup.modalDrag', function() {
+                    endDrag();
+                });
+                e.preventDefault();
+            }
+        });
+
+        // Event Touchscreen / Layar Sentuh Tablet POS
+        $header.on('touchstart', function(e) {
+            const touch = e.originalEvent.touches[0];
+            if (startDrag(touch.clientX, touch.clientY, e)) {
+                $(document).on('touchmove.modalDrag', function(e) {
+                    const touch = e.originalEvent.touches[0];
+                    moveDrag(touch.clientX, touch.clientY);
+                });
+                $(document).on('touchend.modalDrag', function() {
+                    endDrag();
+                });
+            }
+        });
+
+        // Reset posisi popup ke posisi tengah semula saat modal ditutup
+        $modal.on('hidden.bs.modal', function() {
+            $dialog.css({
+                'position': '',
+                'left': '',
+                'top': '',
+                'margin-left': '',
+                'margin-right': ''
+            });
+        });
+    }
+
+    // Aktifkan fitur draggable untuk popup konfirmasi QTY, popup bayar, lookup, dan cetak struk
+    makeModalDraggable('#modalInputQtyPos');
+    makeModalDraggable('#modalBayar');
+    makeModalDraggable('#modalLookupStock');
+    makeModalDraggable('#modalStruk');
 </script>
 
 <?= $this->include('layout/modal_lookup_barang') ?>
