@@ -1590,6 +1590,9 @@
         };
 
         $('#btn-proses-transaksi').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...');
+        if (typeof showSaveLoading === 'function') {
+            showSaveLoading('Menyimpan Transaksi POS...', 'Mohon tunggu sebentar, transaksi dan struk kasir sedang diproses...');
+        }
 
         $.ajax({
             url: '<?= base_url('pos/simpan-transaksi') ?>',
@@ -1597,6 +1600,9 @@
             contentType: 'application/json',
             data: JSON.stringify(payload),
             success: function(res) {
+                if (typeof hideSaveLoading === 'function') {
+                    hideSaveLoading();
+                }
                 $('#btn-proses-transaksi').prop('disabled', false).html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
                 
                 // Tutup Modal Bayar
@@ -1636,6 +1642,9 @@
                 renderCart();
             },
             error: function(err) {
+                if (typeof hideSaveLoading === 'function') {
+                    hideSaveLoading();
+                }
                 $('#btn-proses-transaksi').prop('disabled', false).html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
                 const resJson = err.responseJSON;
                 if (resJson && resJson.require_kas_awal) {

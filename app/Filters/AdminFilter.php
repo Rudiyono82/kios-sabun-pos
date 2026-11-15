@@ -12,7 +12,7 @@ class AdminFilter implements FilterInterface
     {
         $session = session();
         if (! $session->get('is_logged_in')) {
-            return redirect()->to(base_url('login'))->with('error', 'Silakan login terlebih dahulu.');
+            return redirect()->to(base_url('login'));
         }
 
         if (strtolower((string)$session->get('role')) !== 'admin') {

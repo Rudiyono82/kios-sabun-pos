@@ -794,11 +794,15 @@
                 confirmButtonColor: '#16a34a'
             }).then((res) => {
                 if (res.isConfirmed) {
-                    Swal.fire({
-                        title: 'Menyimpan Transaksi...',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                    });
+                    if (typeof showSaveLoading === 'function') {
+                        showSaveLoading('Menyimpan Transaksi Pembelian...', 'Mohon tunggu sebentar, data pembelian dan penambahan stok barang sedang diproses...');
+                    } else {
+                        Swal.fire({
+                            title: 'Menyimpan Transaksi...',
+                            allowOutsideClick: false,
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+                    }
 
                     $.ajax({
                         url: '<?= base_url('pembelian/simpan') ?>',
@@ -806,11 +810,13 @@
                         contentType: 'application/json',
                         data: JSON.stringify(payload),
                         success: function(resp) {
+                            if (typeof hideSaveLoading === 'function') hideSaveLoading();
                             Swal.fire('Berhasil Disimpan!', resp.message, 'success').then(() => {
                                 window.location.href = '<?= base_url('pembelian') ?>';
                             });
                         },
                         error: function(xhr) {
+                            if (typeof hideSaveLoading === 'function') hideSaveLoading();
                             const err = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan saat memproses data.';
                             Swal.fire('Gagal Menyimpan!', err, 'error');
                         }

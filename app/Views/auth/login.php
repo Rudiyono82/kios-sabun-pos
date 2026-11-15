@@ -111,8 +111,8 @@
         
         /* Panel Kanan: Background Kios Sabun & Parfum Laundry */
         .banner-section {
-            background: linear-gradient(rgba(15, 23, 42, 0.65), rgba(3, 105, 161, 0.75)), 
-                        url('https://images.unsplash.com/photo-1583947215259-38e31be8751f?q=80&w=1200&auto=format&fit=crop') center/cover no-repeat;
+            background: linear-gradient(rgba(15, 23, 42, 0.60), rgba(3, 105, 161, 0.70)), 
+                        url('https://images.unsplash.com/photo-1624372635310-01d078c05dd9?q=80&w=1200&auto=format&fit=crop') center/cover no-repeat;
             color: #ffffff;
             padding: 48px 40px;
             display: flex;
@@ -280,16 +280,10 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-login w-100 d-flex align-items-center justify-content-center gap-2 mb-3" id="btnSubmitLogin">
+                <button type="submit" class="btn btn-login w-100 d-flex align-items-center justify-content-center gap-2 mb-2" id="btnSubmitLogin">
                     <i class="bi bi-box-arrow-in-right fs-5" id="btn-icon"></i>
                     <span id="btn-text">Login ke Program</span>
                 </button>
-
-                <!-- Akun Bantuan Cepat -->
-                <div class="p-3 bg-light rounded-3 border text-center small text-muted">
-                    <span class="fw-semibold text-dark">Akun Login Bawaan:</span><br>
-                    Kasir: <code>KASIR1</code> (pass: <code>kasir123</code>) &bull; Admin: <code>ADMIN</code> (pass: <code>admin123</code>)
-                </div>
             </form>
         </div>
 

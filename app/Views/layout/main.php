@@ -1299,6 +1299,36 @@
     </div>
     <?php endif; ?>
 
+    <!-- ========================================================================= -->
+    <!-- GLOBAL CIRCULAR LOADING SPINNER OVERLAY (ANIMASI PROGRESS SIMPAN SEMUA SCREEN) -->
+    <!-- ========================================================================= -->
+    <div id="global-save-loading" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.70); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 999999; align-items: center; justify-content: center; flex-direction: column;">
+        <div class="card border-0 shadow-lg p-4 rounded-4 text-center bg-white" style="max-width: 340px; width: 88%; animation: popInSave 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <!-- Lingkaran Berputar / Circular Spinner Progress -->
+            <div class="position-relative d-inline-block mx-auto mb-3" style="width: 72px; height: 72px;">
+                <div class="spinner-border text-primary" style="width: 72px; height: 72px; border-width: 5px;" role="status">
+                    <span class="visually-hidden">Memproses...</span>
+                </div>
+                <div class="position-absolute top-50 start-50 translate-middle">
+                    <i class="bi bi-arrow-repeat text-primary fs-3" style="animation: spinPulseSave 1.2s infinite linear; display: inline-block;"></i>
+                </div>
+            </div>
+            <h6 class="fw-bold text-dark mb-1" id="global-loading-title">Sedang Menyimpan Data...</h6>
+            <small class="text-muted" id="global-loading-sub">Mohon tunggu sebentar, sistem sedang memproses penyimpanan data.</small>
+        </div>
+    </div>
+
+    <style>
+    @keyframes spinPulseSave {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    @keyframes popInSave {
+        0% { transform: scale(0.85); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    </style>
+
     <!-- Scripts -->
     <script>
         function updateClock() {
@@ -1626,12 +1656,56 @@
             });
         }
 
-        // Otomatis bersihkan titik ribuan sebelum form POST dikirim ke backend
-        $(document).on('submit', 'form', function() {
-            $(this).find('.input-currency, input[data-type="currency"]').each(function() {
+        // =========================================================================
+        // PENGENDALI GLOBAL ANIMASI LOADING LINGKARAN BERPUTAR (SEMUA PROSES SIMPAN)
+        // =========================================================================
+        window.showSaveLoading = function(title, sub) {
+            if (title) $('#global-loading-title').text(title);
+            if (sub) $('#global-loading-sub').text(sub);
+            $('#global-save-loading').css('display', 'flex').hide().fadeIn(150);
+        };
+
+        window.hideSaveLoading = function() {
+            $('#global-save-loading').fadeOut(150);
+        };
+
+        // Otomatis bersihkan titik ribuan & tampilkan animasi lingkaran berputar sebelum form dikirim ke backend
+        $(document).on('submit', 'form', function(e) {
+            const form = this;
+
+            // Bersihkan currency format
+            $(form).find('.input-currency, input[data-type="currency"]').each(function() {
                 let clean = unformatRupiah($(this).val());
                 $(this).val(clean);
             });
+
+            // Jika form tidak valid secara HTML5, jangan tampilkan loading
+            if (form.checkValidity && !form.checkValidity()) {
+                return;
+            }
+
+            // Abaikan form filter pencarian biasa (GET) atau form dengan class no-loading
+            const method = ($(form).attr('method') || 'GET').toUpperCase();
+            if ($(form).hasClass('no-loading') || method === 'GET') {
+                return;
+            }
+
+            // Tampilkan animasi lingkaran berputar / progress simpan
+            window.showSaveLoading('Sedang Menyimpan Data...', 'Mohon tunggu sebentar, data sedang diproses dan disimpan ke database...');
+
+            // Disable tombol submit agar tidak terjadi double-submit dan tampilkan spinner kecil di tombol
+            const $submitBtn = $(form).find('button[type="submit"]:not(.btn-close)');
+            if ($submitBtn.length && !$submitBtn.prop('disabled')) {
+                $submitBtn.prop('disabled', true);
+                if (!$submitBtn.find('.spinner-border').length) {
+                    $submitBtn.prepend('<span class="spinner-border spinner-border-sm me-2" role="status"></span>');
+                }
+            }
+        });
+
+        // Sembunyikan otomatis jika AJAX selesai atau terjadi error
+        $(document).ajaxError(function() {
+            window.hideSaveLoading();
         });
 
         $(document).ready(function() {
