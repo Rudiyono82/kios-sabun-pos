@@ -1179,7 +1179,7 @@
             }
         });
 
-        $('input[name="tipe_penyelesaian"]').on('change', function() {
+        $('#form-retur input[name="tipe_penyelesaian"]').on('change', function() {
             const val = $(this).val();
             if (val === 'Ganti_Barang_Lain') {
                 $('#sub-barang-lain').removeClass('d-none');
@@ -1213,12 +1213,13 @@
             $('#modal2-qty-lain').val(qty);
             $('#modal2-input-nilai-uang').val(new Intl.NumberFormat('id-ID').format(nilai || 0));
 
-            $('#modal2-solusi1').prop('checked', true).trigger('change');
+            $('#modal2-solusi1').prop('checked', true);
+            $('#form-selesaikan-retur input[name="tipe_penyelesaian"]:checked').trigger('change');
             $('#modalSelesaikanRetur').modal('show');
         });
 
-        $('input[name="tipe_penyelesaian"]').on('change', function() {
-            const val = $('input[name="tipe_penyelesaian"]:checked').val();
+        $('#form-selesaikan-retur input[name="tipe_penyelesaian"]').on('change', function() {
+            const val = $(this).val();
             
             if (val === 'Ganti_Barang_Sama') {
                 $('#modal2-box-barang-sama').removeClass('d-none');
