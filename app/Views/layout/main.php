@@ -1373,6 +1373,13 @@
             }
         });
 
+        // Nonaktifkan enforceFocus Bootstrap modal jika Select2 aktif agar tidak terjadi konflik perebutan focus (kedap-kedip / tertutup sendiri)
+        try {
+            if ($.fn.modal && $.fn.modal.Constructor && $.fn.modal.Constructor.prototype._enforceFocus) {
+                $.fn.modal.Constructor.prototype._enforceFocus = function() {};
+            }
+        } catch(e) {}
+
         // Inisialisasi Otomatis Select2 Searchable Dropdown untuk Semua Komponen Select
         function initSearchableSelects(context) {
             try {
@@ -1418,9 +1425,14 @@
                     const optionCount = $results.find('.select2-results__option').length;
                     const hasScrollbar = $results[0].scrollHeight > ($results[0].clientHeight + 4);
                     if (optionCount <= 8 || !hasScrollbar) {
-                        $search.hide();
+                        // Jangan gunakan hide() jika sedang fokus karena memicu blur event & menutup dropdown otomatis
+                        $search.css({
+                            'display': 'none'
+                        });
                     } else {
-                        $search.show();
+                        $search.css({
+                            'display': 'block'
+                        });
                     }
                 }
             }, 10);

@@ -309,7 +309,7 @@
                                 <label class="form-label small fw-bold text-dark mb-1">
                                     <i class="bi bi-truck text-primary me-1"></i>Pilih Supplier Tujuan Retur <span class="text-danger">* (Wajib Dipilih Pertama)</span>
                                 </label>
-                                <select name="kode_supplier" id="select-supplier-retur" class="form-select form-select-sm fw-bold border-primary" required>
+                                <select name="kode_supplier" id="select-supplier-retur" class="form-select form-select-sm fw-bold border-primary no-select2" required>
                                     <option value="">-- Pilih Mitra Supplier Tujuan Terlebih Dahulu --</option>
                                     <?php foreach ($suppliers as $s): ?>
                                         <option value="<?= esc($s['kode_supplier']) ?>" data-nama="<?= esc($s['nama_supplier']) ?>">
@@ -341,7 +341,7 @@
                             <!-- 1. Dropdown / Pilih Barang -->
                             <div class="col-12 col-md-4">
                                 <label class="form-label small fw-bold text-dark mb-1">Pilih Produk Supplier <span class="text-danger">*</span></label>
-                                <select id="select-barang-retur" class="form-select form-select-sm" disabled>
+                                <select id="select-barang-retur" class="form-select form-select-sm no-select2" disabled>
                                     <option value="">-- Wajib Pilih Supplier Dahulu --</option>
                                     <?php 
                                     $isAdmin = (session()->get('role') === 'admin');
@@ -396,7 +396,7 @@
                             <!-- 6. Alasan Retur (Full Baris di Bawahnya) -->
                             <div class="col-12 mt-2">
                                 <label class="form-label small fw-bold text-dark mb-1">Alasan Kerusakan / Retur Produk Ini: <span class="text-danger">*</span></label>
-                                <select id="input-item-alasan" class="form-select form-select-sm" disabled>
+                                <select id="input-item-alasan" class="form-select form-select-sm no-select2" disabled>
                                     <option value="Rijek / Bocor">Rijek / Jerigen Bocor</option>
                                     <option value="Expired / Kadaluarsa">Expired / Kadaluarsa</option>
                                     <option value="Cacat Kemasan / Segel Rusak">Cacat Kemasan / Segel Rusak</option>
@@ -507,7 +507,7 @@
                             <div id="sub-barang-lain" class="row g-2 mt-2 d-none">
                                 <div class="col-md-8">
                                     <label class="form-label small fw-bold">Pilih Barang Pengganti (Barang B)</label>
-                                    <select name="id_barang_ganti" id="select-barang-ganti" class="form-select select2">
+                                    <select name="id_barang_ganti" id="select-barang-ganti" class="form-select no-select2">
                                         <option value="">-- Pilih Produk Pengganti --</option>
                                         <?php foreach ($barang_list as $b): ?>
                                             <option value="<?= esc($b['id_barang']) ?>">
@@ -1296,7 +1296,7 @@
                                     <span class="badge bg-danger fs-7 shadow-sm px-2 py-1">${sisa} ${escapeHtml(item.satuan || 'Pcs')}</span>
                                 </td>
                                 <td>
-                                    <select class="form-select form-select-sm sel-tipe-selesai border-secondary-subtle" data-id="${item.id}">
+                                    <select class="form-select form-select-sm sel-tipe-selesai border-secondary-subtle no-select2" data-id="${item.id}">
                                         <option value="Ganti_Barang_Sama" selected>Barang Sama (Stok Masuk)</option>
                                         <option value="Ganti_Barang_Lain">Ganti Barang Lain</option>
                                         <option value="Ganti_Uang_Kas">Penggantian Uang</option>
@@ -1318,7 +1318,7 @@
                                     <!-- OPSI 2: BARANG LAIN -->
                                     <div class="box-tipe-lain d-none" id="box-lain-${item.id}">
                                         <div class="mb-1">
-                                            <select class="form-select form-select-sm sel-barang-lain border-primary" data-id="${item.id}">
+                                            <select class="form-select form-select-sm sel-barang-lain border-primary no-select2" data-id="${item.id}">
                                                 ${barangOptionsHtml}
                                             </select>
                                         </div>
