@@ -455,11 +455,12 @@ const StockLookup = {
             return;
         }
 
-        if (typeof this.onSelectCallback === 'function') {
-            this.onSelectCallback(this.selectedItem);
-        }
-
+        const selected = Object.assign({}, this.selectedItem);
         $('#modalLookupStock').modal('hide');
+
+        if (typeof this.onSelectCallback === 'function') {
+            this.onSelectCallback(selected);
+        }
     }
 };
 

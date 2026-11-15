@@ -1152,8 +1152,9 @@
         $('#modal-qty-harga-satuan').text('Rp ' + new Intl.NumberFormat('id-ID').format(hargaSatuan) + ' / ' + (item.satuan || 'unit'));
 
         // Foto Produk Kemasan
-        if (item.gambar) {
-            const imgUrl = '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(item.gambar);
+        const itemImg = item.gambar || item.path_file;
+        if (itemImg) {
+            const imgUrl = '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(itemImg);
             $('#modal-qty-foto-box').html(`
                 <img src="${imgUrl}" class="img-fluid rounded" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<i class=\\'bi bi-image text-muted fs-3\\'></i>'">
             `);
@@ -1823,20 +1824,10 @@
         StockLookup.open({
             mode: 'penjualan',
             onSelect: function(item) {
-                addToCart(item, 1);
-                Swal.mixin({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 1500,
-                    timerProgressBar: true
-                }).fire({
-                    icon: 'success',
-                    title: `<b>${item.nama_barang}</b> masuk ke keranjang (1 ${item.satuan || 'unit'})`
-                });
+                // Tampilkan popup konfirmasi input Qty untuk barang yang dipilih
                 setTimeout(function() {
-                    $('#barcode-input').focus().select();
-                }, 200);
+                    openModalInputQty(item);
+                }, 300);
             }
         });
     });
