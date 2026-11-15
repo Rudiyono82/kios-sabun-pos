@@ -1573,181 +1573,193 @@
         // =========================================================================
         $(document).on('click', '.btn-detail-retur', function() {
             const id = $(this).data('id');
+            const $btn = $(this);
+            const origHtml = $btn.html();
+
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
 
             $.get('<?= base_url('retur/detail') ?>/' + id, function(res) {
                 if (res.status === 'success') {
-                    const r = res.retur;
-                    const items = res.items || [];
+                    try {
+                        const r = res.retur;
+                        const items = res.items || [];
 
-                    $('#dtl-retur-noretur').text(r.no_retur);
-                    $('#dtl-retur-tgl').text(r.tanggal);
-                    $('#dtl-retur-supplier').text(r.nama_supplier);
-                    $('#dtl-retur-user').text(r.kode_user || '-');
-                    $('#dtl-retur-keterangan').text(r.keterangan || '-');
+                        $('#dtl-retur-noretur').text(r.no_retur);
+                        $('#dtl-retur-tgl').text(r.tanggal);
+                        $('#dtl-retur-supplier').text(r.nama_supplier);
+                        $('#dtl-retur-user').text(r.kode_user || '-');
+                        $('#dtl-retur-keterangan').text(r.keterangan || '-');
 
-                    if (r.status === 'Selesai') {
-                        $('#dtl-retur-status-badge').html('<span class="badge bg-success fw-bold"><i class="bi bi-check2-circle me-1"></i>Selesai</span>');
-                        $('#dtl-box-penggantian').removeClass('d-none');
-                        $('#dtl-box-user-selesai').removeClass('d-none');
-                        $('#dtl-box-tgl-selesai').removeClass('d-none');
-                        $('#dtl-retur-user-selesai').text(r.user_selesai || '-');
-                        $('#dtl-retur-tgl-selesai').text(r.tgl_selesai || '-');
-                        $('#dtl-tipe-ganti').text(r.tipe_penyelesaian ? r.tipe_penyelesaian.replace(/_/g, ' ') : 'Selesai');
-                        $('#dtl-nama-ganti').text(r.nama_barang_ganti ? r.nama_barang_ganti + ' (Qty: ' + r.qty_ganti + ')' : 'Selesai Sesuai Item');
-                        $('#dtl-nilai-ganti').text('Rp ' + new Intl.NumberFormat('id-ID').format(r.nilai_ganti || 0));
-                        $('#dtl-tgl-selesai').text('Tuntas: ' + (r.tgl_selesai || '-'));
-                        $('#dtl-catatan-selesai').text('Catatan Penggantian: ' + (r.catatan_penyelesaian || '-'));
-                    } else if (r.status === 'Proses Sebagian') {
-                        $('#dtl-retur-status-badge').html('<span class="badge bg-info text-white fw-bold"><i class="bi bi-pie-chart me-1"></i>Proses Sebagian (Parsial)</span>');
-                        $('#dtl-box-penggantian').removeClass('d-none');
-                        $('#dtl-box-user-selesai').removeClass('d-none');
-                        $('#dtl-box-tgl-selesai').addClass('d-none');
-                        $('#dtl-retur-user-selesai').text(r.user_selesai || '-');
-                        $('#dtl-tipe-ganti').text('Realisasi Sebagian');
-                        $('#dtl-nama-ganti').text('Telah Diterima: ' + (r.qty_ganti || 0) + ' unit');
-                        $('#dtl-nilai-ganti').text('Rp ' + new Intl.NumberFormat('id-ID').format(r.nilai_ganti || 0));
-                        $('#dtl-tgl-selesai').text('Masih Menunggu Sisa Barang');
-                        $('#dtl-catatan-selesai').text('Catatan: ' + (r.catatan_penyelesaian || 'Masih ada sisa barang yang belum diganti supplier.'));
-                    } else {
-                        $('#dtl-retur-status-badge').html('<span class="badge bg-warning text-dark fw-bold"><i class="bi bi-hourglass-split me-1"></i>Baru Proses</span>');
-                        $('#dtl-box-penggantian').addClass('d-none');
-                        $('#dtl-box-user-selesai').addClass('d-none');
-                        $('#dtl-box-tgl-selesai').addClass('d-none');
-                    }
+                        if (r.status === 'Selesai') {
+                            $('#dtl-retur-status-badge').html('<span class="badge bg-success fw-bold"><i class="bi bi-check2-circle me-1"></i>Selesai</span>');
+                            $('#dtl-box-penggantian').removeClass('d-none');
+                            $('#dtl-box-user-selesai').removeClass('d-none');
+                            $('#dtl-box-tgl-selesai').removeClass('d-none');
+                            $('#dtl-retur-user-selesai').text(r.user_selesai || '-');
+                            $('#dtl-retur-tgl-selesai').text(r.tgl_selesai || '-');
+                            $('#dtl-tipe-ganti').text(r.tipe_penyelesaian ? r.tipe_penyelesaian.replace(/_/g, ' ') : 'Selesai');
+                            $('#dtl-nama-ganti').text(r.nama_barang_ganti ? r.nama_barang_ganti + ' (Qty: ' + r.qty_ganti + ')' : 'Selesai Sesuai Item');
+                            $('#dtl-nilai-ganti').text('Rp ' + formatRupiahVal(r.nilai_ganti || 0));
+                            $('#dtl-tgl-selesai').text('Tuntas: ' + (r.tgl_selesai || '-'));
+                            $('#dtl-catatan-selesai').text('Catatan Penggantian: ' + (r.catatan_penyelesaian || '-'));
+                        } else if (r.status === 'Proses Sebagian') {
+                            $('#dtl-retur-status-badge').html('<span class="badge bg-info text-white fw-bold"><i class="bi bi-pie-chart me-1"></i>Proses Sebagian (Parsial)</span>');
+                            $('#dtl-box-penggantian').removeClass('d-none');
+                            $('#dtl-box-user-selesai').removeClass('d-none');
+                            $('#dtl-box-tgl-selesai').addClass('d-none');
+                            $('#dtl-retur-user-selesai').text(r.user_selesai || '-');
+                            $('#dtl-tipe-ganti').text('Realisasi Sebagian');
+                            $('#dtl-nama-ganti').text('Telah Diterima: ' + (r.qty_ganti || 0) + ' unit');
+                            $('#dtl-nilai-ganti').text('Rp ' + formatRupiahVal(r.nilai_ganti || 0));
+                            $('#dtl-tgl-selesai').text('Masih Menunggu Sisa Barang');
+                            $('#dtl-catatan-selesai').text('Catatan: ' + (r.catatan_penyelesaian || 'Masih ada sisa barang yang belum diganti supplier.'));
+                        } else {
+                            $('#dtl-retur-status-badge').html('<span class="badge bg-warning text-dark fw-bold"><i class="bi bi-hourglass-split me-1"></i>Baru Proses</span>');
+                            $('#dtl-box-penggantian').addClass('d-none');
+                            $('#dtl-box-user-selesai').addClass('d-none');
+                            $('#dtl-box-tgl-selesai').addClass('d-none');
+                        }
 
-                    // Render Tabel Detail Multi-Barang
-                    const $dtlTbody = $('#dtl-tbody-items');
-                    $dtlTbody.empty();
+                        // Render Tabel Detail Multi-Barang
+                        const $dtlTbody = $('#dtl-tbody-items');
+                        $dtlTbody.empty();
 
-                    if (items.length > 0) {
-                        let totalQty = 0;
-                        let totalNilai = 0;
-                        items.forEach((it, idx) => {
-                            const qRetur = parseFloat(it.qty_retur) || 0;
-                            const qGanti = parseFloat(it.qty_ganti) || 0;
-                            const subtotal = parseFloat(it.subtotal_nilai) || 0;
-                            totalQty += qRetur;
-                            totalNilai += subtotal;
+                        if (items.length > 0) {
+                            let totalQty = 0;
+                            let totalNilai = 0;
+                            items.forEach((it, idx) => {
+                                const qRetur = parseFloat(it.qty_retur) || 0;
+                                const qGanti = parseFloat(it.qty_ganti) || 0;
+                                const subtotal = parseFloat(it.subtotal_nilai) || 0;
+                                totalQty += qRetur;
+                                totalNilai += subtotal;
 
-                            let realisasiBadge = '';
-                            if (it.status_item === 'Selesai' || qGanti >= qRetur) {
-                                realisasiBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2 me-1"></i>${qGanti} Diganti</span>`;
-                            } else if (qGanti > 0) {
-                                realisasiBadge = `<span class="badge bg-info-subtle text-info border border-info-subtle">${qGanti} / ${qRetur}</span>`;
-                            } else {
-                                realisasiBadge = `<span class="badge bg-warning-subtle text-warning border border-warning-subtle">0 / ${qRetur}</span>`;
-                            }
+                                let realisasiBadge = '';
+                                if (it.status_item === 'Selesai' || qGanti >= qRetur) {
+                                    realisasiBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2 me-1"></i>${qGanti} Diganti</span>`;
+                                } else if (qGanti > 0) {
+                                    realisasiBadge = `<span class="badge bg-info-subtle text-info border border-info-subtle">${qGanti} / ${qRetur}</span>`;
+                                } else {
+                                    realisasiBadge = `<span class="badge bg-warning-subtle text-warning border border-warning-subtle">0 / ${qRetur}</span>`;
+                                }
 
+                                $dtlTbody.append(`
+                                    <tr>
+                                        <td class="text-center text-muted small">${idx + 1}</td>
+                                        <td>
+                                            <div class="fw-bold text-dark fs-7">${escapeHtml(it.nama_barang_retur)}</div>
+                                            <small class="text-muted font-monospace">${escapeHtml(it.id_barang_retur)}</small>
+                                        </td>
+                                        <td class="text-center fw-bold text-danger fs-7">
+                                            ${formatRupiahVal(qRetur)} ${escapeHtml(it.satuan || '')}
+                                        </td>
+                                        <td class="text-center fs-7">
+                                            ${realisasiBadge}
+                                        </td>
+                                        <td class="text-end fw-semibold text-dark fs-8">
+                                            Rp ${formatRupiahVal(it.harga_beli)}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">
+                                                ${escapeHtml(it.alasan)}
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-bold text-danger fs-7">
+                                            Rp ${formatRupiahVal(subtotal)}
+                                        </td>
+                                    </tr>
+                                `);
+                            });
                             $dtlTbody.append(`
-                                <tr>
-                                    <td class="text-center text-muted small">${idx + 1}</td>
-                                    <td>
-                                        <div class="fw-bold text-dark fs-7">${escapeHtml(it.nama_barang_retur)}</div>
-                                        <small class="text-muted font-monospace">${it.id_barang_retur}</small>
-                                    </td>
-                                    <td class="text-center fw-bold text-danger fs-7">
-                                        ${new Intl.NumberFormat('id-ID').format(qRetur)} ${it.satuan || ''}
-                                    </td>
-                                    <td class="text-center fs-7">
-                                        ${realisasiBadge}
-                                    </td>
-                                    <td class="text-end fw-semibold text-dark fs-8">
-                                        Rp ${new Intl.NumberFormat('id-ID').format(it.harga_beli)}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">
-                                            ${escapeHtml(it.alasan)}
-                                        </span>
-                                    </td>
-                                    <td class="text-end fw-bold text-danger fs-7">
-                                        Rp ${new Intl.NumberFormat('id-ID').format(subtotal)}
-                                    </td>
+                                <tr class="table-light fw-bold border-top">
+                                    <td colspan="2" class="text-end">TOTAL KESELURUHAN:</td>
+                                    <td class="text-center text-danger fs-7">${formatRupiahVal(totalQty)}</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td class="text-end text-danger fs-6">Rp ${formatRupiahVal(totalNilai)}</td>
                                 </tr>
                             `);
-                        });
-                        $dtlTbody.append(`
-                            <tr class="table-light fw-bold border-top">
-                                <td colspan="2" class="text-end">TOTAL KESELURUHAN:</td>
-                                <td class="text-center text-danger fs-7">${new Intl.NumberFormat('id-ID').format(totalQty)}</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td class="text-end text-danger fs-6">Rp ${new Intl.NumberFormat('id-ID').format(totalNilai)}</td>
-                            </tr>
-                        `);
-                    } else {
-                        // Fallback jika data retur tunggal lama
-                        $dtlTbody.append(`
-                            <tr>
-                                <td class="text-center">1</td>
-                                <td>
-                                    <div class="fw-bold text-dark fs-7">${r.nama_barang_retur}</div>
-                                    <small class="text-muted font-monospace">${r.id_barang_retur}</small>
-                                </td>
-                                <td class="text-center fw-bold text-danger fs-7">${new Intl.NumberFormat('id-ID').format(r.qty_retur)}</td>
-                                <td class="text-end fw-semibold text-dark fs-8">Rp ${new Intl.NumberFormat('id-ID').format((r.qty_retur > 0 ? (r.nilai_retur / r.qty_retur) : 0))}</td>
-                                <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">${r.alasan}</span></td>
-                                <td class="text-end fw-bold text-danger fs-7">Rp ${new Intl.NumberFormat('id-ID').format(r.nilai_retur || 0)}</td>
-                            </tr>
-                        `);
-                    }
+                        } else {
+                            // Fallback jika data retur tunggal lama
+                            $dtlTbody.append(`
+                                <tr>
+                                    <td class="text-center">1</td>
+                                    <td>
+                                        <div class="fw-bold text-dark fs-7">${escapeHtml(r.nama_barang_retur)}</div>
+                                        <small class="text-muted font-monospace">${escapeHtml(r.id_barang_retur)}</small>
+                                    </td>
+                                    <td class="text-center fw-bold text-danger fs-7">${formatRupiahVal(r.qty_retur)}</td>
+                                    <td class="text-center">-</td>
+                                    <td class="text-end fw-semibold text-dark fs-8">Rp ${formatRupiahVal((r.qty_retur > 0 ? (r.nilai_retur / r.qty_retur) : 0))}</td>
+                                    <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">${escapeHtml(r.alasan)}</span></td>
+                                    <td class="text-end fw-bold text-danger fs-7">Rp ${formatRupiahVal(r.nilai_retur || 0)}</td>
+                                </tr>
+                            `);
+                        }
 
-                    // Render Audit Trail Riwayat Aktivitas Dokumen
-                    const auditLogs = res.audit_logs || [];
-                    $('#dtl-audit-count').text(auditLogs.length + ' Catatan Aktivitas');
-                    const $auditList = $('#dtl-audit-trail-list');
-                    $auditList.empty();
+                        // Render Audit Trail Riwayat Aktivitas Dokumen
+                        const auditLogs = res.audit_logs || [];
+                        $('#dtl-audit-count').text(auditLogs.length + ' Catatan Aktivitas');
+                        const $auditList = $('#dtl-audit-trail-list');
+                        $auditList.empty();
 
-                    if (auditLogs.length > 0) {
-                        let auditHtml = '<div class="list-group list-group-flush border rounded-2">';
-                        auditLogs.forEach((log) => {
-                            let badgeClass = 'bg-primary';
-                            let icon = 'bi-info-circle';
-                            if (log.aksi.indexOf('INPUT') !== -1) {
-                                badgeClass = 'bg-success';
-                                icon = 'bi-plus-circle-fill';
-                            } else if (log.aksi.indexOf('SELESAIKAN') !== -1) {
-                                badgeClass = 'bg-info text-dark';
-                                icon = 'bi-check-circle-fill';
-                            } else if (log.aksi.indexOf('HAPUS') !== -1 || log.aksi.indexOf('BATAL') !== -1) {
-                                badgeClass = 'bg-danger';
-                                icon = 'bi-trash-fill';
-                            }
+                        if (auditLogs.length > 0) {
+                            let auditHtml = '<div class="list-group list-group-flush border rounded-2">';
+                            auditLogs.forEach((log) => {
+                                let badgeClass = 'bg-primary';
+                                let icon = 'bi-info-circle';
+                                if (log.aksi.indexOf('INPUT') !== -1) {
+                                    badgeClass = 'bg-success';
+                                    icon = 'bi-plus-circle-fill';
+                                } else if (log.aksi.indexOf('SELESAIKAN') !== -1) {
+                                    badgeClass = 'bg-info text-dark';
+                                    icon = 'bi-check-circle-fill';
+                                } else if (log.aksi.indexOf('HAPUS') !== -1 || log.aksi.indexOf('BATAL') !== -1) {
+                                    badgeClass = 'bg-danger';
+                                    icon = 'bi-trash-fill';
+                                }
 
-                            auditHtml += `
-                                <div class="list-group-item p-2">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <div class="d-flex align-items-center gap-1">
-                                            <span class="badge ${badgeClass} fs-8"><i class="bi ${icon} me-1"></i>${log.aksi}</span>
-                                            <strong class="text-dark fs-8">${log.nama_user || log.kode_user || 'User'}</strong>
-                                            <span class="badge bg-light text-secondary border font-monospace fs-9">${log.role || 'petugas'}</span>
+                                auditHtml += `
+                                    <div class="list-group-item p-2">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <span class="badge ${badgeClass} fs-8"><i class="bi ${icon} me-1"></i>${escapeHtml(log.aksi)}</span>
+                                                <strong class="text-dark fs-8">${escapeHtml(log.nama_user || log.kode_user || 'User')}</strong>
+                                                <span class="badge bg-light text-secondary border font-monospace fs-9">${escapeHtml(log.role || 'petugas')}</span>
+                                            </div>
+                                            <small class="text-muted font-monospace fs-8"><i class="bi bi-clock me-1"></i>${escapeHtml(log.created_at)}</small>
                                         </div>
-                                        <small class="text-muted font-monospace fs-8"><i class="bi bi-clock me-1"></i>${log.created_at}</small>
+                                        <div class="text-dark fs-8">${escapeHtml(log.deskripsi)}</div>
+                                        <div class="text-muted fs-9 mt-1 d-flex gap-3">
+                                            <span><i class="bi bi-geo-alt me-1"></i>IP: ${escapeHtml(log.ip_address || '-')}</span>
+                                            <span class="text-truncate" style="max-width: 340px;" title="${escapeHtml(log.user_agent || '')}"><i class="bi bi-display me-1"></i>${escapeHtml(log.user_agent || '-')}</span>
+                                        </div>
                                     </div>
-                                    <div class="text-dark fs-8">${log.deskripsi}</div>
-                                    <div class="text-muted fs-9 mt-1 d-flex gap-3">
-                                        <span><i class="bi bi-geo-alt me-1"></i>IP: ${log.ip_address || '-'}</span>
-                                        <span class="text-truncate" style="max-width: 340px;" title="${log.user_agent || ''}"><i class="bi bi-display me-1"></i>${log.user_agent || '-'}</span>
-                                    </div>
+                                `;
+                            });
+                            auditHtml += '</div>';
+                            $auditList.html(auditHtml);
+                        } else {
+                            $auditList.html(`
+                                <div class="p-3 text-center text-muted bg-light rounded-2 border">
+                                    <i class="bi bi-info-circle text-primary me-1"></i>Dokumen dibuat oleh <strong>${escapeHtml(r.kode_user || 'ADMIN')}</strong> pada <strong>${escapeHtml(r.created_at || r.tanggal)}</strong>.
                                 </div>
-                            `;
-                        });
-                        auditHtml += '</div>';
-                        $auditList.html(auditHtml);
-                    } else {
-                        $auditList.html(`
-                            <div class="p-3 text-center text-muted bg-light rounded-2 border">
-                                <i class="bi bi-info-circle text-primary me-1"></i>Dokumen dibuat oleh <strong>${r.kode_user || 'ADMIN'}</strong> pada <strong>${r.created_at || r.tanggal}</strong>.
-                            </div>
-                        `);
-                    }
+                            `);
+                        }
 
-                    $('#modalDetailRetur').modal('show');
+                        $('#modalDetailRetur').modal('show');
+                    } catch (err) {
+                        console.error("Error processing modal detail retur:", err);
+                        Swal.fire('Error', 'Terjadi kesalahan saat memproses rincian retur: ' + err.message, 'error');
+                    }
                 } else {
                     Swal.fire('Gagal', res.message || 'Tidak dapat memuat detail data retur.', 'error');
                 }
             }).fail(function() {
                 Swal.fire('Error', 'Terjadi gangguan saat memuat data dari server.', 'error');
+            }).always(function() {
+                $btn.prop('disabled', false).html(origHtml);
             });
         });
 
