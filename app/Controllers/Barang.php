@@ -168,12 +168,14 @@ class Barang extends BaseController
             }
 
             $data['gambar'] = $newFileName;
+            $data['path_file'] = $newFileName;
         } elseif ($hapusFoto) {
             if ($gambarLama) {
                 @unlink($uploadDir . '/' . $gambarLama);
                 if (is_dir($xamppDir)) @unlink($xamppDir . '/' . $gambarLama);
             }
             $data['gambar'] = null;
+            $data['path_file'] = null;
         } else {
             if ($existing) {
                 $data['gambar'] = $existing['gambar'] ?? ($gambarLama ?: null);
@@ -277,7 +279,7 @@ class Barang extends BaseController
         $idCabang = session()->get('id_cabang') ?: 1;
 
         $builder = $db->table('barang b')
-            ->select('b.id, b.id_barang, b.barcode, b.nama_barang, b.kategori_id, k.nama_kategori, b.satuan, b.harga_beli, b.harga_jual, b.harga_grosir, b.qty_paket_a, b.hrg_paket_a, b.qty_paket_b, b.hrg_paket_b, b.qty_paket_c, b.hrg_paket_c, b.status, b.gambar, b.kode_supplier_1, b.kode_supplier_2, s1.nama_supplier as nama_supplier_1, s2.nama_supplier as nama_supplier_2, COALESCE(sc.stok, b.stok) as stok_cabang, b.stok as stok_total')
+            ->select('b.id, b.id_barang, b.barcode, b.nama_barang, b.kategori_id, k.nama_kategori, b.satuan, b.harga_beli, b.harga_jual, b.harga_grosir, b.qty_paket_a, b.hrg_paket_a, b.qty_paket_b, b.hrg_paket_b, b.qty_paket_c, b.hrg_paket_c, b.status, b.gambar, b.path_file, b.kode_supplier_1, b.kode_supplier_2, s1.nama_supplier as nama_supplier_1, s2.nama_supplier as nama_supplier_2, COALESCE(sc.stok, b.stok) as stok_cabang, b.stok as stok_total')
             ->join('kategori k', 'k.id = b.kategori_id', 'left')
             ->join('supplier s1', 's1.kode_supplier = b.kode_supplier_1', 'left')
             ->join('supplier s2', 's2.kode_supplier = b.kode_supplier_2', 'left')

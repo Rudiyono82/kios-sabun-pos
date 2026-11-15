@@ -14,7 +14,7 @@ class BarangModel extends Model
         'is_jerigen', 'status', 'kode_supplier_1', 'kode_supplier_2',
         'qty_paket_a', 'hrg_paket_a',
         'qty_paket_b', 'hrg_paket_b', 'qty_paket_c', 'hrg_paket_c',
-        'gambar', 'created_at', 'updated_at'
+        'gambar', 'path_file', 'created_at', 'updated_at'
     ];
     protected $useTimestamps = true;
 

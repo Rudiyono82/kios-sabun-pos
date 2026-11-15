@@ -54,8 +54,9 @@
                 <?php foreach ($barang as $b): ?>
                     <tr>
                         <td class="text-center">
-                            <?php if (!empty($b['gambar'])): ?>
-                                <img src="<?= base_url('uploads/barang/' . $b['gambar']) ?>" alt="<?= esc($b['nama_barang']) ?>" class="rounded border shadow-xs" style="width: 36px; height: 36px; object-fit: cover; cursor: zoom-in;" onclick="window.open('<?= base_url('uploads/barang/' . $b['gambar']) ?>', '_blank')" title="Klik perbesar foto" onerror="this.parentElement.innerHTML='<div class=\'rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto\' style=\'width: 36px; height: 36px; font-size: 0.8rem;\'><i class=\'bi bi-image\'></i></div>';">
+                            <?php $imgDisplay = !empty($b['gambar']) ? $b['gambar'] : (!empty($b['path_file']) ? $b['path_file'] : ''); ?>
+                            <?php if (!empty($imgDisplay)): ?>
+                                <img src="<?= base_url('uploads/barang/' . $imgDisplay) ?>" alt="<?= esc($b['nama_barang']) ?>" class="rounded border shadow-xs" style="width: 36px; height: 36px; object-fit: cover; cursor: zoom-in;" onclick="window.open('<?= base_url('uploads/barang/' . $imgDisplay) ?>', '_blank')" title="Klik perbesar foto" onerror="this.parentElement.innerHTML='<div class=\'rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto\' style=\'width: 36px; height: 36px; font-size: 0.8rem;\'><i class=\'bi bi-image\'></i></div>';">
                             <?php else: ?>
                                 <div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto" style="width: 36px; height: 36px; font-size: 0.8rem;">
                                     <i class="bi bi-image"></i>
@@ -504,9 +505,10 @@
         // Setup Foto Produk
         $('#form-foto_barang').val('');
         $('#form-hapus_foto').prop('checked', false);
-        if (b.gambar) {
-            $('#form-gambar_lama').val(b.gambar);
-            $('#preview-foto-img').attr('src', '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(b.gambar)).removeClass('d-none');
+        const fotoToShow = b.gambar || b.path_file;
+        if (fotoToShow) {
+            $('#form-gambar_lama').val(fotoToShow);
+            $('#preview-foto-img').attr('src', '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(fotoToShow)).removeClass('d-none');
             $('#preview-foto-icon').addClass('d-none');
             $('#container-hapus-foto').removeClass('d-none');
         } else {
