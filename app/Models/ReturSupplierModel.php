@@ -13,7 +13,7 @@ class ReturSupplierModel extends Model
         'id_barang_retur', 'nama_barang_retur', 'qty_retur', 'nilai_retur', 'total_item',
         'alasan', 'tipe_penyelesaian', 'id_barang_ganti', 'nama_barang_ganti',
         'qty_ganti', 'nilai_ganti', 'status', 'keterangan', 'catatan_penyelesaian',
-        'kode_user', 'created_at'
+        'kode_user', 'user_selesai', 'created_at'
     ];
 
     public function generateNoRetur()

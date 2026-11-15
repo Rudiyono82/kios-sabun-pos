@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\ReturSupplierModel;
 use App\Models\BarangModel;
 use App\Models\SupplierModel;
+use App\Models\AuditLogModel;
 
 class Retur extends BaseController
 {
@@ -32,6 +33,13 @@ class Retur extends BaseController
 
         $returModel = new ReturSupplierModel();
         $noRetur = $returModel->generateNoRetur();
+
+        $inputTanggal = trim((string)$this->request->getPost('tanggal'));
+        if (!empty($inputTanggal)) {
+            $tanggalRetur = (strlen($inputTanggal) === 10) ? $inputTanggal . ' ' . date('H:i:s') : date('Y-m-d H:i:s', strtotime($inputTanggal));
+        } else {
+            $tanggalRetur = date('Y-m-d H:i:s');
+        }
 
         $kodeSupplier = trim((string)$this->request->getPost('kode_supplier'));
         if (empty($kodeSupplier)) {
@@ -96,7 +104,7 @@ class Retur extends BaseController
 
             // Catat kartu stok KELUAR untuk barang rijek
             $db->table('kartu_stok')->insert([
-                'tanggal'      => date('Y-m-d H:i:s'),
+                'tanggal'      => $tanggalRetur,
                 'id_barang'    => $idBarang,
                 'tipe'         => 'KELUAR',
                 'no_referensi' => $noRetur,
@@ -116,7 +124,7 @@ class Retur extends BaseController
                 'subtotal_nilai'    => $subtotal,
                 'alasan'            => $alasan,
                 'status_item'       => $statusAwal,
-                'created_at'        => date('Y-m-d H:i:s')
+                'created_at'        => $tanggalRetur
             ];
         }
 
@@ -204,10 +212,13 @@ class Retur extends BaseController
             ? count($namaBarangSummary) . ' Macam Barang: ' . implode(', ', array_slice($namaBarangSummary, 0, 2)) . (count($namaBarangSummary) > 2 ? '...' : '')
             : ($namaBarangSummary[0] ?? '-');
 
+        $userPengaju = session()->get('kode_user') ?? session()->get('username') ?? 'ADMIN';
+        $userSelesai = ($statusAwal === 'Selesai') ? $userPengaju : null;
+
         // Simpan Record Retur Master
         $returModel->insert([
             'no_retur'          => $noRetur,
-            'tanggal'           => date('Y-m-d H:i:s'),
+            'tanggal'           => $tanggalRetur,
             'tgl_selesai'       => $tglSelesai,
             'kode_supplier'     => $kodeSupplier,
             'nama_supplier'     => $namaSupplier,
@@ -224,9 +235,39 @@ class Retur extends BaseController
             'nilai_ganti'       => $nilaiGanti,
             'status'            => $statusAwal,
             'keterangan'        => $keterangan,
-            'kode_user'         => session()->get('kode_user') ?? 'ADMIN',
-            'created_at'        => date('Y-m-d H:i:s')
+            'kode_user'         => $userPengaju,
+            'user_selesai'      => $userSelesai,
+            'created_at'        => $tanggalRetur
         ]);
+
+        // Audit Trail Pencatatan Retur
+        AuditLogModel::log(
+            'INPUT_RETUR',
+            'RETUR_SUPPLIER',
+            "Mencatat Dokumen Retur {$noRetur} (" . count($detailRecords) . " macam barang, " . number_format($totalQtyRetur, 0, ',', '.') . " unit) ke Supplier {$namaSupplier} senilai Rp " . number_format($totalNilaiRetur, 0, ',', '.') . " [Tgl: " . date('d/m/Y', strtotime($tanggalRetur)) . ", Status: {$statusAwal}]",
+            null,
+            [
+                'no_retur'      => $noRetur,
+                'tanggal'       => $tanggalRetur,
+                'kode_supplier' => $kodeSupplier,
+                'nama_supplier' => $namaSupplier,
+                'total_item'    => count($detailRecords),
+                'total_qty'     => $totalQtyRetur,
+                'total_nilai'   => $totalNilaiRetur,
+                'status'        => $statusAwal,
+                'kode_user'     => $userPengaju,
+                'items'         => array_map(function($d) {
+                    return [
+                        'id_barang'   => $d['id_barang_retur'],
+                        'nama_barang' => $d['nama_barang_retur'],
+                        'qty'         => $d['qty_retur'],
+                        'harga_beli'  => $d['harga_beli'],
+                        'subtotal'    => $d['subtotal_nilai'],
+                        'alasan'      => $d['alasan'],
+                    ];
+                }, $detailRecords)
+            ]
+        );
 
         $db->transComplete();
 
@@ -330,17 +371,45 @@ class Retur extends BaseController
             ]);
         }
 
+        $inputTglSelesai = trim((string)$this->request->getPost('tgl_selesai'));
+        if (!empty($inputTglSelesai)) {
+            $tglSelesai = (strlen($inputTglSelesai) === 10) ? $inputTglSelesai . ' ' . date('H:i:s') : date('Y-m-d H:i:s', strtotime($inputTglSelesai));
+        } else {
+            $tglSelesai = date('Y-m-d H:i:s');
+        }
+        $userSelesai = session()->get('kode_user') ?? session()->get('username') ?? 'ADMIN';
+
         // Update Record Retur Menjadi Selesai
         $returModel->update($id, [
-            'status' => 'Selesai',
-            'tgl_selesai' => date('Y-m-d H:i:s'),
-            'tipe_penyelesaian' => $tipePenyelesaian,
-            'id_barang_ganti' => $idBarangGanti,
-            'nama_barang_ganti' => $namaBarangGanti,
-            'qty_ganti' => $qtyGanti,
-            'nilai_ganti' => $nilaiGanti,
+            'status'               => 'Selesai',
+            'tgl_selesai'          => $tglSelesai,
+            'user_selesai'         => $userSelesai,
+            'tipe_penyelesaian'    => $tipePenyelesaian,
+            'id_barang_ganti'      => $idBarangGanti,
+            'nama_barang_ganti'    => $namaBarangGanti,
+            'qty_ganti'            => $qtyGanti,
+            'nilai_ganti'          => $nilaiGanti,
             'catatan_penyelesaian' => $catatanPenyelesaian,
         ]);
+
+        // Audit Trail Penyelesaian Retur
+        AuditLogModel::log(
+            'SELESAIKAN_RETUR',
+            'RETUR_SUPPLIER',
+            "Menyelesaikan Realisasi Penggantian Retur {$retur['no_retur']} dari Supplier {$retur['nama_supplier']} [Bentuk: " . str_replace('_', ' ', $tipePenyelesaian) . "] pada " . date('d/m/Y H:i', strtotime($tglSelesai)),
+            $retur,
+            [
+                'no_retur'             => $retur['no_retur'],
+                'status'               => 'Selesai',
+                'tgl_selesai'          => $tglSelesai,
+                'user_selesai'         => $userSelesai,
+                'tipe_penyelesaian'    => $tipePenyelesaian,
+                'nama_barang_ganti'    => $namaBarangGanti,
+                'qty_ganti'            => $qtyGanti,
+                'nilai_ganti'          => $nilaiGanti,
+                'catatan_penyelesaian' => $catatanPenyelesaian
+            ]
+        );
 
         $db->transComplete();
 
@@ -370,10 +439,20 @@ class Retur extends BaseController
             ->orderBy('id', 'ASC')
             ->get()->getResultArray();
 
+        $auditLogs = $db->table('audit_logs')
+            ->groupStart()
+                ->like('deskripsi', $retur['no_retur'])
+                ->orLike('data_baru', $retur['no_retur'])
+                ->orLike('data_lama', $retur['no_retur'])
+            ->groupEnd()
+            ->orderBy('id', 'ASC')
+            ->get()->getResultArray();
+
         return $this->response->setJSON([
-            'status' => 'success',
-            'retur' => $retur,
-            'items' => $items
+            'status'     => 'success',
+            'retur'      => $retur,
+            'items'      => $items,
+            'audit_logs' => $auditLogs
         ]);
     }
 
@@ -472,6 +551,23 @@ class Retur extends BaseController
 
         // 4. Hapus data dari tabel retur_supplier
         $returModel->delete($id);
+
+        // Audit Trail Pembatalan / Hapus Retur
+        AuditLogModel::log(
+            'HAPUS_RETUR',
+            'RETUR_SUPPLIER',
+            "Membatalkan / Menghapus Dokumen Retur {$retur['no_retur']} (Supplier: {$retur['nama_supplier']}) serta mengembalikan posisi stok toko",
+            $retur,
+            [
+                'dihapus_oleh' => session()->get('nama_user') ?? session()->get('kode_user') ?? 'ADMIN',
+                'waktu_hapus'  => date('Y-m-d H:i:s'),
+                'no_retur'     => $retur['no_retur'],
+                'supplier'     => $retur['nama_supplier'],
+                'total_item'   => $retur['total_item'] ?? 1,
+                'total_qty'    => $retur['qty_retur'],
+                'total_nilai'  => $retur['nilai_retur']
+            ]
+        );
 
         $db->transComplete();
 

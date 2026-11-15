@@ -106,7 +106,7 @@
             <thead class="table-light small text-uppercase">
                 <tr>
                     <th>No Retur</th>
-                    <th>Tgl Retur</th>
+                    <th>Tgl &amp; Petugas Retur</th>
                     <th>Supplier</th>
                     <th>Barang Diretur (Rijek)</th>
                     <th class="text-center">Total Qty</th>
@@ -122,7 +122,15 @@
                     <?php foreach ($retur_list as $r): ?>
                         <tr>
                             <td class="fw-bold font-monospace text-primary"><?= esc($r['no_retur']) ?></td>
-                            <td class="small"><?= date('d/m/Y H:i', strtotime($r['tanggal'])) ?></td>
+                            <td class="small">
+                                <div class="fw-bold text-dark"><i class="bi bi-calendar-event me-1 text-danger"></i><?= date('d/m/Y', strtotime($r['tanggal'])) ?></div>
+                                <small class="text-muted font-monospace"><?= date('H:i', strtotime($r['tanggal'])) ?> WIB</small>
+                                <div class="mt-1">
+                                    <span class="badge bg-light text-secondary border font-monospace fs-8" title="Petugas Penginput">
+                                        <i class="bi bi-person me-1"></i><?= esc($r['kode_user'] ?? 'ADMIN') ?>
+                                    </span>
+                                </div>
+                            </td>
                             <td class="fw-medium text-dark"><?= esc($r['nama_supplier']) ?></td>
                             <td>
                                 <div class="fw-semibold text-danger"><?= esc($r['nama_barang_retur']) ?></div>
@@ -259,14 +267,20 @@
                         </div>
                     </div>
 
-                    <!-- BARIS 1: INFORMASI SUPPLIER & BUKTI RETUR -->
+                    <!-- BARIS 1: INFORMASI SUPPLIER, TANGGAL RETUR & BUKTI RETUR -->
                     <div class="card border-0 bg-light rounded-3 p-3 mb-3 border">
                         <div class="row g-3 align-items-center">
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-3">
                                 <label class="form-label small fw-bold text-muted mb-1">No. Bukti Retur</label>
                                 <input type="text" class="form-control form-control-sm bg-white font-monospace fw-bold text-danger" value="<?= esc($no_retur) ?>" readonly>
                             </div>
-                            <div class="col-12 col-md-8">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small fw-bold text-dark mb-1">
+                                    <i class="bi bi-calendar-check text-danger me-1"></i>Tanggal Retur <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" name="tanggal" id="input-tanggal-retur" class="form-control form-control-sm fw-bold border-danger text-danger bg-white" value="<?= date('Y-m-d') ?>" required>
+                            </div>
+                            <div class="col-12 col-md-6">
                                 <label class="form-label small fw-bold text-dark mb-1">
                                     <i class="bi bi-truck text-primary me-1"></i>Pilih Supplier Tujuan Retur <span class="text-danger">* (Wajib Dipilih Pertama)</span>
                                 </label>
@@ -545,6 +559,15 @@
                         </div>
                     </div>
 
+                    <div class="row g-2 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold text-dark mb-1">
+                                <i class="bi bi-calendar-check text-success me-1"></i>Tanggal Realisasi Penyelesaian <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="tgl_selesai" id="selesaikan-tgl-selesai" class="form-control form-control-sm fw-bold border-success text-success bg-white" value="<?= date('Y-m-d') ?>" required>
+                        </div>
+                    </div>
+
                     <label class="form-label small fw-bold text-dark mb-2">Bentuk Realisasi Penggantian dari Supplier: <span class="text-danger">*</span></label>
                     <div class="row g-2 mb-3">
                         <div class="col-md-4">
@@ -643,20 +666,28 @@
             <div class="modal-body p-4">
                 <div class="row g-3 mb-3 p-3 bg-light rounded-3 border">
                     <div class="col-6 col-md-3">
-                        <span class="small text-muted d-block">Tanggal Pengajuan:</span>
-                        <strong class="text-dark small" id="dtl-retur-tgl">-</strong>
+                        <span class="small text-muted d-block"><i class="bi bi-calendar-event text-danger me-1"></i>Tanggal Retur:</span>
+                        <strong class="text-dark small font-monospace" id="dtl-retur-tgl">-</strong>
                     </div>
                     <div class="col-6 col-md-3">
-                        <span class="small text-muted d-block">Mitra Supplier:</span>
+                        <span class="small text-muted d-block"><i class="bi bi-truck text-primary me-1"></i>Mitra Supplier:</span>
                         <strong class="text-primary small" id="dtl-retur-supplier">-</strong>
                     </div>
                     <div class="col-6 col-md-3">
-                        <span class="small text-muted d-block">Status Siklus:</span>
+                        <span class="small text-muted d-block"><i class="bi bi-activity text-warning me-1"></i>Status Siklus:</span>
                         <span id="dtl-retur-status-badge"></span>
                     </div>
                     <div class="col-6 col-md-3">
-                        <span class="small text-muted d-block">Petugas Pengaju:</span>
+                        <span class="small text-muted d-block"><i class="bi bi-person text-secondary me-1"></i>Petugas Pembuat:</span>
                         <strong class="text-dark small" id="dtl-retur-user">-</strong>
+                    </div>
+                    <div class="col-6 col-md-3 d-none" id="dtl-box-user-selesai">
+                        <span class="small text-muted d-block"><i class="bi bi-person-check text-success me-1"></i>Diselesaikan Oleh:</span>
+                        <strong class="text-success small" id="dtl-retur-user-selesai">-</strong>
+                    </div>
+                    <div class="col-6 col-md-3 d-none" id="dtl-box-tgl-selesai">
+                        <span class="small text-muted d-block"><i class="bi bi-calendar-check text-success me-1"></i>Tanggal Selesai:</span>
+                        <strong class="text-success small font-monospace" id="dtl-retur-tgl-selesai">-</strong>
                     </div>
                 </div>
 
@@ -701,8 +732,21 @@
                 </div>
 
                 <!-- Keterangan Umum -->
-                <div class="small text-muted">
+                <div class="small text-muted mb-3">
                     <strong>Catatan Dokumen: </strong><span id="dtl-retur-keterangan">-</span>
+                </div>
+
+                <!-- Seksi Audit Trail / Rekam Jejak Sistem -->
+                <div class="card p-3 mb-0 border rounded-3 bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-clock-history text-primary"></i> Rekam Jejak Audit Trail (Aktivitas Sistem)
+                        </h6>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-8" id="dtl-audit-count">0 Riwayat</span>
+                    </div>
+                    <div id="dtl-audit-trail-list">
+                        <!-- Konten log audit disuntikkan via AJAX -->
+                    </div>
                 </div>
             </div>
             <div class="modal-footer bg-light py-2 px-4">
@@ -1133,6 +1177,10 @@
                     if (r.status === 'Selesai') {
                         $('#dtl-retur-status-badge').html('<span class="badge bg-success fw-bold"><i class="bi bi-check2-circle me-1"></i>Selesai</span>');
                         $('#dtl-box-penggantian').removeClass('d-none');
+                        $('#dtl-box-user-selesai').removeClass('d-none');
+                        $('#dtl-box-tgl-selesai').removeClass('d-none');
+                        $('#dtl-retur-user-selesai').text(r.user_selesai || '-');
+                        $('#dtl-retur-tgl-selesai').text(r.tgl_selesai || '-');
                         $('#dtl-tipe-ganti').text(r.tipe_penyelesaian ? r.tipe_penyelesaian.replace(/_/g, ' ') : 'Selesai');
                         $('#dtl-nama-ganti').text(r.nama_barang_ganti ? r.nama_barang_ganti + ' (Qty: ' + r.qty_ganti + ')' : '-');
                         $('#dtl-nilai-ganti').text('Rp ' + new Intl.NumberFormat('id-ID').format(r.nilai_ganti || 0));
@@ -1141,6 +1189,8 @@
                     } else {
                         $('#dtl-retur-status-badge').html('<span class="badge bg-warning text-dark fw-bold"><i class="bi bi-hourglass-split me-1"></i>Baru Proses</span>');
                         $('#dtl-box-penggantian').addClass('d-none');
+                        $('#dtl-box-user-selesai').addClass('d-none');
+                        $('#dtl-box-tgl-selesai').addClass('d-none');
                     }
 
                     // Render Tabel Detail Multi-Barang
@@ -1200,6 +1250,56 @@
                                 <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">${r.alasan}</span></td>
                                 <td class="text-end fw-bold text-danger fs-7">Rp ${new Intl.NumberFormat('id-ID').format(r.nilai_retur || 0)}</td>
                             </tr>
+                        `);
+                    }
+
+                    // Render Audit Trail Riwayat Aktivitas Dokumen
+                    const auditLogs = res.audit_logs || [];
+                    $('#dtl-audit-count').text(auditLogs.length + ' Catatan Aktivitas');
+                    const $auditList = $('#dtl-audit-trail-list');
+                    $auditList.empty();
+
+                    if (auditLogs.length > 0) {
+                        let auditHtml = '<div class="list-group list-group-flush border rounded-2">';
+                        auditLogs.forEach((log) => {
+                            let badgeClass = 'bg-primary';
+                            let icon = 'bi-info-circle';
+                            if (log.aksi.indexOf('INPUT') !== -1) {
+                                badgeClass = 'bg-success';
+                                icon = 'bi-plus-circle-fill';
+                            } else if (log.aksi.indexOf('SELESAIKAN') !== -1) {
+                                badgeClass = 'bg-info text-dark';
+                                icon = 'bi-check-circle-fill';
+                            } else if (log.aksi.indexOf('HAPUS') !== -1 || log.aksi.indexOf('BATAL') !== -1) {
+                                badgeClass = 'bg-danger';
+                                icon = 'bi-trash-fill';
+                            }
+
+                            auditHtml += `
+                                <div class="list-group-item p-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="badge ${badgeClass} fs-8"><i class="bi ${icon} me-1"></i>${log.aksi}</span>
+                                            <strong class="text-dark fs-8">${log.nama_user || log.kode_user || 'User'}</strong>
+                                            <span class="badge bg-light text-secondary border font-monospace fs-9">${log.role || 'petugas'}</span>
+                                        </div>
+                                        <small class="text-muted font-monospace fs-8"><i class="bi bi-clock me-1"></i>${log.created_at}</small>
+                                    </div>
+                                    <div class="text-dark fs-8">${log.deskripsi}</div>
+                                    <div class="text-muted fs-9 mt-1 d-flex gap-3">
+                                        <span><i class="bi bi-geo-alt me-1"></i>IP: ${log.ip_address || '-'}</span>
+                                        <span class="text-truncate" style="max-width: 340px;" title="${log.user_agent || ''}"><i class="bi bi-display me-1"></i>${log.user_agent || '-'}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        auditHtml += '</div>';
+                        $auditList.html(auditHtml);
+                    } else {
+                        $auditList.html(`
+                            <div class="p-3 text-center text-muted bg-light rounded-2 border">
+                                <i class="bi bi-info-circle text-primary me-1"></i>Dokumen dibuat oleh <strong>${r.kode_user || 'ADMIN'}</strong> pada <strong>${r.created_at || r.tanggal}</strong>.
+                            </div>
                         `);
                     }
 
