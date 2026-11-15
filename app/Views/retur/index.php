@@ -1063,18 +1063,28 @@
             renderKeranjangRetur();
         });
 
-        // 6. Submit Form Retur: Validasi Minimal 1 Barang
+        // 6. Submit Form Retur: Validasi & Konfirmasi Ya/Tidak
+        let isFormReturConfirmed = false;
         $('#form-retur').on('submit', function(e) {
+            if (isFormReturConfirmed) {
+                return true;
+            }
+
+            e.preventDefault();
+
             const selectedSupplier = $('#select-supplier-retur').val();
             if (!selectedSupplier) {
-                e.preventDefault();
-                Swal.fire('Supplier Belum Dipilih', 'Silakan pilih Mitra Supplier Tujuan retur terlebih dahulu.', 'warning');
+                Swal.fire({
+                    title: 'Supplier Belum Dipilih',
+                    text: 'Silakan pilih Mitra Supplier Tujuan retur terlebih dahulu.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
                 $('#select-supplier-retur').focus();
                 return false;
             }
 
             if (keranjangRetur.length === 0) {
-                e.preventDefault();
                 Swal.fire({
                     title: 'Keranjang Retur Kosong',
                     text: 'Tambahkan minimal 1 barang rijek ke dalam daftar retur sebelum menyimpan data.',
@@ -1084,12 +1094,75 @@
                 return false;
             }
 
-            $('#input-items-json').val(JSON.stringify(keranjangRetur));
-            return true;
+            // Hitung ringkasan retur
+            const namaSupplier = $('#select-supplier-retur option:selected').text().trim();
+            const totalItem = keranjangRetur.length;
+            let totalQty = 0;
+            let totalNilai = 0;
+            keranjangRetur.forEach(it => {
+                const q = parseFloat(it.qty) || 0;
+                const h = parseFloat(it.harga_beli) || 0;
+                totalQty += q;
+                totalNilai += (q * h);
+            });
+            const statusPilih = $('input[name="status"]:checked').val() || 'Baru Proses';
+            const statusBadge = (statusPilih === 'Selesai') 
+                ? '<span class="badge bg-success">Langsung Selesai</span>' 
+                : '<span class="badge bg-warning text-dark">Baru Proses</span>';
+
+            Swal.fire({
+                title: 'Konfirmasi Simpan Retur',
+                html: `
+                    <div class="text-start fs-7 p-2">
+                        <p class="mb-2 text-dark">Apakah Anda yakin ingin memproses dan menyimpan data retur barang ke supplier ini?</p>
+                        <div class="card bg-light border p-2 mb-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Mitra Supplier:</span>
+                                <span class="fw-bold text-dark">${namaSupplier}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Jumlah Barang:</span>
+                                <span class="fw-bold text-dark">${totalItem} Macam Barang (${new Intl.NumberFormat('id-ID').format(totalQty)} Unit)</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Total Nilai Modal:</span>
+                                <span class="fw-bold text-danger">Rp ${new Intl.NumberFormat('id-ID').format(totalNilai)}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Status Awal:</span>
+                                <span>${statusBadge}</span>
+                            </div>
+                        </div>
+                        <div class="alert alert-warning py-1 px-2 mb-0 small d-flex align-items-center gap-1">
+                            <i class="bi bi-exclamation-triangle-fill flex-shrink-0 text-warning"></i>
+                            <span>Stok barang rijek ini akan langsung dipotong keluar dari sistem toko.</span>
+                        </div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-check2-circle me-1"></i> Ya, Simpan Retur',
+                cancelButtonText: '<i class="bi bi-x-circle me-1"></i> Batal',
+                reverseButtons: true,
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#input-items-json').val(JSON.stringify(keranjangRetur));
+                    isFormReturConfirmed = true;
+                    $('#btn-submit-retur').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+                    $('#form-retur').submit();
+                }
+            });
+
+            return false;
         });
 
-        // Reset keranjang saat modal retur baru ditutup
+        // Reset konfirmasi saat modal ditutup
         $('#modalRetur').on('hidden.bs.modal', function () {
+            isFormReturConfirmed = false;
+            $('#btn-submit-retur').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Simpan Data Retur');
             keranjangRetur = [];
             renderKeranjangRetur();
             $('#select-supplier-retur').val('').trigger('change');
@@ -1178,6 +1251,67 @@
                 $('#modal2-qty-lain').prop('disabled', true);
                 $('#modal2-select-barang-ganti').prop('required', false);
             }
+        });
+
+        // Submit Form Selesaikan Retur dengan Konfirmasi Ya/Tidak
+        let isFormSelesaikanConfirmed = false;
+        $('#form-selesaikan-retur').on('submit', function(e) {
+            if (isFormSelesaikanConfirmed) {
+                return true;
+            }
+
+            e.preventDefault();
+
+            const noRetur = $('#selesaikan-label-noretur').text();
+            const supplier = $('#selesaikan-label-supplier').text();
+            const tipe = $('input[name="tipe_penyelesaian"]:checked', this).val();
+            let tipeLabel = 'Ganti Barang Sama Sesuai Daftar Item';
+            if (tipe === 'Ganti_Barang_Lain') tipeLabel = 'Ganti Barang Lain';
+            else if (tipe === 'Ganti_Uang_Kas') tipeLabel = 'Ganti Uang Kas (Pemasukan Kas Toko)';
+
+            Swal.fire({
+                title: 'Konfirmasi Selesaikan Retur',
+                html: `
+                    <div class="text-start fs-7 p-2">
+                        <p class="mb-2 text-dark">Apakah Anda yakin ingin menyelesaikan dokumen retur ini dan menerima barang/uang pengganti dari supplier?</p>
+                        <div class="card bg-light border p-2 mb-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">No. Bukti Retur:</span>
+                                <span class="fw-bold text-primary font-monospace">${noRetur}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Mitra Supplier:</span>
+                                <span class="fw-bold text-dark">${supplier}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Penyelesaian:</span>
+                                <span class="fw-bold text-success">${tipeLabel}</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-check2-circle me-1"></i> Ya, Selesaikan Retur',
+                cancelButtonText: '<i class="bi bi-x-circle me-1"></i> Batal',
+                reverseButtons: true,
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    isFormSelesaikanConfirmed = true;
+                    $('#form-selesaikan-retur button[type="submit"]').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Memproses...');
+                    $('#form-selesaikan-retur').submit();
+                }
+            });
+
+            return false;
+        });
+
+        $('#modalSelesaikanRetur').on('hidden.bs.modal', function () {
+            isFormSelesaikanConfirmed = false;
+            $('#form-selesaikan-retur button[type="submit"]').prop('disabled', false).html('<i class="bi bi-check2-circle me-1"></i> Simpan Penyelesaian Retur');
         });
 
         // =========================================================================

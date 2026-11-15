@@ -108,8 +108,8 @@ $routes->group('pembelian', ['filter' => 'auth'], function($routes) {
 $routes->group('retur', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Retur::index');
     $routes->get('detail/(:num)', 'Retur::detail/$1');
-    $routes->post('simpan', 'Retur::simpan', ['filter' => 'admin']);
-    $routes->post('selesaikan', 'Retur::selesaikan', ['filter' => 'admin']);
+    $routes->post('simpan', 'Retur::simpan');
+    $routes->post('selesaikan', 'Retur::selesaikan');
     $routes->post('hapus/(:num)', 'Retur::hapus/$1');
 });
 
