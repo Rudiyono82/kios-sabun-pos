@@ -1823,9 +1823,20 @@
         StockLookup.open({
             mode: 'penjualan',
             onSelect: function(item) {
+                addToCart(item, 1);
+                Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true
+                }).fire({
+                    icon: 'success',
+                    title: `<b>${item.nama_barang}</b> masuk ke keranjang (1 ${item.satuan || 'unit'})`
+                });
                 setTimeout(function() {
-                    openModalInputQty(item);
-                }, 300);
+                    $('#barcode-input').focus().select();
+                }, 200);
             }
         });
     });

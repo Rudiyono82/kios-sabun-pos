@@ -1,4 +1,48 @@
 <!-- MODAL LOOKUP LIST OF STOCK (POPUP PENCARIAN & PEMILIHAN BARANG) -->
+<style>
+/* High-Contrast Active Selection for LookUp Stock Grid */
+#table-lookup-items tr.lookup-item-row {
+    transition: background-color 0.08s ease, color 0.08s ease;
+    user-select: none;
+}
+
+#table-lookup-items tr.lookup-item-row.active,
+#table-lookup-items tr.lookup-item-row.active > td,
+#table-lookup-items tr.lookup-item-row.active:hover,
+#table-lookup-items tr.lookup-item-row.active:hover > td {
+    background-color: #0284c7 !important; /* Biru Terang Kontras Tinggi */
+    color: #ffffff !important;
+}
+
+#table-lookup-items tr.lookup-item-row.active td,
+#table-lookup-items tr.lookup-item-row.active td *,
+#table-lookup-items tr.lookup-item-row.active:hover td,
+#table-lookup-items tr.lookup-item-row.active:hover td * {
+    color: #ffffff !important;
+}
+
+#table-lookup-items tr.lookup-item-row.active {
+    box-shadow: inset 5px 0 0 0 #f59e0b; /* Aksen garis oranye-emas di kiri */
+}
+
+#table-lookup-items tr.lookup-item-row.active .badge {
+    background-color: rgba(255, 255, 255, 0.28) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+#table-lookup-items tr.lookup-item-row.active .btn-choose-row {
+    background-color: #ffffff !important;
+    color: #0284c7 !important;
+    border-color: #ffffff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25) !important;
+}
+
+#table-lookup-items tr.lookup-item-row:hover:not(.active) {
+    background-color: #f0f9ff !important;
+}
+</style>
 <div class="modal fade" id="modalLookupStock" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 1140px;">
         <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
@@ -208,6 +252,9 @@ const StockLookup = {
         // Reset input pencarian
         $('#lookup-search-keyword').val('');
         $('#lookup-filter-by').val('nama');
+        if (typeof lastSearchKeyword !== 'undefined') {
+            lastSearchKeyword = '';
+        }
         this.resetPreview();
 
         // Tampilkan Modal
@@ -217,12 +264,16 @@ const StockLookup = {
         this.fetchData(false);
 
         // Pastikan kursor langsung fokus dan terpilih di textbox pencarian
-        setTimeout(() => {
-            $('#lookup-search-keyword').trigger('focus').select();
-        }, 150);
-        setTimeout(() => {
-            $('#lookup-search-keyword').trigger('focus').select();
-        }, 350);
+        const focusInput = () => {
+            const input = document.getElementById('lookup-search-keyword');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        };
+        setTimeout(focusInput, 50);
+        setTimeout(focusInput, 150);
+        setTimeout(focusInput, 300);
     },
 
     // Request Data dari Endpoint /barang/lookup
@@ -414,18 +465,25 @@ const StockLookup = {
 
 $(document).ready(function() {
     let lookupSearchTimer = null;
+    let lastSearchKeyword = '';
 
     // A. Otomatis fokus dan pilih teks ke input pencarian saat modal LookUp terbuka
     $('#modalLookupStock').on('shown.bs.modal', function() {
-        $('#lookup-search-keyword').trigger('focus').select();
+        const $input = $('#lookup-search-keyword');
+        $input.trigger('focus').select();
+        setTimeout(() => $input.trigger('focus').select(), 50);
+        setTimeout(() => $input.trigger('focus').select(), 150);
     });
 
-    // B. Realtime Live Search: Ketik 1 huruf langsung proses mencari & memperbarui data di grid
+    // B. Realtime Live Search: Ketik 1 huruf atau hapus (backspace) satu-satu langsung proses mencari & memfilter grid
     $('#lookup-search-keyword').on('input', function() {
+        const val = $(this).val();
+        if (val === lastSearchKeyword) return;
+        lastSearchKeyword = val;
         clearTimeout(lookupSearchTimer);
         lookupSearchTimer = setTimeout(function() {
             StockLookup.fetchData(true);
-        }, 150);
+        }, 100);
     });
 
     // C. Navigasi Keyboard di Kotak Pencarian: Panah Atas / Bawah untuk pilih baris, Enter untuk konfirmasi
@@ -445,7 +503,7 @@ $(document).ready(function() {
             }
             if ($target.length) {
                 StockLookup.selectRow($target.data('item'), $target);
-                $target[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                $target[0].scrollIntoView({ block: 'nearest', behavior: 'auto' });
             }
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -460,7 +518,7 @@ $(document).ready(function() {
             }
             if ($target.length) {
                 StockLookup.selectRow($target.data('item'), $target);
-                $target[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                $target[0].scrollIntoView({ block: 'nearest', behavior: 'auto' });
             }
         } else if (e.key === 'Enter') {
             e.preventDefault();
@@ -515,7 +573,42 @@ $(document).ready(function() {
 
     // 6. Navigasi Keyboard global di dalam Modal LookUp (Arrow Up/Down & Enter)
     $('#modalLookupStock').on('keydown', function(e) {
-        if (e.key === 'Enter' && !$(e.target).is('#lookup-search-keyword')) {
+        if ($(e.target).is('#lookup-search-keyword')) {
+            return; // sudah ditangani di handler search input
+        }
+
+        const $rows = $('#table-lookup-items tr.lookup-item-row');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!$rows.length) return;
+            const $active = $rows.filter('.active');
+            let $target;
+            if (!$active.length) {
+                $target = $rows.first();
+            } else {
+                const nextIndex = $rows.index($active) + 1;
+                $target = (nextIndex < $rows.length) ? $rows.eq(nextIndex) : $rows.last();
+            }
+            if ($target.length) {
+                StockLookup.selectRow($target.data('item'), $target);
+                $target[0].scrollIntoView({ block: 'nearest', behavior: 'auto' });
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!$rows.length) return;
+            const $active = $rows.filter('.active');
+            let $target;
+            if (!$active.length) {
+                $target = $rows.last();
+            } else {
+                const prevIndex = $rows.index($active) - 1;
+                $target = (prevIndex >= 0) ? $rows.eq(prevIndex) : $rows.first();
+            }
+            if ($target.length) {
+                StockLookup.selectRow($target.data('item'), $target);
+                $target[0].scrollIntoView({ block: 'nearest', behavior: 'auto' });
+            }
+        } else if (e.key === 'Enter') {
             e.preventDefault();
             StockLookup.confirmSelection();
         }
