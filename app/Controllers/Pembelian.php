@@ -85,27 +85,31 @@ class Pembelian extends BaseController
         $totalBiaya = 0;
         $detailRecords = [];
         $kartuStokRecords = [];
+        $userRole = strtolower((string) session()->get('role'));
+        $userName = session()->get('nama_user') ?? session()->get('kode_user') ?? 'KASIR1';
 
         foreach ($json['items'] as $item) {
             $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
             if (!$barang) continue;
 
             $qty = (float) $item['qty'];
-            // Harga beli modal wajib terkunci dari Master Barang
-            $hargaBeli = (float) $barang['harga_beli'];
-            $subtotal = $qty * $hargaBeli;
+            // Harga beli item yang diinput pada keranjang
+            $hargaBeliInput = isset($item['harga_beli']) ? (float)$item['harga_beli'] : (float)$barang['harga_beli'];
+            $hargaBeliMaster = (float) $barang['harga_beli'];
+            
+            $subtotal = $qty * $hargaBeliInput;
             $totalBiaya += $subtotal;
 
             $detailRecords[] = [
                 'no_beli' => $noBeli,
                 'id_barang' => $item['id_barang'],
                 'nama_barang' => $barang['nama_barang'],
-                'harga_beli' => $hargaBeli,
+                'harga_beli' => $hargaBeliInput,
                 'qty' => $qty,
                 'subtotal' => $subtotal,
             ];
 
-            // Tambah stok barang (harga beli modal terkunci dan hanya berubah via screen otorisasi harga)
+            // Tambah stok barang ke master
             $stokBaru = (float)$barang['stok'] + $qty;
             $db->table('barang')->where('id_barang', $item['id_barang'])->update([
                 'stok' => $stokBaru,
@@ -123,6 +127,38 @@ class Pembelian extends BaseController
                 'sisa' => $stokBaru,
                 'keterangan' => 'Pembelian Nota ' . $noBeli . ' dari ' . ($json['nama_supplier'] ?? 'Supplier')
             ];
+
+            // SOP MULTI-TIER: Jika harga beli belanja berbeda dengan harga beli master saat stok lama masih ada
+            if ($hargaBeliInput > 0 && abs($hargaBeliInput - $hargaBeliMaster) > 0.01) {
+                $statusPersetujuan = ($userRole === 'admin' || $userRole === 'owner') ? 'Setuju' : 'Belum Setuju';
+                $userApproved = ($userRole === 'admin' || $userRole === 'owner') ? $userName : null;
+                $tglApproved = ($userRole === 'admin' || $userRole === 'owner') ? date('Y-m-d H:i:s') : null;
+
+                $db->table('barang_pending_stok')->insert([
+                    'ref_id'             => $noBeli,
+                    'tgl_input'          => date('Y-m-d H:i:s'),
+                    'id_barang'          => $item['id_barang'],
+                    'nama_barang'        => $barang['nama_barang'],
+                    'stok_pending'       => $qty,
+                    'harga_beli_lama'    => $hargaBeliMaster,
+                    'harga_beli'         => $hargaBeliInput,
+                    'harga_jual_lama'    => (float)$barang['harga_jual'],
+                    'harga_jual'         => isset($item['harga_jual']) && $item['harga_jual'] > 0 ? (float)$item['harga_jual'] : (float)$barang['harga_jual'],
+                    'qty_paket_a'        => (int)($barang['qty_paket_a'] ?? 0),
+                    'harga_paket_a'      => (float)($barang['hrg_paket_a'] ?? 0),
+                    'qty_paket_b'        => (int)($barang['qty_paket_b'] ?? 0),
+                    'harga_paket_b'      => (float)($barang['hrg_paket_b'] ?? 0),
+                    'qty_paket_c'        => (int)($barang['qty_paket_c'] ?? 0),
+                    'harga_paket_c'      => (float)($barang['hrg_paket_c'] ?? 0),
+                    'status_persetujuan' => $statusPersetujuan,
+                    'status_eksekusi'    => 1,
+                    'user_input'         => $userName,
+                    'user_approved'      => $userApproved,
+                    'tgl_approved'       => $tglApproved,
+                    'catatan'            => 'Auto-generated dari Pembelian Nota ' . $noBeli,
+                    'created_at'         => date('Y-m-d H:i:s'),
+                ]);
+            }
         }
 
         $finalTotalBiaya = roundPosTotal($totalBiaya);
@@ -311,56 +347,87 @@ class Pembelian extends BaseController
         $userRole = strtolower((string) session()->get('role'));
         $approverUser = session()->get('nama_user') ?? session()->get('kode_user') ?? 'Admin';
 
-        // Jika user yang login BUKAN Admin (misal Kasir), WAJIB approval via password Admin!
-        if ($userRole !== 'admin') {
+        $statusPersetujuan = 'Setuju';
+        $userApproved = $approverUser;
+        $tglApproved = date('Y-m-d H:i:s');
+
+        // Jika user yang login BUKAN Admin (misal Kasir) dan tidak memasukkan password admin, masuk sebagai 'Belum Setuju'
+        if ($userRole !== 'admin' && $userRole !== 'owner') {
             $adminPassword = trim($this->request->getPost('admin_password') ?? '');
-            if (empty($adminPassword)) {
-                return $this->response->setStatusCode(401)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Otorisasi ditolak: Password Admin wajib dimasukkan untuk menyetujui perubahan harga!'
-                ]);
+            if (empty($adminPassword) || !$this->verifySuperAdminPassword($adminPassword)) {
+                $statusPersetujuan = 'Belum Setuju';
+                $userApproved = null;
+                $tglApproved = null;
+            } else {
+                $statusPersetujuan = 'Setuju';
+                $userApproved = 'Admin (Otorisasi Password)';
+                $tglApproved = date('Y-m-d H:i:s');
+            }
+        }
+
+        // Catat ke antrean pending harga barang (VB6 frmListPendingHargaBarang & frmUbahHargaBarang)
+        $db->table('barang_pending_stok')->insert([
+            'ref_id'             => 'UHB-' . date('YmdHis'),
+            'tgl_input'          => date('Y-m-d H:i:s'),
+            'id_barang'          => $idBarang,
+            'nama_barang'        => $barang['nama_barang'],
+            'stok_pending'       => (float)($this->request->getPost('stok_pending') ?? 0),
+            'harga_beli_lama'    => (float)$barang['harga_beli'],
+            'harga_beli'         => $hargaBeliBaru,
+            'harga_jual_lama'    => (float)$barang['harga_jual'],
+            'harga_jual'         => $hargaJualBaru > 0 ? $hargaJualBaru : (float)$barang['harga_jual'],
+            'qty_paket_a'        => (int)$qtyPaketA,
+            'harga_paket_a'      => (float)$hrgPaketA,
+            'qty_paket_b'        => (int)$qtyPaketB,
+            'harga_paket_b'      => (float)$hrgPaketB,
+            'qty_paket_c'        => (int)$qtyPaketC,
+            'harga_paket_c'      => (float)$hrgPaketC,
+            'status_persetujuan' => $statusPersetujuan,
+            'status_eksekusi'    => 1,
+            'user_input'         => session()->get('nama_user') ?? (session()->get('kode_user') ?? 'KASIR1'),
+            'user_approved'      => $userApproved,
+            'tgl_approved'       => $tglApproved,
+            'catatan'            => $this->request->getPost('catatan') ?? 'Input Penyesuaian Harga Belanja',
+            'created_at'         => date('Y-m-d H:i:s'),
+        ]);
+
+        // Jika statusnya 'Setuju', perbarui juga master barang
+        if ($statusPersetujuan === 'Setuju') {
+            $updateData = [
+                'harga_beli' => $hargaBeliBaru,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($hargaJualBaru > 0) {
+                $updateData['harga_jual'] = $hargaJualBaru;
+            }
+            if ($hargaGrosirBaru > 0) {
+                $updateData['harga_grosir'] = $hargaGrosirBaru;
+            }
+            if ($qtyPaketA > 0 || $hrgPaketA > 0) {
+                $updateData['qty_paket_a'] = $qtyPaketA;
+                $updateData['hrg_paket_a'] = $hrgPaketA;
+            }
+            if ($qtyPaketB > 0 || $hrgPaketB > 0) {
+                $updateData['qty_paket_b'] = $qtyPaketB;
+                $updateData['hrg_paket_b'] = $hrgPaketB;
+            }
+            if ($qtyPaketC > 0 || $hrgPaketC > 0) {
+                $updateData['qty_paket_c'] = $qtyPaketC;
+                $updateData['hrg_paket_c'] = $hrgPaketC;
             }
 
-            if (!$this->verifySuperAdminPassword($adminPassword)) {
-                return $this->response->setStatusCode(403)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Password Admin salah! Otorisasi ditolak. Perubahan harga tidak disimpan.'
-                ]);
-            }
-
-            $approverUser = 'Supervisor / Admin (Terverifikasi)';
+            $db->table('barang')->where('id_barang', $idBarang)->update($updateData);
         }
 
-        // Simpan pembaruan harga ke master barang
-        $updateData = [
-            'harga_beli' => $hargaBeliBaru,
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
-
-        if ($hargaJualBaru > 0) {
-            $updateData['harga_jual'] = $hargaJualBaru;
-        }
-        if ($hargaGrosirBaru > 0) {
-            $updateData['harga_grosir'] = $hargaGrosirBaru;
-        }
-        if ($qtyPaketA > 0 || $hrgPaketA > 0) {
-            $updateData['qty_paket_a'] = $qtyPaketA;
-            $updateData['hrg_paket_a'] = $hrgPaketA;
-        }
-        if ($qtyPaketB > 0 || $hrgPaketB > 0) {
-            $updateData['qty_paket_b'] = $qtyPaketB;
-            $updateData['hrg_paket_b'] = $hrgPaketB;
-        }
-        if ($qtyPaketC > 0 || $hrgPaketC > 0) {
-            $updateData['qty_paket_c'] = $qtyPaketC;
-            $updateData['hrg_paket_c'] = $hrgPaketC;
-        }
-
-        $db->table('barang')->where('id_barang', $idBarang)->update($updateData);
+        $msg = ($statusPersetujuan === 'Setuju')
+            ? "Harga Master Produk ({$barang['nama_barang']}) berhasil disetujui & diperbarui (Status: Setuju)!"
+            : "Usulan harga baru dicatat ke Antrean Pending dengan status 'Belum Setuju'. Admin dapat mereview & menyetujuinya di menu Pending Update Stok.";
 
         return $this->response->setJSON([
             'status' => 'success',
-            'message' => "Harga Master Produk ({$barang['nama_barang']}) berhasil disetujui & diperbarui!",
+            'status_persetujuan' => $statusPersetujuan,
+            'message' => $msg,
             'data' => [
                 'id_barang' => $idBarang,
                 'nama_barang' => $barang['nama_barang'],

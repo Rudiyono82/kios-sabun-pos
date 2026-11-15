@@ -41,6 +41,16 @@ $routes->group('barang', ['filter' => 'auth'], function($routes) {
     $routes->post('update-stok-cepat', 'Barang::updateStokCepat', ['filter' => 'admin']);
 });
 
+// Antrean Pending Update Stok & Harga Barang (VB6 frmListPendingHargaBarang)
+$routes->group('pending-stok', ['filter' => 'auth'], function($routes) {
+    $routes->get('/', 'PendingStok::index');
+    $routes->post('approve/(:num)', 'PendingStok::approve/$1', ['filter' => 'admin']);
+    $routes->post('approve-with-change/(:num)', 'PendingStok::approveWithChange/$1', ['filter' => 'admin']);
+    $routes->post('reject/(:num)', 'PendingStok::reject/$1', ['filter' => 'admin']);
+    $routes->get('check-status/(:segment)', 'PendingStok::checkStatus/$1');
+    $routes->post('execute-update', 'PendingStok::executeUpdate');
+});
+
 // Master Kategori Barang
 $routes->group('kategori', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Kategori::index');

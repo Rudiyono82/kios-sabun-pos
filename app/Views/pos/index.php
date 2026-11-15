@@ -1080,7 +1080,7 @@
                         row.on('click', () => {
                             $drop.addClass('d-none').empty();
                             $('#barcode-input').val('');
-                            openModalInputQty(item);
+                            handleItemSelected(item);
                         });
                         $drop.append(row);
                     });
@@ -1132,7 +1132,7 @@
                 if (data && data.length > 0) {
                     $('#barcode-input').val('');
                     $('#search-dropdown').addClass('d-none');
-                    openModalInputQty(data[0]);
+                    handleItemSelected(data[0]);
                 } else {
                     Swal.fire('Tidak Ditemukan', 'Barcode atau kode barang tidak cocok!', 'warning');
                 }
@@ -1156,6 +1156,72 @@
     // MODAL POPUP KONFIRMASI INPUT QTY BARANG SEBELUM MASUK KERANJANG
     // =========================================================================
     let currentQtyItem = null;
+
+    // Handle Item Terpilih: Cek Status Pending Update Harga & Stok Sebelum Masuk Keranjang
+    function handleItemSelected(item) {
+        if (!item) return;
+
+        // Cek antrean pending update harga & stok barang
+        $.ajax({
+            url: '<?= base_url('pending-stok/check-status/') ?>' + encodeURIComponent(item.id_barang),
+            type: 'GET',
+            dataType: 'json',
+            success: function(resp) {
+                if (resp && resp.has_pending) {
+                    // Jika sisa stok toko sudah habis (<= 0)
+                    if (resp.is_old_stock_depleted) {
+                        // Cek syarat mutlak: Status mengandung kata "Setuju" (Setuju / Setuju dengan Perubahan)
+                        if (resp.is_approved) {
+                            // Eksekusi UpdateDataHargaMasterBarang otomatis
+                            $.ajax({
+                                url: '<?= base_url('pending-stok/execute-update') ?>',
+                                type: 'POST',
+                                data: { id_barang: item.id_barang },
+                                dataType: 'json',
+                                success: function(updateResp) {
+                                    if (updateResp.status === 'success') {
+                                        item.harga_jual = updateResp.data.harga_jual;
+                                        item.harga_beli = updateResp.data.harga_beli;
+                                        Swal.fire({
+                                            title: 'Harga Master Diperbarui Otomatis!',
+                                            html: `Sisa stok lama barang <strong>${item.nama_barang}</strong> telah habis.<br>Harga master secara otomatis diperbarui ke harga baru: <strong>Rp ${parseFloat(updateResp.data.harga_jual).toLocaleString('id-ID')}</strong><br><span class="badge bg-success mt-2">Status: ${resp.status_persetujuan}</span>`,
+                                            icon: 'info',
+                                            timer: 3000,
+                                            showConfirmButton: true
+                                        }).then(() => {
+                                            openModalInputQty(item);
+                                        });
+                                    } else {
+                                        openModalInputQty(item);
+                                    }
+                                },
+                                error: function() {
+                                    openModalInputQty(item);
+                                }
+                            });
+                            return;
+                        } else {
+                            // Status masih "Belum Setuju" -> Muncul Warning Popup!
+                            Swal.fire({
+                                title: 'Peringatan Harga Barang!',
+                                html: `Sisa stok lama barang <strong>${item.nama_barang}</strong> sudah habis.<br><br><span class="text-danger fw-bold fs-6">⚠️ Update harga baru belum disetujui oleh Admin (Status: Belum Setuju).</span><br><br>Transaksi saat ini <strong>masih menggunakan harga lama</strong> (Rp ${parseFloat(item.harga_jual).toLocaleString('id-ID')}).`,
+                                icon: 'warning',
+                                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Lanjutkan dengan Harga Lama',
+                                confirmButtonColor: '#f59e0b'
+                            }).then(() => {
+                                openModalInputQty(item);
+                            });
+                            return;
+                        }
+                    }
+                }
+                openModalInputQty(item);
+            },
+            error: function() {
+                openModalInputQty(item);
+            }
+        });
+    }
 
     function openModalInputQty(item) {
         if (!item) return;
@@ -1851,9 +1917,9 @@
         StockLookup.open({
             mode: 'penjualan',
             onSelect: function(item) {
-                // Tampilkan popup konfirmasi input Qty untuk barang yang dipilih
+                // Tampilkan popup konfirmasi input Qty untuk barang yang dipilih dengan pengecekan pending harga
                 setTimeout(function() {
-                    openModalInputQty(item);
+                    handleItemSelected(item);
                 }, 300);
             }
         });

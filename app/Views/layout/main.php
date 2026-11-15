@@ -848,7 +848,7 @@
         <?php
             $uri = uri_string();
             $isMasterActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'barang') || str_contains($uri, 'kategori') || str_contains($uri, 'satuan') || str_contains($uri, 'supplier') || str_contains($uri, 'member') || str_contains($uri, 'barcode')));
-            $isTransaksiActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || str_contains($uri, 'stok-opname') || str_contains($uri, 'transfer-stok')));
+            $isTransaksiActive = (!str_contains($uri, 'laporan') && (str_contains($uri, 'pos') || str_contains($uri, 'penjualan') || str_contains($uri, 'pembelian') || str_contains($uri, 'pending-stok') || str_contains($uri, 'retur') || str_contains($uri, 'produksi') || str_contains($uri, 'keuangan') || str_contains($uri, 'stok-opname') || str_contains($uri, 'transfer-stok')));
             $isLaporanActive = (str_contains($uri, 'laporan') || str_contains($uri, 'owner'));
             $isConfigActive = (str_contains($uri, 'karyawan') || str_contains($uri, 'cabang') || str_contains($uri, 'profile') || str_contains($uri, 'audit-trail') || str_contains($uri, 'live-kasir') || str_contains($uri, 'monitoring-kasir'));
         ?>
@@ -953,6 +953,25 @@
                                 <a href="<?= base_url('pembelian') ?>" class="nav-link <?= ($uri === 'pembelian' || (str_contains($uri, 'pembelian') && !str_contains($uri, 'laporan'))) ? 'active' : '' ?>">
                                     <i class="bi bi-truck text-primary"></i>
                                     <span>Pembelian / Restock</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('pending-stok') ?>" class="nav-link <?= str_contains($uri, 'pending-stok') ? 'active' : '' ?>">
+                                    <i class="bi bi-hourglass-split text-warning"></i>
+                                    <span>Pending Update Stok</span>
+                                    <?php
+                                        $dbSide = \Config\Database::connect();
+                                        $badgeSideCount = 0;
+                                        if ($dbSide->tableExists('barang_pending_stok')) {
+                                            $badgeSideCount = $dbSide->table('barang_pending_stok')
+                                                ->where('status_eksekusi', 1)
+                                                ->where('status_persetujuan', 'Belum Setuju')
+                                                ->countAllResults();
+                                        }
+                                    ?>
+                                    <?php if ($badgeSideCount > 0): ?>
+                                        <span class="badge rounded-pill bg-warning text-dark ms-auto fs-8 px-2"><?= $badgeSideCount ?></span>
+                                    <?php endif; ?>
                                 </a>
                             </li>
                             <li class="nav-item">
