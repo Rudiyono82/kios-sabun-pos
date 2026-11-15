@@ -811,17 +811,28 @@
                     .addClass('text-success')
                     .html('<i class="bi bi-check-circle-fill me-1"></i>Supplier Terpilih: <strong>' + namaSupplier + '</strong> (' + kodeSupplier + '). Silakan pilih produk rijek milik supplier ini.');
 
-                // Filter opsi dropdown barang agar hanya barang milik supplier terpilih yang muncul
-                $('#select-barang-retur').val('').trigger('change');
-                let matchingCount = 0;
-                $('#select-barang-retur option.opt-barang-item').each(function() {
-                    const s1 = $(this).data('supp1');
-                    const s2 = $(this).data('supp2');
-                    if (s1 === kodeSupplier || s2 === kodeSupplier) {
-                        $(this).removeClass('d-none');
-                        matchingCount++;
+                // Ambil daftar barang yang berelasi dengan supplier terpilih (dari Master & Riwayat Pembelian)
+                $('#select-barang-retur').html('<option value="">Memuat produk supplier...</option>');
+                $.get('<?= base_url('barang/lookup') ?>', { tipe: 'pembelian', supplier: kodeSupplier }, function(res) {
+                    if (res.status === 'success' && res.data && res.data.length > 0) {
+                        $('#select-barang-retur').empty().append('<option value="">-- Pilih Barang Supplier (' + res.data.length + ' Produk Tersedia) --</option>');
+                        res.data.forEach(function(item) {
+                            const stokText = ' [Stok: ' + new Intl.NumberFormat('id-ID').format(item.stok_cabang || item.stok_total || 0) + ' ' + (item.satuan || '') + ']';
+                            const optText = item.nama_barang + ' (' + item.id_barang + ')' + stokText;
+                            const $opt = $('<option>')
+                                .val(item.id_barang)
+                                .text(optText)
+                                .attr('data-nama', item.nama_barang)
+                                .attr('data-satuan', item.satuan || 'Pcs')
+                                .attr('data-harga', parseFloat(item.harga_beli) || 0)
+                                .attr('data-stok', parseFloat(item.stok_cabang || item.stok_total) || 0)
+                                .attr('data-supp1', item.kode_supplier_1 || kodeSupplier)
+                                .attr('data-supp2', item.kode_supplier_2 || '')
+                                .addClass('opt-barang-item');
+                            $('#select-barang-retur').append($opt);
+                        });
                     } else {
-                        $(this).addClass('d-none');
+                        $('#select-barang-retur').empty().append('<option value="">-- Belum ada produk terhubung supplier ini (Gunakan LookUp [F5] untuk melihat semua) --</option>');
                     }
                 });
 
@@ -874,10 +885,12 @@
                 return;
             }
 
-            // Buka Modal LookUp dalam mode pembelian khusus supplier terpilih (Semua Status Aktif & Nonaktif)
+            // Buka Modal LookUp dalam mode retur khusus supplier terpilih (Semua Status Aktif & Nonaktif)
+            const selectedSupplierName = $('#select-supplier-retur').find('option:selected').data('nama') || '';
             StockLookup.open({
-                mode: 'pembelian',
+                mode: 'retur',
                 supplier: selectedSupplier,
+                supplierName: selectedSupplierName,
                 onSelect: function(item) {
                     let $existingOpt = $('#select-barang-retur').find('option[value="' + item.id_barang + '"]');
                     if ($existingOpt.length === 0) {
@@ -903,6 +916,16 @@
                     setTimeout(() => $('#input-item-qty').focus().select(), 200);
                 }
             });
+        });
+
+        // Shortcut Keyboard F5 untuk Buka LookUp Barang di Retur
+        $(document).on('keydown', function(e) {
+            if (e.key === 'F5' || e.keyCode === 116) {
+                if ($('#modalInputRetur').hasClass('show') && !$('#modalLookupStock').hasClass('show')) {
+                    e.preventDefault();
+                    $('#btn-open-lookup-retur').trigger('click');
+                }
+            }
         });
 
         // 3. Tambah Barang ke Keranjang Retur

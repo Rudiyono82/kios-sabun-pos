@@ -1485,113 +1485,120 @@
             }
         }
 
-        // Fitur Drag & Move Seluruh Modal / Popup Agar Bisa Digeser
+        // Fitur Universal Drag & Move Seluruh Modal / Popup di Semua Halaman (Bisa Digeser-Geser)
         function initDraggablePopups() {
-            // 1. Draggable Bootstrap 5 Modals
-            $(document).on('mousedown', '.modal-header', function(e) {
-                // Abaikan jika user mengklik tombol close, dropdown, atau input di header
-                if ($(e.target).closest('button, a, input, select, .btn-close').length > 0) return;
+            // 1. Universal Draggable Bootstrap 5 Modals
+            $(document).on('mousedown touchstart', '.modal-header', function(e) {
+                // Abaikan jika user mengklik tombol close, dropdown, link, atau input di header
+                if ($(e.target).closest('button, a, input, select, textarea, .btn-close').length > 0) return;
 
                 const $header = $(this);
                 const $dialog = $header.closest('.modal-dialog');
                 if (!$dialog.length) return;
 
-                const rect = $dialog[0].getBoundingClientRect();
+                const isTouch = (e.type === 'touchstart');
+                const clientX = isTouch ? e.originalEvent.touches[0].clientX : e.clientX;
+                const clientY = isTouch ? e.originalEvent.touches[0].clientY : e.clientY;
 
-                // Jika tinggi popup modal melebihi tinggi layar, jangan gunakan position: fixed
-                // agar scroll vertikal alami ke footer tetap berfungsi 100% lancar
-                if (rect.height > (window.innerHeight - 80)) {
-                    return;
-                }
-
-                const startMouseX = e.clientX;
-                const startMouseY = e.clientY;
-                const initialLeft = rect.left;
-                const initialTop = rect.top;
-
-                $dialog.css({
-                    position: 'fixed',
-                    margin: '0',
-                    left: initialLeft + 'px',
-                    top: initialTop + 'px',
-                    width: rect.width + 'px',
-                    zIndex: 1060
-                });
+                let startX = clientX;
+                let startY = clientY;
+                let initialLeft = parseFloat($dialog.css('left')) || 0;
+                let initialTop = parseFloat($dialog.css('top')) || 0;
 
                 $header.css('cursor', 'grabbing');
+                $('body').addClass('user-select-none');
 
-                $(document).on('mousemove.modalDrag', function(ev) {
-                    const dx = ev.clientX - startMouseX;
-                    const dy = ev.clientY - startMouseY;
-                    let newLeft = initialLeft + dx;
-                    let newTop = initialTop + dy;
-
-                    // Batasan agar dialog tidak terlempar keluar layar
-                    newTop = Math.max(10, Math.min(window.innerHeight - 80, newTop));
-                    newLeft = Math.max(10 - rect.width + 120, Math.min(window.innerWidth - 120, newLeft));
+                const moveHandler = function(ev) {
+                    const curX = isTouch ? ev.originalEvent.touches[0].clientX : ev.clientX;
+                    const curY = isTouch ? ev.originalEvent.touches[0].clientY : ev.clientY;
+                    const dx = curX - startX;
+                    const dy = curY - startY;
 
                     $dialog.css({
-                        left: newLeft + 'px',
-                        top: newTop + 'px'
+                        'position': 'relative',
+                        'left': (initialLeft + dx) + 'px',
+                        'top': (initialTop + dy) + 'px',
+                        'margin-left': 'auto',
+                        'margin-right': 'auto'
                     });
-                });
+                };
 
-                $(document).on('mouseup.modalDrag', function() {
+                const endHandler = function() {
                     $header.css('cursor', 'grab');
-                    $(document).off('mousemove.modalDrag mouseup.modalDrag');
-                });
+                    $('body').removeClass('user-select-none');
+                    if (isTouch) {
+                        $(document).off('touchmove.modalDrag touchend.modalDrag');
+                    } else {
+                        $(document).off('mousemove.modalDrag mouseup.modalDrag');
+                    }
+                };
 
-                e.preventDefault();
+                if (isTouch) {
+                    $(document).on('touchmove.modalDrag', moveHandler);
+                    $(document).on('touchend.modalDrag', endHandler);
+                } else {
+                    $(document).on('mousemove.modalDrag', moveHandler);
+                    $(document).on('mouseup.modalDrag', endHandler);
+                    e.preventDefault();
+                }
             });
 
             // Reset posisi modal saat ditutup agar kembali rapi di posisi default
             $(document).on('hidden.bs.modal', '.modal', function() {
-                const $dialog = $(this).find('.modal-dialog');
-                $dialog.css({
-                    position: '',
-                    margin: '',
-                    left: '',
-                    top: '',
-                    width: '',
-                    zIndex: ''
+                $(this).find('.modal-dialog').css({
+                    'position': '',
+                    'left': '',
+                    'top': '',
+                    'margin-left': '',
+                    'margin-right': ''
                 });
             });
 
-            // 2. Draggable SweetAlert2 Popups
-            $(document).on('mousedown', '.swal2-title, .swal2-header', function(e) {
-                if ($(e.target).closest('button, a, input, select, .swal2-close').length > 0) return;
+            // 2. Universal Draggable SweetAlert2 Popups
+            $(document).on('mousedown touchstart', '.swal2-title, .swal2-header', function(e) {
+                if ($(e.target).closest('button, a, input, select, textarea, .swal2-close').length > 0) return;
 
                 const $popup = $(this).closest('.swal2-popup');
                 if (!$popup.length) return;
 
-                const rect = $popup[0].getBoundingClientRect();
-                const startMouseX = e.clientX;
-                const startMouseY = e.clientY;
-                const initialLeft = rect.left;
-                const initialTop = rect.top;
+                const isTouch = (e.type === 'touchstart');
+                const clientX = isTouch ? e.originalEvent.touches[0].clientX : e.clientX;
+                const clientY = isTouch ? e.originalEvent.touches[0].clientY : e.clientY;
 
-                $popup.css({
-                    position: 'fixed',
-                    margin: '0',
-                    left: initialLeft + 'px',
-                    top: initialTop + 'px',
-                    transform: 'none'
-                });
+                let startX = clientX;
+                let startY = clientY;
+                let initialLeft = parseFloat($popup.css('left')) || 0;
+                let initialTop = parseFloat($popup.css('top')) || 0;
 
-                $(document).on('mousemove.swalDrag', function(ev) {
-                    const dx = ev.clientX - startMouseX;
-                    const dy = ev.clientY - startMouseY;
+                const moveHandler = function(ev) {
+                    const curX = isTouch ? ev.originalEvent.touches[0].clientX : ev.clientX;
+                    const curY = isTouch ? ev.originalEvent.touches[0].clientY : ev.clientY;
+                    const dx = curX - startX;
+                    const dy = curY - startY;
+
                     $popup.css({
-                        left: (initialLeft + dx) + 'px',
-                        top: (initialTop + dy) + 'px'
+                        'position': 'relative',
+                        'left': (initialLeft + dx) + 'px',
+                        'top': (initialTop + dy) + 'px'
                     });
-                });
+                };
 
-                $(document).on('mouseup.swalDrag', function() {
-                    $(document).off('mousemove.swalDrag mouseup.swalDrag');
-                });
+                const endHandler = function() {
+                    if (isTouch) {
+                        $(document).off('touchmove.swalDrag touchend.swalDrag');
+                    } else {
+                        $(document).off('mousemove.swalDrag mouseup.swalDrag');
+                    }
+                };
 
-                e.preventDefault();
+                if (isTouch) {
+                    $(document).on('touchmove.swalDrag', moveHandler);
+                    $(document).on('touchend.swalDrag', endHandler);
+                } else {
+                    $(document).on('mousemove.swalDrag', moveHandler);
+                    $(document).on('mouseup.swalDrag', endHandler);
+                    e.preventDefault();
+                }
             });
         }
 

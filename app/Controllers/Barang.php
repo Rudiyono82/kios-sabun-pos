@@ -292,12 +292,39 @@ class Barang extends BaseController
                     ->where('COALESCE(sc.stok, b.stok) >', 0);
         } else {
             // Permintaan User:
-            // Di pembelian: semua barang sesuai suppliernya dan SEMUA STATUS (Aktif maupun Nonaktif)
+            // Di pembelian / retur: semua barang sesuai suppliernya (master barang & riwayat pembelian) dan SEMUA STATUS (Aktif maupun Nonaktif)
             if (!empty($kodeSupplier)) {
+                $suppRow = $db->table('supplier')->where('kode_supplier', $kodeSupplier)->get()->getRowArray();
+                $namaSupplier = $suppRow ? trim($suppRow['nama_supplier']) : '';
+
+                // Ambil daftar id_barang yang pernah dibeli dari supplier ini melalui riwayat pembelian
+                $subBeliBuilder = $db->table('pembelian_detail pd')
+                    ->select('pd.id_barang')
+                    ->join('pembelian p', 'p.no_beli = pd.no_beli')
+                    ->where('p.kode_supplier', $kodeSupplier);
+                if (!empty($namaSupplier)) {
+                    $subBeliBuilder->orWhere('p.nama_supplier', $namaSupplier);
+                }
+                $listIdBeli = array_column($subBeliBuilder->get()->getResultArray(), 'id_barang');
+
                 $builder->groupStart()
                     ->where('b.kode_supplier_1', $kodeSupplier)
                     ->orWhere('b.kode_supplier_2', $kodeSupplier)
-                    ->groupEnd();
+                    ->orLike('b.kode_supplier_1', $kodeSupplier)
+                    ->orLike('b.kode_supplier_2', $kodeSupplier);
+
+                if (!empty($namaSupplier)) {
+                    $builder->orLike('b.kode_supplier_1', $namaSupplier)
+                            ->orLike('b.kode_supplier_2', $namaSupplier)
+                            ->orLike('s1.nama_supplier', $namaSupplier)
+                            ->orLike('s2.nama_supplier', $namaSupplier);
+                }
+
+                if (!empty($listIdBeli)) {
+                    $builder->orWhereIn('b.id_barang', array_unique($listIdBeli));
+                }
+
+                $builder->groupEnd();
             }
         }
 

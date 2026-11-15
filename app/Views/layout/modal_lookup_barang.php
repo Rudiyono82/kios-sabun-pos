@@ -222,8 +222,9 @@
 <script>
 // OBJEK GLOBAL PENGENDALI LOOKUP LIST OF STOCK (POPUP VB6 STYLE)
 const StockLookup = {
-    mode: 'penjualan', // 'penjualan' atau 'pembelian'
+    mode: 'penjualan', // 'penjualan', 'pembelian', atau 'retur'
     supplierCode: '',
+    supplierName: '',
     items: [],
     selectedItem: null,
     onSelectCallback: null,
@@ -234,6 +235,7 @@ const StockLookup = {
         options = options || {};
         this.mode = options.mode || 'penjualan';
         this.supplierCode = options.supplier || '';
+        this.supplierName = options.supplierName || '';
         this.onSelectCallback = options.onSelect || null;
         this.selectedItem = null;
 
@@ -241,14 +243,23 @@ const StockLookup = {
         if (this.mode === 'penjualan') {
             $('#lookup-modal-title').text('List of Stock (LookUp Penjualan POS)');
             $('#lookup-modal-subtitle').text('Menampilkan barang aktif dengan stok > 0 untuk transaksi kasir');
-            $('#lookup-badge-mode').text('MODE PENJUALAN').removeClass('bg-warning text-dark').addClass('bg-white text-primary');
+            $('#lookup-badge-mode').text('MODE PENJUALAN').removeClass('bg-warning bg-danger text-white text-dark').addClass('bg-white text-primary');
             $('#lookup-th-col-harga').text('Harga Jual');
             $('#lookup-detail-lbl-harga').text('Harga Jual:');
             $('#lookup-th-col-status').hide(); // Di penjualan semua otomatis Aktif
+        } else if (this.mode === 'retur') {
+            const suppLabel = this.supplierName ? (this.supplierName + ' [' + this.supplierCode + ']') : (this.supplierCode || 'Supplier Terpilih');
+            $('#lookup-modal-title').text('List of Stock (LookUp Retur: ' + suppLabel + ')');
+            $('#lookup-modal-subtitle').text('Menampilkan produk yang disuplai atau pernah dibeli dari ' + suppLabel);
+            $('#lookup-badge-mode').text('MODE RETUR').removeClass('bg-white bg-warning text-primary text-dark').addClass('bg-danger text-white');
+            $('#lookup-th-col-harga').text('Harga Modal');
+            $('#lookup-detail-lbl-harga').text('Harga Modal (Beli):');
+            $('#lookup-th-col-status').show();
         } else {
-            $('#lookup-modal-title').text('List of Stock (LookUp Pembelian Supplier)');
+            const suppLabel = this.supplierName ? (this.supplierName + ' [' + this.supplierCode + ']') : (this.supplierCode || 'Supplier Terpilih');
+            $('#lookup-modal-title').text('List of Stock (LookUp Pembelian: ' + suppLabel + ')');
             $('#lookup-modal-subtitle').text('Menampilkan seluruh barang supplier terpilih (status aktif maupun tidak aktif)');
-            $('#lookup-badge-mode').text('MODE PEMBELIAN').removeClass('bg-white text-primary').addClass('bg-warning text-dark');
+            $('#lookup-badge-mode').text('MODE PEMBELIAN').removeClass('bg-white bg-danger text-primary text-white').addClass('bg-warning text-dark');
             $('#lookup-th-col-harga').text('Harga Modal');
             $('#lookup-detail-lbl-harga').text('Harga Modal (Beli):');
             $('#lookup-th-col-status').show(); // Di pembelian tampilkan status Aktif / Nonaktif
@@ -339,11 +350,19 @@ const StockLookup = {
         $('#lookup-count-number').text(items.length);
 
         if (!items || items.length === 0) {
+            let emptyMsg = 'Tidak ada barang yang cocok dengan kriteria pencarian.';
+            let actionBtn = '';
+            if (self.supplierCode) {
+                const suppTxt = self.supplierName ? (self.supplierName + ' (' + self.supplierCode + ')') : self.supplierCode;
+                emptyMsg = 'Belum ada produk yang berelasi dengan supplier <strong>' + suppTxt + '</strong>.';
+                actionBtn = '<div class="mt-2"><button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btn-lookup-show-all-stock"><i class="bi bi-box-seam me-1"></i>Tampilkan Semua Barang Toko</button></div>';
+            }
             $tbody.html(`
                 <tr>
                     <td colspan="7" class="text-center py-5 text-muted">
-                        <i class="bi bi-inbox fs-2 opacity-50 d-block mb-1"></i>
-                        Tidak ada barang yang cocok dengan filter kriteria pencarian.
+                        <i class="bi bi-inbox fs-2 text-warning d-block mb-1"></i>
+                        <div>${emptyMsg}</div>
+                        ${actionBtn}
                     </td>
                 </tr>
             `);
@@ -355,7 +374,7 @@ const StockLookup = {
             const harga = (self.mode === 'penjualan') ? parseFloat(item.harga_jual || 0) : parseFloat(item.harga_beli || 0);
             const statusClass = item.status === 'Aktif' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle';
 
-            const statusCol = (self.mode === 'pembelian') 
+            const statusCol = (self.mode !== 'penjualan') 
                 ? `<td class="text-center"><span class="badge ${statusClass} small">${item.status}</span></td>`
                 : '';
 
@@ -570,6 +589,12 @@ $(document).ready(function() {
 
     // 5. Tombol Cari Manual & Refresh
     $('#btn-lookup-do-search, #btn-lookup-refresh-data').on('click', function() {
+        StockLookup.fetchData(false);
+    });
+
+    $(document).on('click', '#btn-lookup-show-all-stock', function() {
+        StockLookup.supplierCode = '';
+        $('#lookup-modal-subtitle').text('Menampilkan seluruh produk di toko');
         StockLookup.fetchData(false);
     });
 
