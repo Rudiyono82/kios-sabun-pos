@@ -660,7 +660,7 @@
 <!-- 3. MODAL DETAIL DATA RETUR MULTI-BARANG                                    -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="modalDetailRetur" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-warning text-dark py-3">
                 <h5 class="modal-title fw-bold mb-0"><i class="bi bi-arrow-left-right me-2"></i>Rincian Dokumen Retur: <span id="dtl-retur-noretur"></span></h5>
@@ -698,16 +698,16 @@
                 <div class="card p-3 mb-3 border-danger bg-danger bg-opacity-10">
                     <h6 class="fw-bold text-danger mb-2"><i class="bi bi-x-octagon-fill me-2"></i>Daftar Barang Rijek / Rusak yang Diretur:</h6>
                     <div class="table-responsive bg-white rounded border">
-                        <table class="table table-sm table-hover mb-0" id="dtl-table-items">
-                            <thead class="table-light fs-8 text-uppercase">
+                        <table class="table table-sm table-hover align-middle mb-0" id="dtl-table-items">
+                            <thead class="table-light fs-8 text-uppercase text-nowrap">
                                 <tr>
-                                    <th class="text-center" style="width: 35px;">No</th>
+                                    <th class="text-center" style="width: 40px;">No</th>
                                     <th>Nama Produk &amp; Kode</th>
-                                    <th class="text-center" style="width: 80px;">Qty Retur</th>
-                                    <th class="text-center" style="width: 100px;">Realisasi</th>
-                                    <th class="text-end" style="width: 110px;">Harga Modal</th>
-                                    <th>Alasan Retur</th>
-                                    <th class="text-end" style="width: 130px;">Subtotal Nilai</th>
+                                    <th class="text-center" style="width: 100px;">Qty Retur</th>
+                                    <th class="text-center" style="width: 120px;">Realisasi</th>
+                                    <th class="text-end" style="width: 130px;">Harga Modal</th>
+                                    <th style="width: 140px;">Alasan Retur</th>
+                                    <th class="text-end" style="width: 150px;">Subtotal Nilai</th>
                                 </tr>
                             </thead>
                             <tbody id="dtl-tbody-items">
