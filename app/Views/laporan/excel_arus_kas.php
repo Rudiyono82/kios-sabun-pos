@@ -36,10 +36,11 @@
         
         <!-- NERACA VALUASI ASET -->
         <tr style="background-color: #f1f5f9; font-weight: bold;">
-            <td colspan="2">POSISI KEKAYAAN TOKO:</td>
-            <td colspan="2">Kas Akhir: Rp <?= number_format($saldo_akhir_kas, 0, ',', '.') ?></td>
-            <td colspan="2">Aset Barang (HPP): Rp <?= number_format($nilai_aset_hpp, 0, ',', '.') ?></td>
-            <td style="color: #047857;">TOTAL ASET: Rp <?= number_format($total_kekayaan_toko, 0, ',', '.') ?></td>
+            <td>POSISI KEKAYAAN:</td>
+            <td colspan="2">1. Kas Tunai Fisik: Rp <?= number_format($saldo_kas_tunai, 0, ',', '.') ?></td>
+            <td colspan="2">2. Rekening Bank &amp; QRIS: Rp <?= number_format($saldo_kas_bank, 0, ',', '.') ?></td>
+            <td>3. Modal Stok (HPP): Rp <?= number_format($nilai_aset_hpp, 0, ',', '.') ?></td>
+            <td style="color: #047857; font-weight: bold;">TOTAL KEKAYAAN: Rp <?= number_format($total_kekayaan_toko, 0, ',', '.') ?></td>
         </tr>
         <tr><td colspan="7"></td></tr>
     </table>

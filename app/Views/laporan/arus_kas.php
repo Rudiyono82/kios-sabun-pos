@@ -128,48 +128,146 @@
 </div>
 
 <!-- ============================================== -->
-<!-- HERO CARD: VALUASI TOTAL KEKAYAAN TOKO         -->
 <!-- ============================================== -->
-<div class="card border-0 rounded-4 p-4 mb-4 text-white shadow" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%) !important; color: #ffffff !important;">
-    <div class="row align-items-center g-3">
-        <div class="col-12 col-lg-7">
-            <span class="badge bg-success text-white px-3 py-1 rounded-pill fw-bold text-uppercase mb-2 shadow-sm">
-                <i class="bi bi-shield-check me-1"></i> Posisi Kekayaan Toko (Periode: <?= esc($periode_label) ?>)
-            </span>
-            <h5 class="text-white-50 mb-1" style="color: rgba(255, 255, 255, 0.75) !important;">Total Estimasi Kekayaan / Valuasi Aset Toko:</h5>
-            <h1 class="display-5 fw-bold text-white mb-2" style="letter-spacing: -1px; color: #ffffff !important;">
+<!-- HERO CARD: VALUASI TOTAL KEKAYAAN TOKO (1 SCREEN)-->
+<!-- ============================================== -->
+<div class="card border-0 rounded-4 p-4 mb-4 text-white shadow-lg" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%) !important; color: #ffffff !important;">
+    <!-- Bagian Atas: Grand Total Valuasi Kekayaan Toko -->
+    <div class="row align-items-center g-3 mb-3 pb-3 border-bottom" style="border-color: rgba(255, 255, 255, 0.15) !important;">
+        <div class="col-12 col-lg-8">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="badge bg-success text-white px-3 py-1 rounded-pill fw-bold text-uppercase shadow-sm">
+                    <i class="bi bi-shield-check me-1"></i> Posisi Kekayaan Toko (Periode: <?= esc($periode_label) ?>)
+                </span>
+                <span class="badge bg-light text-dark px-2 py-1 rounded-pill fw-semibold">
+                    <i class="bi bi-shop me-1"></i> <?= esc($profil['nama_toko'] ?? 'Kios Sabun & Parfum') ?>
+                </span>
+            </div>
+            <h5 class="text-white-50 mb-1" style="color: rgba(255, 255, 255, 0.8) !important; font-size: 0.95rem;">
+                TOTAL ESTIMASI KEKAYAAN BERSIH TOKO (NET ASSET VALUATION):
+            </h5>
+            <h1 class="display-4 fw-bolder text-white mb-2" style="letter-spacing: -1.5px; color: #ffffff !important; line-height: 1.1;">
                 Rp <?= number_format($total_kekayaan_toko, 0, ',', '.') ?>
             </h1>
-            <p class="small mb-0" style="color: rgba(255, 255, 255, 0.65) !important;">
-                Kombinasi likuiditas uang kas fisik &amp; bank per akhir periode ditambah total nilai modal inventaris barang dagang yang tersedia di toko.
+            <p class="small mb-0" style="color: rgba(255, 255, 255, 0.75) !important;">
+                Kombinasi utuh 3 aset toko: <strong>Uang Kas Tunai</strong> di laci/toko + <strong>Uang di Rekening Bank/QRIS</strong> + <strong>Nilai Modal Persediaan Seluruh Stok Barang</strong>.
             </p>
         </div>
 
-        <div class="col-12 col-lg-5">
-            <div class="rounded-3 p-3 border" style="background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15) !important;">
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom" style="border-color: rgba(255, 255, 255, 0.15) !important;">
-                    <div>
-                        <div class="small" style="color: rgba(255, 255, 255, 0.75) !important;">1. Saldo Kas Akhir (Uang Tunai &amp; Bank):</div>
-                        <div class="h5 fw-bold text-warning mb-0">
-                            Rp <?= number_format($saldo_akhir_kas, 0, ',', '.') ?>
-                        </div>
-                    </div>
-                    <i class="bi bi-wallet2 fs-2 text-warning"></i>
+        <div class="col-12 col-lg-4 text-lg-end">
+            <!-- Komposisi Persentase Aset -->
+            <?php 
+                $persenKas = ($total_kekayaan_toko > 0) ? round(($saldo_kas_tunai / $total_kekayaan_toko) * 100, 1) : 0;
+                $persenBank = ($total_kekayaan_toko > 0) ? round(($saldo_kas_bank / $total_kekayaan_toko) * 100, 1) : 0;
+                $persenStok = ($total_kekayaan_toko > 0) ? round(($nilai_aset_hpp / $total_kekayaan_toko) * 100, 1) : 0;
+            ?>
+            <div class="p-3 rounded-3 text-start" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-semibold" style="color: rgba(255, 255, 255, 0.85);">Komposisi Aset Toko:</span>
+                    <span class="badge bg-info text-dark fw-bold">100% Total</span>
                 </div>
-
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="small" style="color: rgba(255, 255, 255, 0.75) !important;">2. Nilai Persediaan Barang (Modal HPP):</div>
-                        <div class="h5 fw-bold text-info mb-0">
-                            Rp <?= number_format($nilai_aset_hpp, 0, ',', '.') ?>
-                        </div>
-                        <div style="color: rgba(255, 255, 255, 0.6) !important; font-size: 0.75rem;">
-                            <?= number_format($total_sku, 0, ',', '.') ?> SKU &bull; <?= number_format($total_unit, 0, ',', '.') ?> Unit Produk
-                        </div>
-                    </div>
-                    <i class="bi bi-box-seam fs-2 text-info"></i>
+                <div class="progress mb-2" style="height: 10px; background-color: rgba(255, 255, 255, 0.2);">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: <?= $persenKas ?>%" title="Kas Tunai: <?= $persenKas ?>%"></div>
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: <?= $persenBank ?>%" title="Rekening Bank: <?= $persenBank ?>%"></div>
+                    <div class="progress-bar bg-info" role="progressbar" style="width: <?= $persenStok ?>%" title="Stok Barang: <?= $persenStok ?>%"></div>
+                </div>
+                <div class="d-flex justify-content-between text-white-50" style="font-size: 0.75rem;">
+                    <span><i class="bi bi-circle-fill text-success me-1"></i>Tunai: <?= $persenKas ?>%</span>
+                    <span><i class="bi bi-circle-fill text-warning me-1"></i>Bank: <?= $persenBank ?>%</span>
+                    <span><i class="bi bi-circle-fill text-info me-1"></i>Stok: <?= $persenStok ?>%</span>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Bagian Tengah: 3 PILAR UTAMA KEKAYAAN TOKO DALAM 1 SCREEN -->
+    <div class="row g-3">
+        <!-- Pilar 1: Uang Cash / Kas Tunai -->
+        <div class="col-12 col-md-4">
+            <div class="card h-100 border-0 rounded-3 p-3 shadow-sm" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(52, 211, 153, 0.4) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge px-2 py-1 rounded text-white fw-bold mb-1" style="background-color: #059669;">
+                            <i class="bi bi-cash-stack me-1"></i> PILAR 1: KAS FISIK
+                        </span>
+                        <div class="text-white-50 small" style="color: rgba(255, 255, 255, 0.8) !important;">Uang Cash / Tunai di Toko</div>
+                    </div>
+                    <div class="rounded-circle p-2" style="background: rgba(16, 185, 129, 0.25);">
+                        <i class="bi bi-cash-coin fs-3 text-success" style="color: #6ee7b7 !important;"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-white mb-1" style="color: #ffffff !important; letter-spacing: -0.5px;">
+                    Rp <?= number_format($saldo_kas_tunai, 0, ',', '.') ?>
+                </h3>
+                <div class="small" style="color: rgba(255, 255, 255, 0.75) !important; font-size: 0.8rem;">
+                    <i class="bi bi-check-circle text-success me-1"></i> Ada di laci kasir &amp; brankas toko (likuid riil setelah operasional tunai).
+                </div>
+            </div>
+        </div>
+
+        <!-- Pilar 2: Uang di Rekening Bank & QRIS -->
+        <div class="col-12 col-md-4">
+            <div class="card h-100 border-0 rounded-3 p-3 shadow-sm" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(251, 191, 36, 0.4) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge px-2 py-1 rounded text-dark fw-bold mb-1" style="background-color: #f59e0b;">
+                            <i class="bi bi-bank me-1"></i> PILAR 2: BANK &amp; QRIS
+                        </span>
+                        <div class="text-white-50 small" style="color: rgba(255, 255, 255, 0.8) !important;">Uang di Rekening Bank</div>
+                    </div>
+                    <div class="rounded-circle p-2" style="background: rgba(245, 158, 11, 0.25);">
+                        <i class="bi bi-credit-card-2-front fs-3 text-warning" style="color: #fde047 !important;"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-white mb-1" style="color: #ffffff !important; letter-spacing: -0.5px;">
+                    Rp <?= number_format($saldo_kas_bank, 0, ',', '.') ?>
+                </h3>
+                <div class="small" style="color: rgba(255, 255, 255, 0.75) !important; font-size: 0.8rem;">
+                    <i class="bi bi-check-circle text-warning me-1"></i> Saldo dari Transfer Bank, QRIS, &amp; Debit yang tersimpan di rekening toko.
+                </div>
+            </div>
+        </div>
+
+        <!-- Pilar 3: Nilai Modal Persediaan Stok Barang (Stok x HPP) -->
+        <div class="col-12 col-md-4">
+            <div class="card h-100 border-0 rounded-3 p-3 shadow-sm" style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(56, 189, 248, 0.4) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge px-2 py-1 rounded text-dark fw-bold mb-1" style="background-color: #38bdf8;">
+                            <i class="bi bi-boxes me-1"></i> PILAR 3: ASET STOK BARANG
+                        </span>
+                        <div class="text-white-50 small" style="color: rgba(255, 255, 255, 0.8) !important;">Diconvert dari Harga Modal (HPP)</div>
+                    </div>
+                    <div class="rounded-circle p-2" style="background: rgba(14, 165, 233, 0.25);">
+                        <i class="bi bi-box-seam fs-3 text-info" style="color: #7dd3fc !important;"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-white mb-1" style="color: #ffffff !important; letter-spacing: -0.5px;">
+                    Rp <?= number_format($nilai_aset_hpp, 0, ',', '.') ?>
+                </h3>
+                <div class="small" style="color: rgba(255, 255, 255, 0.75) !important; font-size: 0.8rem;">
+                    <i class="bi bi-check-circle text-info me-1"></i> Rumus: <strong>Stok Fisik &times; Harga Beli (HPP)</strong> &bull; <?= number_format($total_sku, 0, ',', '.') ?> SKU (<?= number_format($total_unit, 0, ',', '.') ?> Unit)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bagian Bawah: Insight Nilai Jual & Potensi Profit Margin Barang Dagang -->
+    <div class="mt-3 pt-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color: rgba(255, 255, 255, 0.15) !important;">
+        <div class="d-flex flex-wrap align-items-center gap-3 text-white small" style="font-size: 0.85rem;">
+            <div>
+                <span class="text-white-50"><i class="bi bi-tag-fill text-warning me-1"></i>Potensi Nilai Jual Seluruh Stok:</span>
+                <strong class="text-white ms-1">Rp <?= number_format($nilai_aset_jual, 0, ',', '.') ?></strong>
+            </div>
+            <div>
+                <span class="text-white-50"><i class="bi bi-graph-up-arrow text-success me-1"></i>Potensi Keuntungan Modal Stok:</span>
+                <strong class="text-success ms-1" style="color: #86efac !important;">
+                    +Rp <?= number_format($potensi_keuntungan_stok, 0, ',', '.') ?> (+<?= $persen_margin_stok ?>%)
+                </strong>
+            </div>
+        </div>
+        <div class="small text-white-50" style="font-size: 0.75rem;">
+            <i class="bi bi-info-circle me-1"></i> Seluruh angka dihitung otomatis dan sinkron secara real-time dari data penjualan, kas, dan stok toko.
         </div>
     </div>
 </div>
@@ -195,7 +293,7 @@
                 Rp <?= number_format($total_pemasukan, 0, ',', '.') ?>
             </div>
             <div class="text-muted small mt-1">
-                POS: <strong>Rp <?= number_format($total_penjualan_pos, 0, ',', '.') ?></strong>
+                POS: <strong>Rp <?= number_format($total_penjualan_pos, 0, ',', '.') ?></strong> (Tunai: Rp <?= number_format($periode_penjualan_cash, 0, ',', '.') ?> &bull; Bank: Rp <?= number_format($periode_penjualan_bank, 0, ',', '.') ?>)
             </div>
         </div>
     </div>

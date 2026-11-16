@@ -177,21 +177,30 @@
 
         <!-- RINGKASAN POSISI KEKAYAAN TOKO -->
         <div class="border rounded p-3 mb-4 bg-light">
-            <div class="fw-bold text-dark text-uppercase small mb-2 border-bottom pb-1">
-                <i class="bi bi-shield-check text-success me-1"></i> Ringkasan Neraca Kekayaan Toko (Net Asset Valuation)
+            <div class="fw-bold text-dark text-uppercase small mb-2 border-bottom pb-1 d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-shield-check text-success me-1"></i> Ringkasan Neraca Kekayaan Toko (Net Asset Valuation)</span>
+                <span class="badge bg-success text-white">Total: Rp <?= number_format($total_kekayaan_toko, 0, ',', '.') ?></span>
             </div>
             <div class="row g-2 small">
-                <div class="col-4">
-                    <span class="text-muted">1. Saldo Kas Akhir Toko:</span>
-                    <div class="h6 fw-bold text-primary mb-0">Rp <?= number_format($saldo_akhir_kas, 0, ',', '.') ?></div>
+                <div class="col-3">
+                    <span class="text-muted">1. Uang Kas Tunai (Laci):</span>
+                    <div class="h6 fw-bold text-success mb-0">Rp <?= number_format($saldo_kas_tunai, 0, ',', '.') ?></div>
+                    <div style="font-size: 7.5pt;" class="text-muted">Kas fisik di toko</div>
                 </div>
-                <div class="col-4">
-                    <span class="text-muted">2. Nilai Persediaan Barang (HPP):</span>
+                <div class="col-3">
+                    <span class="text-muted">2. Uang di Rekening Bank:</span>
+                    <div class="h6 fw-bold text-warning mb-0">Rp <?= number_format($saldo_kas_bank, 0, ',', '.') ?></div>
+                    <div style="font-size: 7.5pt;" class="text-muted">Bank, QRIS &amp; Transfer</div>
+                </div>
+                <div class="col-3">
+                    <span class="text-muted">3. Modal Stok Barang (HPP):</span>
                     <div class="h6 fw-bold text-info mb-0">Rp <?= number_format($nilai_aset_hpp, 0, ',', '.') ?></div>
+                    <div style="font-size: 7.5pt;" class="text-muted"><?= number_format($total_sku ?? 0) ?> SKU &bull; <?= number_format($total_unit ?? 0) ?> Unit</div>
                 </div>
-                <div class="col-4 border-start ps-3">
-                    <span class="text-muted">TOTAL VALUASI ASET TOKO:</span>
-                    <div class="h5 fw-bold text-success mb-0">Rp <?= number_format($total_kekayaan_toko, 0, ',', '.') ?></div>
+                <div class="col-3 border-start ps-3">
+                    <span class="text-muted fw-bold">TOTAL KEKAYAAN TOKO:</span>
+                    <div class="h5 fw-bold text-primary mb-0">Rp <?= number_format($total_kekayaan_toko, 0, ',', '.') ?></div>
+                    <div style="font-size: 7.5pt;" class="text-success fw-semibold">Tunai + Bank + Stok HPP</div>
                 </div>
             </div>
         </div>

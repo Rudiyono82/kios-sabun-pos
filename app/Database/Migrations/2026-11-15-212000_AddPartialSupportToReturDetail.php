@@ -54,3 +54,4 @@ class AddPartialSupportToReturDetail extends Migration
         }
     }
 }
+
