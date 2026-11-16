@@ -50,6 +50,8 @@ echo "[MIGRATION] Opened SQLite database at {$sqlitePath}.\n";
 function sqliteToMysqlDdl(string $sqliteSql): string
 {
     $ddl = preg_replace('/^CREATE\s+TABLE\s+/i', 'CREATE TABLE IF NOT EXISTS ', $sqliteSql);
+    // Hapus foreign key SQLite yang sering bentrok tipe data int/bigint di MySQL
+    $ddl = preg_replace('/,\s*FOREIGN\s+KEY\s*\([^)]+\)\s*REFERENCES\s+[^,\)]+\([^)]+\)(\s+ON\s+(DELETE|UPDATE)\s+[A-Z]+)*/i', '', $ddl);
     $ddl = preg_replace('/INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/i', 'BIGINT AUTO_INCREMENT PRIMARY KEY', $ddl);
     $ddl = preg_replace('/VARCHAR(?!\s*\()/i', 'VARCHAR(255)', $ddl);
     $ddl = preg_replace('/DECIMAL(?!\s*\()/i', 'DECIMAL(15,2)', $ddl);
@@ -106,61 +108,69 @@ try {
             continue;
         }
 
-        // 3a. Buat tabel jika belum ada di MySQL
-        $mysqlDdl = sqliteToMysqlDdl($sqliteSql);
         try {
-            $pdo->exec($mysqlDdl);
-        } catch (Exception $ddlErr) {
-            echo "[MIGRATION WARN] Table creation notice for `{$tableName}`: " . $ddlErr->getMessage() . "\n";
-        }
+            // 3a. Buat tabel jika belum ada di MySQL
+            $mysqlDdl = sqliteToMysqlDdl($sqliteSql);
+            try {
+                $pdo->exec($mysqlDdl);
+            } catch (Exception $ddlErr) {
+                echo "[MIGRATION WARN] Table creation notice for `{$tableName}`: " . $ddlErr->getMessage() . "\n";
+            }
 
-        // 3b. Cek jumlah baris di MySQL
-        $mysqlRows = 0;
-        try {
-            $mysqlRows = (int)$pdo->query("SELECT COUNT(*) FROM `{$tableName}`")->fetchColumn();
-        } catch (Exception $e) {
+            // 3b. Cek jumlah baris di MySQL
             $mysqlRows = 0;
-        }
+            try {
+                $mysqlRows = (int)$pdo->query("SELECT COUNT(*) FROM `{$tableName}`")->fetchColumn();
+            } catch (Exception $e) {
+                $mysqlRows = 0;
+            }
 
-        $sqliteRows = (int)$sqlite->querySingle("SELECT COUNT(*) FROM `{$tableName}`");
+            $sqliteRows = (int)$sqlite->querySingle("SELECT COUNT(*) FROM `{$tableName}`");
 
-        if ($mysqlRows > 0) {
-            echo "[MIGRATION] Table `{$tableName}` already populated ({$mysqlRows} rows in MySQL). Skipped.\n";
-            continue;
-        }
+            if ($mysqlRows > 0) {
+                echo "[MIGRATION] Table `{$tableName}` already populated ({$mysqlRows} rows in MySQL). Skipped.\n";
+                continue;
+            }
 
-        if ($sqliteRows === 0) {
-            echo "[MIGRATION] Table `{$tableName}` is empty in SQLite. Ready.\n";
-            continue;
-        }
+            if ($sqliteRows === 0) {
+                echo "[MIGRATION] Table `{$tableName}` is empty in SQLite. Ready.\n";
+                continue;
+            }
 
-        echo "[MIGRATION] Copying {$sqliteRows} rows for `{$tableName}` into MySQL...\n";
-        
-        $dataRes = $sqlite->query("SELECT * FROM `{$tableName}`");
-        
-        $batch = [];
-        $batchSize = 250;
-        $totalInserted = 0;
+            echo "[MIGRATION] Copying {$sqliteRows} rows for `{$tableName}` into MySQL...\n";
+            
+            $dataRes = $sqlite->query("SELECT * FROM `{$tableName}`");
+            
+            $batch = [];
+            $batchSize = 250;
+            $totalInserted = 0;
 
-        $pdo->beginTransaction();
+            $pdo->beginTransaction();
 
-        while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
-            $batch[] = $row;
-            if (count($batch) >= $batchSize) {
+            while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                $batch[] = $row;
+                if (count($batch) >= $batchSize) {
+                    insertBatch($pdo, $tableName, $batch);
+                    $totalInserted += count($batch);
+                    $batch = [];
+                }
+            }
+
+            if (count($batch) > 0) {
                 insertBatch($pdo, $tableName, $batch);
                 $totalInserted += count($batch);
                 $batch = [];
             }
-        }
 
-        if (count($batch) > 0) {
-            insertBatch($pdo, $tableName, $batch);
-            $totalInserted += count($batch);
-            $batch = [];
-        }
+            $pdo->commit();
+            echo "[MIGRATION] Completed `{$tableName}`: {$totalInserted} rows inserted.\n";
 
-        $pdo->commit();
-        echo "[MIGRATION] Completed `{$tableName}`: {$totalInserted} rows inserted.\n";
+        } catch (Exception $tableErr) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo "[MIGRATION ERROR on table `{$tableName}`]: " . $tableErr->getMessage() . "\n";
+        }
     }
 
     // Buat marker log migrasi
@@ -186,5 +196,5 @@ try {
     if ($pdo) {
         $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
     }
-    echo "[MIGRATION ERROR] " . $e->getMessage() . "\n";
+    echo "[MIGRATION FATAL ERROR] " . $e->getMessage() . "\n";
 }
