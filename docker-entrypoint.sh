@@ -13,4 +13,12 @@ a2enmod mpm_prefork 2>/dev/null || true
 chown -R www-data:www-data /var/www/html/writable
 chmod -R 775 /var/www/html/writable
 
+# Automated database setup & migration to MySQL if configured
+if [ -n "$DB_HOST" ] || [ -n "$MYSQLHOST" ]; then
+    echo "=========================================================="
+    echo "MySQL database detected. Running automated migration..."
+    echo "=========================================================="
+    php /var/www/html/scripts/migrate_sqlite_to_mysql.php || true
+fi
+
 exec apache2-foreground

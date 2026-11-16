@@ -187,5 +187,35 @@ class Database extends Config
         if (ENVIRONMENT === 'testing') {
             $this->defaultGroup = 'tests';
         }
+
+        // Deteksi MySQL otomatis dari environment (Railway / Cloud Production)
+        $dbHost = getenv('DB_HOST') ?: getenv('MYSQLHOST');
+        if (!empty($dbHost)) {
+            $this->default = [
+                'DSN'          => '',
+                'hostname'     => $dbHost,
+                'username'     => getenv('DB_USER') ?: (getenv('MYSQLUSER') ?: 'root'),
+                'password'     => getenv('DB_PASSWORD') ?: (getenv('MYSQLPASSWORD') ?: ''),
+                'database'     => getenv('DB_NAME') ?: (getenv('MYSQLDATABASE') ?: 'railway'),
+                'DBDriver'     => 'MySQLi',
+                'DBPrefix'     => '',
+                'pConnect'     => false,
+                'DBDebug'      => true,
+                'charset'      => 'utf8mb4',
+                'DBCollat'     => 'utf8mb4_general_ci',
+                'swapPre'      => '',
+                'encrypt'      => false,
+                'compress'     => false,
+                'strictOn'     => false,
+                'failover'     => [],
+                'port'         => (int)(getenv('DB_PORT') ?: (getenv('MYSQLPORT') ?: 3306)),
+                'numberNative' => false,
+                'dateFormat'   => [
+                    'date'     => 'Y-m-d',
+                    'datetime' => 'Y-m-d H:i:s',
+                    'time'     => 'H:i:s',
+                ],
+            ];
+        }
     }
 }

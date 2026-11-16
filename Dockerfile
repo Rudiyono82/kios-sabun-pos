@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install system dependencies & PHP extensions needed for CodeIgniter 4 + SQLite
+# Install system dependencies & PHP extensions needed for CodeIgniter 4 + SQLite + MySQL
 RUN apt-get update && apt-get install -y \
     libicu-dev \
     libsqlite3-dev \
@@ -8,9 +8,12 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
+    default-mysql-client \
     && docker-php-ext-install \
     intl \
     zip \
+    mysqli \
+    pdo_mysql \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Enable Apache rewrite module & prefork MPM
