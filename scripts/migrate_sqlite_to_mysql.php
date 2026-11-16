@@ -13,7 +13,7 @@ $dbName = getenv('DB_NAME') ?: (getenv('MYSQLDATABASE') ?: 'railway');
 
 echo "[MIGRATION] Checking MySQL target: {$host}:{$port}, Database: {$dbName}, User: {$user}...\n";
 
-// 1. Hubungkan ke MySQL dengan retry loop (menunggu jika MySQL sedang proses start)
+// 1. Hubungkan ke MySQL dengan retry loop
 $pdo = null;
 $maxRetries = 15;
 for ($i = 1; $i <= $maxRetries; $i++) {
@@ -36,21 +36,7 @@ if (!$pdo) {
     exit(0);
 }
 
-// 2. Cek apakah MySQL sudah memiliki data
-try {
-    $checkStmt = $pdo->query("SHOW TABLES LIKE 'barang'");
-    if ($checkStmt && $checkStmt->rowCount() > 0) {
-        $count = $pdo->query("SELECT COUNT(*) FROM `barang`")->fetchColumn();
-        if ((int)$count > 0) {
-            echo "[MIGRATION] MySQL already populated with {$count} products in 'barang'. Migration already completed. Skipping.\n";
-            exit(0);
-        }
-    }
-} catch (Exception $e) {
-    // Tabel belum ada, lanjut ke proses pembuatan tabel dan impor data
-}
-
-// 3. Buka SQLite database lokal
+// 2. Buka SQLite database lokal
 $sqlitePath = __DIR__ . '/../writable/database.db';
 if (!file_exists($sqlitePath)) {
     echo "[MIGRATION WARNING] SQLite database not found at {$sqlitePath}. Nothing to migrate.\n";
@@ -63,7 +49,8 @@ echo "[MIGRATION] Opened SQLite database at {$sqlitePath}.\n";
 // Helper DDL converter
 function sqliteToMysqlDdl(string $sqliteSql): string
 {
-    $ddl = preg_replace('/INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/i', 'BIGINT AUTO_INCREMENT PRIMARY KEY', $sqliteSql);
+    $ddl = preg_replace('/^CREATE\s+TABLE\s+/i', 'CREATE TABLE IF NOT EXISTS ', $sqliteSql);
+    $ddl = preg_replace('/INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/i', 'BIGINT AUTO_INCREMENT PRIMARY KEY', $ddl);
     $ddl = preg_replace('/VARCHAR(?!\s*\()/i', 'VARCHAR(255)', $ddl);
     $ddl = preg_replace('/DECIMAL(?!\s*\()/i', 'DECIMAL(15,2)', $ddl);
     $ddl = preg_replace('/\bREAL\b/i', 'DOUBLE', $ddl);
@@ -72,7 +59,32 @@ function sqliteToMysqlDdl(string $sqliteSql): string
     return $ddl . " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;";
 }
 
-// 4. Proses Impor Schema & Data
+function insertBatch(PDO $pdo, string $tableName, array $rows): void
+{
+    if (empty($rows)) return;
+
+    $cols = array_keys($rows[0]);
+    $escapedCols = array_map(fn($c) => "`{$c}`", $cols);
+    $colList = implode(', ', $escapedCols);
+
+    $valuesClauses = [];
+    $params = [];
+
+    foreach ($rows as $row) {
+        $placeholders = [];
+        foreach ($cols as $col) {
+            $placeholders[] = '?';
+            $params[] = $row[$col];
+        }
+        $valuesClauses[] = '(' . implode(', ', $placeholders) . ')';
+    }
+
+    $sql = "INSERT INTO `{$tableName}` ({$colList}) VALUES " . implode(', ', $valuesClauses);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+}
+
+// 3. Proses Impor Schema & Data Per-Tabel
 try {
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
     $pdo->exec("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';");
@@ -84,7 +96,7 @@ try {
         $tableList[] = $r;
     }
 
-    echo "[MIGRATION] Found " . count($tableList) . " tables in SQLite to migrate.\n";
+    echo "[MIGRATION] Found " . count($tableList) . " tables in SQLite to verify/migrate.\n";
 
     foreach ($tableList as $tInfo) {
         $tableName = $tInfo['name'];
@@ -94,23 +106,35 @@ try {
             continue;
         }
 
-        echo "[MIGRATION] Creating table `{$tableName}` in MySQL...\n";
+        // 3a. Buat tabel jika belum ada di MySQL
         $mysqlDdl = sqliteToMysqlDdl($sqliteSql);
-        
         try {
             $pdo->exec($mysqlDdl);
         } catch (Exception $ddlErr) {
-            echo "[MIGRATION WARN] Table creation warning for `{$tableName}`: " . $ddlErr->getMessage() . "\n";
+            echo "[MIGRATION WARN] Table creation notice for `{$tableName}`: " . $ddlErr->getMessage() . "\n";
         }
 
-        // Ambil data dari SQLite
-        $rowCount = (int)$sqlite->querySingle("SELECT COUNT(*) FROM `{$tableName}`");
-        if ($rowCount === 0) {
-            echo "[MIGRATION] Table `{$tableName}` is empty. Skipped data copying.\n";
+        // 3b. Cek jumlah baris di MySQL
+        $mysqlRows = 0;
+        try {
+            $mysqlRows = (int)$pdo->query("SELECT COUNT(*) FROM `{$tableName}`")->fetchColumn();
+        } catch (Exception $e) {
+            $mysqlRows = 0;
+        }
+
+        $sqliteRows = (int)$sqlite->querySingle("SELECT COUNT(*) FROM `{$tableName}`");
+
+        if ($mysqlRows > 0) {
+            echo "[MIGRATION] Table `{$tableName}` already populated ({$mysqlRows} rows in MySQL). Skipped.\n";
             continue;
         }
 
-        echo "[MIGRATION] Copying {$rowCount} rows for `{$tableName}`...\n";
+        if ($sqliteRows === 0) {
+            echo "[MIGRATION] Table `{$tableName}` is empty in SQLite. Ready.\n";
+            continue;
+        }
+
+        echo "[MIGRATION] Copying {$sqliteRows} rows for `{$tableName}` into MySQL...\n";
         
         $dataRes = $sqlite->query("SELECT * FROM `{$tableName}`");
         
@@ -147,43 +171,20 @@ try {
             `note` VARCHAR(255)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
-    $pdo->exec("INSERT INTO `_sqlite_migration_log` (migrated_at, note) VALUES (NOW(), 'Migrasi awal SQLite ke MySQL berhasil.');");
+    $pdo->exec("INSERT INTO `_sqlite_migration_log` (migrated_at, note) VALUES (NOW(), 'Migrasi SQLite ke MySQL berhasil.');");
 
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
 
     echo "\n=======================================================\n";
-    echo "[MIGRATION SUCCESS] Seluruh data SQLite berhasil dipindahkan ke MySQL!\n";
+    echo "[MIGRATION SUCCESS] Seluruh tabel & data SQLite berhasil dipindahkan ke MySQL!\n";
     echo "=======================================================\n";
 
 } catch (Exception $e) {
-    if ($pdo->inTransaction()) {
+    if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
-    echo "[MIGRATION ERROR] " . $e->getMessage() . "\n";
-}
-
-function insertBatch(PDO $pdo, string $tableName, array $rows): void
-{
-    if (empty($rows)) return;
-
-    $cols = array_keys($rows[0]);
-    $escapedCols = array_map(fn($c) => "`{$c}`", $cols);
-    $colList = implode(', ', $escapedCols);
-
-    $valuesClauses = [];
-    $params = [];
-
-    foreach ($rows as $row) {
-        $placeholders = [];
-        foreach ($cols as $col) {
-            $placeholders[] = '?';
-            $params[] = $row[$col];
-        }
-        $valuesClauses[] = '(' . implode(', ', $placeholders) . ')';
+    if ($pdo) {
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
     }
-
-    $sql = "INSERT INTO `{$tableName}` ({$colList}) VALUES " . implode(', ', $valuesClauses);
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    echo "[MIGRATION ERROR] " . $e->getMessage() . "\n";
 }
