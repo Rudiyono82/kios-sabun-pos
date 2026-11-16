@@ -130,26 +130,26 @@
 <!-- ============================================== -->
 <!-- HERO CARD: VALUASI TOTAL KEKAYAAN TOKO         -->
 <!-- ============================================== -->
-<div class="card-modern p-4 mb-4 bg-gradient text-white border-0 shadow" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%);">
+<div class="card border-0 rounded-4 p-4 mb-4 text-white shadow" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%) !important; color: #ffffff !important;">
     <div class="row align-items-center g-3">
         <div class="col-12 col-lg-7">
-            <span class="badge bg-success text-white px-3 py-1 rounded-pill fw-bold text-uppercase mb-2">
+            <span class="badge bg-success text-white px-3 py-1 rounded-pill fw-bold text-uppercase mb-2 shadow-sm">
                 <i class="bi bi-shield-check me-1"></i> Posisi Kekayaan Toko (Periode: <?= esc($periode_label) ?>)
             </span>
-            <h5 class="text-white-50 mb-1">Total Estimasi Kekayaan / Valuasi Aset Toko:</h5>
-            <h1 class="display-5 fw-bold text-white mb-2" style="letter-spacing: -1px;">
+            <h5 class="text-white-50 mb-1" style="color: rgba(255, 255, 255, 0.75) !important;">Total Estimasi Kekayaan / Valuasi Aset Toko:</h5>
+            <h1 class="display-5 fw-bold text-white mb-2" style="letter-spacing: -1px; color: #ffffff !important;">
                 Rp <?= number_format($total_kekayaan_toko, 0, ',', '.') ?>
             </h1>
-            <p class="text-white-50 small mb-0">
+            <p class="small mb-0" style="color: rgba(255, 255, 255, 0.65) !important;">
                 Kombinasi likuiditas uang kas fisik &amp; bank per akhir periode ditambah total nilai modal inventaris barang dagang yang tersedia di toko.
             </p>
         </div>
 
         <div class="col-12 col-lg-5">
-            <div class="bg-white bg-opacity-10 rounded-3 p-3 border border-white border-opacity-10">
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-white border-opacity-10">
+            <div class="rounded-3 p-3 border" style="background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15) !important;">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom" style="border-color: rgba(255, 255, 255, 0.15) !important;">
                     <div>
-                        <div class="small text-white-50">1. Saldo Kas Akhir (Uang Tunai &amp; Bank):</div>
+                        <div class="small" style="color: rgba(255, 255, 255, 0.75) !important;">1. Saldo Kas Akhir (Uang Tunai &amp; Bank):</div>
                         <div class="h5 fw-bold text-warning mb-0">
                             Rp <?= number_format($saldo_akhir_kas, 0, ',', '.') ?>
                         </div>
@@ -159,11 +159,11 @@
 
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="small text-white-50">2. Nilai Persediaan Barang (Modal HPP):</div>
+                        <div class="small" style="color: rgba(255, 255, 255, 0.75) !important;">2. Nilai Persediaan Barang (Modal HPP):</div>
                         <div class="h5 fw-bold text-info mb-0">
                             Rp <?= number_format($nilai_aset_hpp, 0, ',', '.') ?>
                         </div>
-                        <div class="text-white-50" style="font-size: 0.72rem;">
+                        <div style="color: rgba(255, 255, 255, 0.6) !important; font-size: 0.75rem;">
                             <?= number_format($total_sku, 0, ',', '.') ?> SKU &bull; <?= number_format($total_unit, 0, ',', '.') ?> Unit Produk
                         </div>
                     </div>
