@@ -1035,12 +1035,6 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="<?= base_url('laporan/arus-kas') ?>" class="nav-link <?= str_contains($uri, 'laporan/arus-kas') ? 'active' : '' ?>">
-                                    <i class="bi bi-cash-coin text-success"></i>
-                                    <span>Arus Kas &amp; Valuasi Aset</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a href="<?= base_url('laporan/harian') ?>" class="nav-link <?= str_contains($uri, 'laporan/harian') ? 'active' : '' ?>">
                                     <i class="bi bi-graph-up-arrow text-warning"></i>
                                     <span>Laporan Toko Harian</span>
@@ -1053,6 +1047,12 @@
                                 </a>
                             </li>
                             <?php if (session()->get('role') === 'admin'): ?>
+                            <li class="nav-item">
+                                <a href="<?= base_url('laporan/arus-kas') ?>" class="nav-link <?= str_contains($uri, 'laporan/arus-kas') ? 'active' : '' ?>">
+                                    <i class="bi bi-cash-coin text-success"></i>
+                                    <span>Arus Kas &amp; Valuasi Aset</span>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a href="<?= base_url('laporan/owner') ?>" class="nav-link <?= str_contains($uri, 'owner') ? 'active' : '' ?>" style="background: rgba(245, 158, 11, 0.12); border-left: 3px solid #f59e0b; color: #fbbf24; font-weight: 700;">
                                     <i class="bi bi-shield-lock-fill text-warning"></i>

@@ -180,9 +180,10 @@ $routes->group('laporan', ['filter' => 'auth'], function($routes) {
     $routes->get('pembelian/cetak', 'Laporan::cetakPembelian');
     $routes->get('pembelian/excel', 'Laporan::excelPembelian');
     $routes->get('pembelian/detail/(:segment)', 'Laporan::detailPembelian/$1');
-    $routes->get('arus-kas', 'Laporan::arusKas');
-    $routes->get('arus-kas/cetak', 'Laporan::cetakArusKas');
-    $routes->get('arus-kas/excel', 'Laporan::excelArusKas');
+    // Arus Kas & Valuasi Kekayaan Toko (Eksklusif Admin / Owner)
+    $routes->get('arus-kas', 'Laporan::arusKas', ['filter' => 'admin']);
+    $routes->get('arus-kas/cetak', 'Laporan::cetakArusKas', ['filter' => 'admin']);
+    $routes->get('arus-kas/excel', 'Laporan::excelArusKas', ['filter' => 'admin']);
     $routes->get('kartu-stok', 'Laporan::kartuStok', ['filter' => 'admin']);
     $routes->get('stok-opname', 'Laporan::stokOpname', ['filter' => 'admin']);
     

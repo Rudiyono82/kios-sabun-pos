@@ -1345,6 +1345,10 @@ class Laporan extends BaseController
     // =========================================================================
     public function arusKas()
     {
+        if (session()->get('role') !== 'admin') {
+            return redirect()->to(base_url('dashboard'))->with('error', 'Akses ditolak! Laporan Arus Kas & Valuasi Aset hanya dapat diakses oleh Admin.');
+        }
+
         $db = \Config\Database::connect();
 
         $modePeriode = $this->request->getGet('mode_periode') ?: 'bulan'; // 'bulan' atau 'rentang'
@@ -1592,6 +1596,10 @@ class Laporan extends BaseController
 
     public function cetakArusKas()
     {
+        if (session()->get('role') !== 'admin') {
+            return redirect()->to(base_url('dashboard'))->with('error', 'Akses ditolak! Laporan Arus Kas & Valuasi Aset hanya dapat diakses oleh Admin.');
+        }
+
         $db = \Config\Database::connect();
 
         $modePeriode = $this->request->getGet('mode_periode') ?: 'bulan';
@@ -1768,6 +1776,10 @@ class Laporan extends BaseController
 
     public function excelArusKas()
     {
+        if (session()->get('role') !== 'admin') {
+            return redirect()->to(base_url('dashboard'))->with('error', 'Akses ditolak! Laporan Arus Kas & Valuasi Aset hanya dapat diakses oleh Admin.');
+        }
+
         $db = \Config\Database::connect();
 
         $modePeriode = $this->request->getGet('mode_periode') ?: 'bulan';
