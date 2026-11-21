@@ -8,9 +8,8 @@ Dokumen ini berisi aturan permanen dan konsensus sistem yang wajib ditaati oleh 
 
 ### A. Role Kasir (`role = 'kasir'`)
 1. **DILARANG KERAS**:
-   - Menampilkan, mengirimkan via JSON API, merender di tampilan HTML, atau mencetak di struk thermal kasir:
-     - **Estimasi Margin Profit Kotor / Bersih** (`total_profit`, `profit`).
-     - **Nomor Laporan Berkode Hex Profit** (warisan VB6 `dechex(totalProfit)`). Untuk kasir, nomor laporan wajib berupa nomor urut tanggal standar (`YYYYMMDD-XXX`).
+   - Menampilkan, mengirimkan via JSON API, merender di tampilan HTML, atau mencetak di struk kasir:
+     - **Teks Eksplisit Estimasi Margin Profit Kotor / Bersih** (`total_profit`, `profit`).
      - **Grafik Laba / Margin Profit** di Dashboard.
      - **Rincian Laba per Item / Faktur** pada modal detail penjualan (`/penjualan/detail`).
      - **Menu Laporan Owner & Valuasi Aset**.
@@ -20,6 +19,10 @@ Dokumen ini berisi aturan permanen dan konsensus sistem yang wajib ditaati oleh 
      - `harga_beli` bersifat **MURNI LOOKUP OTOMATIS (READ-ONLY)** dari Master Barang.
 
 2. **Data & Hak Akses yang Diizinkan untuk Kasir (Kebutuhan Operasional Toko)**:
+   - **Nomor Laporan Berkode Hex Profit** (warisan sistem VB6 `dechex(totalProfit)`):
+     - Nomor Laporan pada Struk Thermal Rekap Kasir dan Laporan Harian **TETAP menggunakan format kode Hex**.
+     - Bagi kasir, kode ini tampak seperti nomor seri laporan biasa tanpa mengetahui maknanya.
+     - Bagi Owner, kode hex ini adalah sarana rahasia untuk membaca profit harian dari kertas struk printout (`hexdec(...)`) maupun dari web login admin.
    - Melihat daftar produk / katalog master barang dan rincian item secara *read-only* (termasuk melihat `harga_beli` sebagai informasi pengecekan tanpa izin edit).
    - Menjalankan transaksi Pembelian / Restock barang dari supplier dan Retur Supplier dengan `harga_beli` yang terisi otomatis dari lookup Master Barang.
    - Saldo Kas Awal Laci Toko (`kas_awal`).

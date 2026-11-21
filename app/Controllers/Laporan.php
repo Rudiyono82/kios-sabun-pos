@@ -62,10 +62,8 @@ class Laporan extends BaseController
             if ($k['jenis_keuangan'] === 'Pengeluaran') $pengeluaran += (float) $k['total'];
         }
 
-        // Keamanan Finansial: Nomor laporan untuk kasir TIDAK BOLEH memuat konversi Hex Profit
-        $noLaporan = $isAdmin 
-            ? (!empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0')
-            : date('Ymd') . '-' . str_pad(count($penjualan), 3, '0', STR_PAD_LEFT);
+        // Nomor Laporan berbasis konversi Hex Profit (warisan VB6 Access agar Owner bisa membaca laba dari kode hex)
+        $noLaporan = !empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0';
 
         $data = [
             'title' => 'Laporan Harian Toko',
@@ -211,12 +209,12 @@ class Laporan extends BaseController
         $userRole = strtolower(trim((string)(session()->get('role') ?: 'kasir')));
         $isAdminRole = ($userRole === 'admin');
 
-        // Keamanan Finansial: Hanya admin yang boleh mengetahui estimasi profit dan Hex profit
+        // Nomor Laporan berbasis konversi Hex Profit (warisan VB6 Access agar Owner bisa membaca laba dari kertas struk kasir)
+        $noLaporan = !empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0';
+
         if ($isAdminRole) {
-            $noLaporan = !empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0';
             $profitAsli = $totalProfit;
         } else {
-            $noLaporan = date('ymd') . '-' . str_pad($totalTransaksi, 3, '0', STR_PAD_LEFT);
             $profitAsli = 0;
             $totalProfit = 0;
             foreach ($penjualan as &$pj) {
