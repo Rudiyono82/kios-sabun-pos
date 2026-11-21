@@ -177,8 +177,16 @@ class Laporan extends BaseController
                 $kasAwal += $total;
                 if (!$tglKasAwal) $tglKasAwal = $k['tanggal'];
             } elseif ($jenis === 'Pemasukan') {
-                // Jangan hitung ulang jika ini adalah sinkronisasi otomatis penjualan
-                if (stripos($nama, 'Penjualan') === false && stripos($nama, 'Omzet') === false) {
+                // Jangan hitung ulang jika ini adalah rekapan otomatis omzet, profit, atau penjualan dari sistem lama (VB6)
+                $isSynthetic = (
+                    stripos($nama, 'Penjualan') !== false ||
+                    stripos($nama, 'Omzet') !== false ||
+                    stripos($nama, 'Profit') !== false ||
+                    stripos($nama, 'Laba') !== false ||
+                    stripos($nama, 'Kas Awal') !== false ||
+                    stripos($nama, 'Modal Awal') !== false
+                );
+                if (!$isSynthetic) {
                     $pemasukanLain += $total;
                     $listPemasukanLain[] = [
                         'nama' => $nama,

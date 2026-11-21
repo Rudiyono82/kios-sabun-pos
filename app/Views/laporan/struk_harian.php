@@ -231,11 +231,23 @@
     <?php endif; ?>
 
     <!-- 4. PEMASUKAN KAS LAIN (JIKA ADA) -->
-    <?php if (!empty($list_pemasukan_lain)): ?>
+    <?php 
+    $cleanPemasukanLain = [];
+    if (!empty($list_pemasukan_lain)) {
+        foreach ($list_pemasukan_lain as $p) {
+            $n = strtolower($p['nama'] ?? '');
+            if (strpos($n, 'profit') !== false || strpos($n, 'laba') !== false || strpos($n, 'omzet') !== false) {
+                continue;
+            }
+            $cleanPemasukanLain[] = $p;
+        }
+    }
+    ?>
+    <?php if (!empty($cleanPemasukanLain)): ?>
         <div class="divider"></div>
         <div class="fw-bold">PEMASUKAN KAS LAIN :</div>
         <table>
-            <?php foreach ($list_pemasukan_lain as $idx => $pem): ?>
+            <?php foreach ($cleanPemasukanLain as $idx => $pem): ?>
                 <tr>
                     <td><?= ($idx + 1) ?>. <?= esc($pem['nama']) ?></td>
                     <td class="text-end nowrap">Rp <?= number_format($pem['total'], 0, ',', '.') ?></td>

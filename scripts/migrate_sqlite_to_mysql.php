@@ -517,6 +517,14 @@ try {
         // ignore
     }
 
+    // Hapus seluruh catatan rekapan sintetik Total Profit dan Total Omzet dari data_keuangan MySQL
+    try {
+        $pdo->exec("DELETE FROM `data_keuangan` WHERE `nama_keuangan` LIKE '%Total Profit%' OR `nama_keuangan` LIKE '%Total Omzet%'");
+        echo "[MIGRATION] Cleaned synthetic Total Profit and Total Omzet rows from data_keuangan in MySQL.\n";
+    } catch (Exception $e) {
+        // ignore
+    }
+
     echo "\n=======================================================\n";
     echo "[MIGRATION SUCCESS] Seluruh tabel & data SQLite berhasil disinkronkan ke MySQL!\n";
     echo "=======================================================\n";
