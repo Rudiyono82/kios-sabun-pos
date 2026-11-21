@@ -9,12 +9,17 @@ Dokumen ini berisi aturan permanen dan konsensus sistem yang wajib ditaati oleh 
 ### A. Role Kasir (`role = 'kasir'`)
 1. **DILARANG KERAS** menampilkan, mengirimkan via JSON API, merender di tampilan HTML, atau mencetak di struk thermal kasir hal-hal berikut:
    - **Estimasi Margin Profit Kotor / Bersih** (`total_profit`, `profit`).
-   - **Harga Beli Modal / HPP Produk** (`harga_beli`).
    - **Nomor Laporan Berkode Hex Profit** (warisan VB6 `dechex(totalProfit)`). Untuk kasir, nomor laporan wajib berupa nomor urut tanggal standar (`YYYYMMDD-XXX`).
    - **Grafik Laba / Margin Profit** di Dashboard.
    - **Rincian Laba per Item / Faktur** pada modal detail penjualan (`/penjualan/detail`).
    - **Menu Laporan Owner & Valuasi Aset**.
-2. **Data Finansial yang Diizinkan untuk Kasir**:
+   - **Mengedit / Mengubah Data Master Harga Beli Barang** (field `harga_beli` saat edit barang wajib di-disabled/readonly untuk kasir; perubahan harga master pada modul pembelian wajib meminta otorisasi password admin).
+
+2. **Data Finansial yang Diizinkan untuk Kasir (Kebutuhan Operasional Lengkap Toko)**:
+   - **Melihat & Menginput Harga Beli (Modal / HPP)** pada:
+     - Form transaksi Pembelian / Restock barang dari supplier sesuai nota belanja fisik.
+     - Form Retur Pembelian ke supplier.
+     - Tampilan daftar produk / katalog master barang dan rincian item (sebagai informasi / read-only).
    - Saldo Kas Awal Laci Toko (`kas_awal`).
    - Total Omzet Penjualan (`omzet` / `grand_total`).
    - Total Pengeluaran / Biaya Operasional Toko (`pengeluaran`).
@@ -24,6 +29,7 @@ Dokumen ini berisi aturan permanen dan konsensus sistem yang wajib ditaati oleh 
 
 ### B. Role Administrator / Owner (`role = 'admin'`)
 - Memiliki hak akses penuh melihat seluruh metrik finansial, HPP, profitabilitas per barang, estimasi laba kotor/bersih, laporan arus kas lengkap, valuasi aset toko, dan laporan owner.
+- Memiliki wewenang mengubah / mengedit master data harga beli dan harga jual produk.
 
 ---
 
