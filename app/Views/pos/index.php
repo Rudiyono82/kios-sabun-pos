@@ -1598,6 +1598,9 @@
         if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
+            if (isSubmittingTransaction || $('#btn-proses-transaksi').prop('disabled')) {
+                return false;
+            }
             $('#btn-proses-transaksi').trigger('click');
         }
     });
@@ -1620,8 +1623,9 @@
         });
     });
 
-    // 5. Proses Transaksi ke Server & Kirim WhatsApp jika Member
+    // 5. Proses Transaksi ke Server & Kirim WhatsApp jika Member (Dilengkapi Anti Double-Click & Idempotency Key)
     let isSubmittingTransaction = false;
+    let currentClientToken = 'POS-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
 
     $('#btn-proses-transaksi').on('click', function(e) {
         if (e) {
@@ -1629,7 +1633,7 @@
             e.stopPropagation();
         }
 
-        if (isSubmittingTransaction) {
+        if (isSubmittingTransaction || $(this).prop('disabled') || $(this).hasClass('disabled')) {
             console.warn('Transaksi sedang diproses, mencegah double submit...');
             return false;
         }
@@ -1653,13 +1657,16 @@
             return;
         }
 
+        // Kunci tombol transaksi secara instan untuk mencegah double-click
         isSubmittingTransaction = true;
+        $('#btn-proses-transaksi').prop('disabled', true).addClass('disabled').css('pointer-events', 'none').html('<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...');
 
         const kodeMember = ($('input[name="customer_type"]:checked').val() === 'member' && selectedMember) ? selectedMember.kode_member : null;
         const kodeVoucher = ($('input[name="customer_type"]:checked').val() === 'member') ? ($('#select-voucher-pos').val() || null) : null;
         const potonganVoucher = ($('input[name="customer_type"]:checked').val() === 'member') ? (parseFloat($('#select-voucher-pos option:selected').data('potongan')) || 0) : 0;
 
         const payload = {
+            client_token: currentClientToken,
             items: cart,
             kode_member: kodeMember,
             diskon: diskon,
@@ -1670,7 +1677,6 @@
             bayar: bayar
         };
 
-        $('#btn-proses-transaksi').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...');
         if (typeof showSaveLoading === 'function') {
             showSaveLoading('Menyimpan Transaksi POS...', 'Mohon tunggu sebentar, transaksi dan struk kasir sedang diproses...');
         }
@@ -1681,11 +1687,9 @@
             contentType: 'application/json',
             data: JSON.stringify(payload),
             success: function(res) {
-                isSubmittingTransaction = false;
                 if (typeof hideSaveLoading === 'function') {
                     hideSaveLoading();
                 }
-                $('#btn-proses-transaksi').prop('disabled', false).html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
                 
                 // Tutup Modal Bayar
                 $('#modalBayar').modal('hide');
@@ -1716,19 +1720,24 @@
 
                 $('#modalStruk').modal('show');
 
-                // Reset Keranjang
+                // Reset Keranjang & Buat Token Baru untuk Transaksi Berikutnya
                 cart = [];
                 $('#input-diskon').val(0);
                 $('#chk-jerigen').prop('checked', false).trigger('change');
                 $('#input-bayar').val('');
                 renderCart();
+                currentClientToken = 'POS-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
             },
             error: function(err) {
-                isSubmittingTransaction = false;
                 if (typeof hideSaveLoading === 'function') {
                     hideSaveLoading();
                 }
-                $('#btn-proses-transaksi').prop('disabled', false).html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
+                // Debounce 1.5 detik sebelum tombol bayar dibuka kembali jika terjadi kegagalan
+                setTimeout(function() {
+                    isSubmittingTransaction = false;
+                    $('#btn-proses-transaksi').prop('disabled', false).removeClass('disabled').css('pointer-events', '').html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
+                }, 1500);
+
                 const resJson = err.responseJSON;
                 if (resJson && resJson.require_kas_awal) {
                     $('#modalBayar').modal('hide');
@@ -1746,6 +1755,17 @@
                 }
             }
         });
+    });
+
+    // Reset tombol transaksi kasir saat modal struk atau modal bayar ditutup
+    $('#modalStruk').on('hidden.bs.modal', function() {
+        isSubmittingTransaction = false;
+        $('#btn-proses-transaksi').prop('disabled', false).removeClass('disabled').css('pointer-events', '').html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
+    });
+    $('#modalBayar').on('hidden.bs.modal', function() {
+        if (!isSubmittingTransaction) {
+            $('#btn-proses-transaksi').prop('disabled', false).removeClass('disabled').css('pointer-events', '').html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
+        }
     });
 
     // Cetak Struk Fisik
@@ -1826,8 +1846,13 @@
         // 8. F9: Buka Modal Pembayaran (Checkout) / Selesaikan Transaksi
         else if (e.key === 'F9') {
             e.preventDefault();
+            if ($('#modalStruk').hasClass('show')) {
+                return;
+            }
             if ($('#modalBayar').hasClass('show')) {
-                $('#btn-proses-transaksi').click();
+                if (!isSubmittingTransaction && !$('#btn-proses-transaksi').prop('disabled')) {
+                    $('#btn-proses-transaksi').click();
+                }
             } else {
                 bukaModalBayar();
             }
@@ -1862,16 +1887,18 @@
         }
         // 11. Enter: Selesaikan Transaksi jika di Modal Bayar, atau Cetak Struk jika di Modal Struk
         else if (e.key === 'Enter') {
-            if ($('#modalBayar').hasClass('show')) {
+            if ($('#modalStruk').hasClass('show')) {
+                e.preventDefault();
+                $('#btn-print-struk').trigger('click');
+            } else if ($('#modalBayar').hasClass('show')) {
                 // Jika sedang di input-bayar, event sudah ditangani oleh keydown input-bayar
                 if (e.target && e.target.id === 'input-bayar') {
                     return;
                 }
                 e.preventDefault();
-                $('#btn-proses-transaksi').trigger('click');
-            } else if ($('#modalStruk').hasClass('show')) {
-                e.preventDefault();
-                $('#btn-print-struk').trigger('click');
+                if (!isSubmittingTransaction && !$('#btn-proses-transaksi').prop('disabled')) {
+                    $('#btn-proses-transaksi').trigger('click');
+                }
             }
         }
     });

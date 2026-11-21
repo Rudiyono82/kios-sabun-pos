@@ -41,12 +41,19 @@ class Laporan extends BaseController
         $totalQty = 0;
         $totalJerigenTukar = 0;
 
-        foreach ($penjualan as $p) {
+        foreach ($penjualan as &$p) {
             $totalOmzet += (float) $p['grand_total'];
-            $totalProfit += (float) $p['total_profit'];
             $totalQty += (float) $p['total_qty'];
             $totalJerigenTukar += (float) $p['potongan_tukar_jerigen'];
+
+            if ($isAdmin) {
+                $totalProfit += (float) ($p['total_profit'] ?? 0);
+            } else {
+                // Keamanan Finansial: Hapus data profit transaksi dari sisi kasir
+                unset($p['total_profit']);
+            }
         }
+        unset($p);
 
         $kasAwal = 0;
         $pengeluaran = 0;
@@ -55,7 +62,10 @@ class Laporan extends BaseController
             if ($k['jenis_keuangan'] === 'Pengeluaran') $pengeluaran += (float) $k['total'];
         }
 
-        $noLaporan = !empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0';
+        // Keamanan Finansial: Nomor laporan untuk kasir TIDAK BOLEH memuat konversi Hex Profit
+        $noLaporan = $isAdmin 
+            ? (!empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0')
+            : date('Ymd') . '-' . str_pad(count($penjualan), 3, '0', STR_PAD_LEFT);
 
         $data = [
             'title' => 'Laporan Harian Toko',
@@ -70,7 +80,7 @@ class Laporan extends BaseController
             'cabang_list' => $cabangList,
             'rekap' => [
                 'omzet' => $totalOmzet,
-                'profit' => $totalProfit,
+                'profit' => $isAdmin ? $totalProfit : 0,
                 'no_laporan' => $noLaporan,
                 'qty' => $totalQty,
                 'tukar_jerigen' => $totalJerigenTukar,
@@ -190,15 +200,21 @@ class Laporan extends BaseController
         $fisikKasLaci = $kasAwal + $totalTunai + $pemasukanLain - $totalPengeluaran;
 
         $kasirName = session()->get('nama_user') ?: session()->get('kode_user') ?: 'Kasir';
-        $userRole = session()->get('role') ?: 'kasir';
+        $userRole = strtolower(trim((string)(session()->get('role') ?: 'kasir')));
+        $isAdminRole = ($userRole === 'admin');
 
-        // Logika Warisan VB6 (DectoHex): Margin profit diselubungkan ke field No. Laporan
-        $noLaporan = !empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0';
-        $profitAsli = $totalProfit;
-
-        // Jika kasir yang mencetak, sembunyikan nilai profit langsung demi keamanan finansial toko
-        if ($userRole !== 'admin') {
+        // Keamanan Finansial: Hanya admin yang boleh mengetahui estimasi profit dan Hex profit
+        if ($isAdminRole) {
+            $noLaporan = !empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0';
+            $profitAsli = $totalProfit;
+        } else {
+            $noLaporan = date('ymd') . '-' . str_pad($totalTransaksi, 3, '0', STR_PAD_LEFT);
+            $profitAsli = 0;
             $totalProfit = 0;
+            foreach ($penjualan as &$pj) {
+                unset($pj['total_profit']);
+            }
+            unset($pj);
         }
 
         $data = [

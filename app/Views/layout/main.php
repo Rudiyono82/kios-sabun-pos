@@ -1690,6 +1690,20 @@
             $('#global-save-loading').fadeOut(150);
         };
 
+        // Global Debounce Anti Double-Click pada seluruh tombol Submit / Simpan
+        $(document).on('click', 'button[type="submit"], input[type="submit"], .btn-save, .btn-submit', function(e) {
+            const $btn = $(this);
+            if ($btn.hasClass('disabled') || $btn.prop('disabled') || $btn.data('is-clicked')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            $btn.data('is-clicked', true);
+            setTimeout(function() {
+                $btn.removeData('is-clicked');
+            }, 1500);
+        });
+
         // Otomatis bersihkan titik ribuan, cegah double submit, & tampilkan animasi lingkaran berputar sebelum form dikirim ke backend
         $(document).on('submit', 'form', function(e) {
             const form = this;

@@ -7,7 +7,7 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <h5 class="fw-bold mb-1">Rekap Laporan Keuangan & Penjualan Harian</h5>
-            <small class="text-muted">No. Laporan: <strong class="text-dark font-monospace bg-light px-2 py-0.5 rounded border"><?= esc($no_laporan) ?></strong> &bull; Setara modul cetak laporan kasir & hitung ulang omzet di aplikasi VB asli</small>
+            <small class="text-muted">No. Laporan: <strong class="text-dark font-monospace bg-light px-2 py-0.5 rounded border"><?= esc($no_laporan) ?></strong> &bull; Rekap omzet, volume transaksi, kas fisik laci, dan pengeluaran harian toko</small>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <form action="<?= base_url('laporan/harian') ?>" method="GET" class="d-flex flex-wrap gap-2 align-items-center">
@@ -51,11 +51,18 @@
                 <h4 class="fw-bold text-danger mt-1 mb-0">Rp <?= number_format($rekap['pengeluaran'], 0, ',', '.') ?></h4>
             </div>
         </div>
-        <?php if (session()->get('role') === 'admin'): ?>
+        <?php if (!empty($is_admin)): ?>
         <div class="col-md-3">
             <div class="p-3 bg-success bg-opacity-10 rounded-3 border border-success-subtle">
                 <small class="text-success fw-bold d-block text-uppercase">Estimasi Margin Profit</small>
                 <h4 class="fw-bold text-success mt-1 mb-0">Rp <?= number_format($rekap['profit'], 0, ',', '.') ?> <span class="badge bg-success text-white fs-6 ms-1" title="Kode No. Laporan Terselubung">[Hex: <?= esc($no_laporan) ?>]</span></h4>
+            </div>
+        </div>
+        <?php else: ?>
+        <div class="col-md-3">
+            <div class="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary-subtle">
+                <small class="text-primary fw-bold d-block text-uppercase">Total Transaksi</small>
+                <h4 class="fw-bold text-primary mt-1 mb-0"><?= number_format(count($penjualan), 0, ',', '.') ?> <span class="fs-6 fw-normal text-muted">Faktur</span></h4>
             </div>
         </div>
         <?php endif; ?>
@@ -80,7 +87,7 @@
                     <th class="text-center">Total Item</th>
                     <th class="text-end">Potongan Jerigen</th>
                     <th class="text-end">Grand Total</th>
-                    <?php if (session()->get('role') === 'admin'): ?>
+                    <?php if (!empty($is_admin)): ?>
                     <th class="text-end">Profit</th>
                     <?php endif; ?>
                     <th class="text-center" style="min-width: 140px;">Aksi / Detail</th>
@@ -104,8 +111,8 @@
                             <td class="text-center fw-semibold"><?= number_format($p['total_item'], 0, ',', '.') ?></td>
                             <td class="text-end text-success"><?= $p['potongan_tukar_jerigen'] > 0 ? '-Rp ' . number_format($p['potongan_tukar_jerigen'], 0, ',', '.') : '-' ?></td>
                             <td class="text-end fw-bold text-dark">Rp <?= number_format($p['grand_total'], 0, ',', '.') ?></td>
-                            <?php if (session()->get('role') === 'admin'): ?>
-                            <td class="text-end fw-semibold text-success">Rp <?= number_format($p['total_profit'], 0, ',', '.') ?></td>
+                            <?php if (!empty($is_admin)): ?>
+                            <td class="text-end fw-semibold text-success">Rp <?= number_format($p['total_profit'] ?? 0, 0, ',', '.') ?></td>
                             <?php endif; ?>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center align-items-center gap-1">

@@ -492,27 +492,6 @@ try {
         // ignore
     }
 
-    echo "\n=======================================================\n";
-    echo "[MIGRATION SUCCESS] Seluruh tabel & data SQLite berhasil disinkronkan ke MySQL!\n";
-    echo "=======================================================\n";
-
-} catch (Exception $e) {
-    if ($pdo && $pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    if ($pdo) {
-        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
-
-    // Koreksi jam transaksi POS yang sempat tercatat dalam waktu UTC (sebelum jam 15:00 UTC hari ini)
-    try {
-        $pdo->exec("UPDATE `penjualan` SET tanggal = DATE_ADD(tanggal, INTERVAL 7 HOUR), created_at = DATE_ADD(created_at, INTERVAL 7 HOUR) WHERE no_faktur LIKE 'J261121%' AND HOUR(tanggal) <= 15;");
-        $pdo->exec("UPDATE `data_keuangan` SET tanggal = DATE_ADD(tanggal, INTERVAL 7 HOUR) WHERE nama_keuangan LIKE '%J261121%' AND HOUR(tanggal) <= 15;");
-        $pdo->exec("UPDATE `kartu_stok` SET tanggal = DATE_ADD(tanggal, INTERVAL 7 HOUR) WHERE no_referensi LIKE 'J261121%' AND HOUR(tanggal) <= 15;");
-        echo "[MIGRATION] Corrected UTC timestamps to WIB for today's transactions.\n";
-    } catch (Exception $e) {
-        // ignore
-    }
-
     // Hapus seluruh faktur duplikat hari ini (akibat double submit Enter) dan kembalikan stoknya
     try {
         $duplicates = ['J2611210002', 'J2611210004', 'J2611210006', 'J2611210008'];
@@ -537,6 +516,17 @@ try {
     } catch (Exception $e) {
         // ignore
     }
+
+    echo "\n=======================================================\n";
+    echo "[MIGRATION SUCCESS] Seluruh tabel & data SQLite berhasil disinkronkan ke MySQL!\n";
+    echo "=======================================================\n";
+
+} catch (Exception $e) {
+    if ($pdo && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    if ($pdo) {
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
     }
     echo "[MIGRATION FATAL ERROR] " . $e->getMessage() . "\n";
 }

@@ -31,6 +31,15 @@ class Dashboard extends BaseController
         $totalBarang = $barangModel->countAllResults();
         $totalMember = $memberModel->countAllResults();
 
+        // Keamanan Finansial: Jika bukan admin (kasir), sembunyikan total profit
+        if (!$isAdmin) {
+            $summaryHariIni['total_profit'] = 0;
+            foreach ($grafik7Hari as &$g) {
+                $g['profit'] = 0;
+            }
+            unset($g);
+        }
+
         $data = [
             'title' => 'Dashboard Operasional',
             'summary' => $summaryHariIni,
@@ -61,7 +70,7 @@ class Dashboard extends BaseController
             'periode'   => $periode,
             'labels'    => array_column($data, 'label'),
             'omzet'     => array_column($data, 'omzet'),
-            'profit'    => array_column($data, 'profit'),
+            'profit'    => $isAdmin ? array_column($data, 'profit') : [],
             'transaksi' => array_column($data, 'transaksi'),
         ]);
     }

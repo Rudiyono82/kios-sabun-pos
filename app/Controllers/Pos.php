@@ -218,7 +218,8 @@ class Pos extends BaseController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $userCode = session()->get('kode_user') ?? 'KASIR1';
+        $idCabang = (int)(session()->get('id_cabang') ?: 1);
 
         $json = $this->request->getJSON(true);
         if (!$json || empty($json['items'])) {
@@ -227,6 +228,43 @@ class Pos extends BaseController
                 'message' => 'Keranjang belanja masih kosong!'
             ]);
         }
+
+        // 1.1 Named Lock: Serialisasi request bersamaan dari kasir/user yang sama (Cegah Race Condition Double-Click)
+        $isMysql = (strpos(strtolower($db->DBDriver), 'mysql') !== false);
+        $lockName = 'pos_tx_lock_' . md5($userCode . '_' . $idCabang);
+        if ($isMysql) {
+            $db->query("SELECT GET_LOCK(?, 10)", [$lockName]);
+        }
+
+        // 1.2 Idempotency Check: Cek apakah token transaksi dari client sudah pernah diproses
+        $clientToken = !empty($json['client_token']) ? trim((string)$json['client_token']) : null;
+        if ($clientToken) {
+            $tokenMatch = $db->table('penjualan')
+                ->where('kode_user', $userCode)
+                ->where('id_cabang', $idCabang)
+                ->like('catatan', '[TOKEN:' . $clientToken . ']')
+                ->orderBy('id', 'DESC')
+                ->get()->getRowArray();
+
+            if ($tokenMatch) {
+                if ($isMysql) {
+                    $db->query("SELECT RELEASE_LOCK(?)", [$lockName]);
+                }
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Transaksi berhasil diproses!',
+                    'no_faktur' => $tokenMatch['no_faktur'],
+                    'grand_total' => (float)$tokenMatch['grand_total'],
+                    'raw_total' => (float)$tokenMatch['grand_total'],
+                    'pembulatan' => 0,
+                    'bayar' => (float)$tokenMatch['bayar'],
+                    'kembalian' => (float)$tokenMatch['kembalian'],
+                    'is_member' => !empty($tokenMatch['kode_member'])
+                ]);
+            }
+        }
+
+        $db->transStart();
 
         $penjualanModel = new PenjualanModel();
         $noFaktur = $penjualanModel->generateNoFaktur();
@@ -322,19 +360,23 @@ class Pos extends BaseController
         $bayar = (float) str_replace(['.', ',', ' '], '', (string)($json['bayar'] ?? 0));
         $kembalian = $bayar - $grandTotal;
 
-        // Cegah Transaksi Duplikat (Double Click / Debounce 3 Detik)
-        $threeSecAgo = date('Y-m-d H:i:s', time() - 3);
+        // Cegah Transaksi Duplikat (Double Click / Debounce 30 Detik)
+        $thirtySecAgo = date('Y-m-d H:i:s', time() - 30);
         $recentDuplicate = $db->table('penjualan')
-            ->where('kode_user', session()->get('kode_user') ?? 'KASIR1')
+            ->where('kode_user', $userCode)
             ->where('id_cabang', $idCabang)
             ->where('grand_total', $grandTotal)
             ->where('total_item', $totalItem)
-            ->where('created_at >=', $threeSecAgo)
+            ->where('total_qty', $totalQty)
+            ->where('created_at >=', $thirtySecAgo)
             ->orderBy('id', 'DESC')
             ->get()->getRowArray();
 
         if ($recentDuplicate) {
             $db->transRollback();
+            if ($isMysql) {
+                $db->query("SELECT RELEASE_LOCK(?)", [$lockName]);
+            }
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Transaksi berhasil diproses!',
@@ -353,7 +395,7 @@ class Pos extends BaseController
             'id_cabang' => $idCabang,
             'no_faktur' => $noFaktur,
             'tanggal' => date('Y-m-d H:i:s'),
-            'kode_user' => session()->get('kode_user') ?? 'KASIR1',
+            'kode_user' => $userCode,
             'nama_kasir' => session()->get('nama_user') ?? 'Kasir Utama',
             'kode_member' => $json['kode_member'] ?: null,
             'total_item' => $totalItem,
@@ -369,7 +411,7 @@ class Pos extends BaseController
             'metode_bayar' => $json['metode_bayar'] ?? 'Cash',
             'no_kartu' => $json['no_kartu'] ?? null,
             'total_profit' => $totalProfit,
-            'catatan' => $json['catatan'] ?? null,
+            'catatan' => trim(($json['catatan'] ?? '') . ($clientToken ? ' [TOKEN:' . $clientToken . ']' : '')),
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
@@ -476,6 +518,9 @@ class Pos extends BaseController
         }
 
         $db->transComplete();
+        if ($isMysql) {
+            $db->query("SELECT RELEASE_LOCK(?)", [$lockName]);
+        }
 
         if ($db->transStatus() === false) {
             return $this->response->setStatusCode(500)->setJSON([

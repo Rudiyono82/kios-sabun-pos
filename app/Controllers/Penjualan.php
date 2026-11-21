@@ -117,6 +117,16 @@ class Penjualan extends BaseController
 
         $items = $db->table('penjualan_detail')->where('no_faktur', $noFaktur)->get()->getResultArray();
 
+        // Keamanan Finansial: Sembunyikan margin profit & harga beli modal dari akun kasir
+        if (!$isAdmin) {
+            unset($penjualan['total_profit']);
+            foreach ($items as &$it) {
+                unset($it['harga_beli']);
+                unset($it['profit']);
+            }
+            unset($it);
+        }
+
         return $this->response->setJSON([
             'status' => 'success',
             'penjualan' => $penjualan,

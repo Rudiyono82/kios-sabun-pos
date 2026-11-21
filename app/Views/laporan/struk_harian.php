@@ -292,7 +292,7 @@
         <div>* Total Penjualan Bersih Toko Hari Ini: <b>Rp <?= number_format($total_omzet, 0, ',', '.') ?></b>.</div>
     </div>
 
-    <?php if ($role === 'admin'): ?>
+    <?php if (!empty($role) && strtolower($role) === 'admin'): ?>
     <div class="box-highlight text-center">
         <div class="fw-bold" style="font-size: 10px;">[ KHUSUS OWNER / ADMIN ]</div>
         <div>Estimasi Margin Profit Kotor:</div>

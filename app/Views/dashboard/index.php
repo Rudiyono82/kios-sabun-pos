@@ -434,7 +434,7 @@
 <script>
     const initialLabels = <?= json_encode(array_column($grafik, 'label')) ?>;
     const initialOmzet = <?= json_encode(array_column($grafik, 'omzet')) ?>;
-    const initialProfit = <?= json_encode(array_column($grafik, 'profit')) ?>;
+    const initialProfit = <?= json_encode((session()->get('role') === 'admin') ? array_column($grafik, 'profit') : []) ?>;
     const isAdmin = <?= session()->get('role') === 'admin' ? 'true' : 'false' ?>;
 
     const ctx = document.getElementById('salesChart').getContext('2d');
