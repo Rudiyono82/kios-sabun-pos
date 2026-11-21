@@ -434,9 +434,12 @@ $(document).ready(function() {
         }
     });
 
+    let isSubmittingSto = false;
+
     // 9. Submit STO dengan Konfirmasi Aman
     $('#btn-submit-sto').on('click', function(e) {
         e.preventDefault();
+        if (isSubmittingSto) return false;
         
         let countFilled = 0;
         allRows.forEach(row => {
@@ -464,6 +467,10 @@ $(document).ready(function() {
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
+                if (isSubmittingSto) return false;
+                isSubmittingSto = true;
+                $('#btn-submit-sto').prop('disabled', true).addClass('disabled');
+
                 // Tampilkan loading saat submit
                 Swal.fire({
                     title: 'Menyimpan & Menyesuaikan Stok...',

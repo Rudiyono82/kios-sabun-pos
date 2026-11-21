@@ -247,7 +247,14 @@
             updateSummary();
         });
 
+        let isSubmittingTransfer = false;
+
         $('#form-transfer').on('submit', function(e) {
+            if (isSubmittingTransfer) {
+                e.preventDefault();
+                return false;
+            }
+
             let hasItem = false;
             let invalidStock = false;
 
@@ -284,6 +291,10 @@
                 });
                 return false;
             }
+
+            isSubmittingTransfer = true;
+            $('#btn-submit').prop('disabled', true).addClass('disabled')
+                .html('<span class="spinner-border spinner-border-sm me-2"></span>Memproses Transfer...');
         });
     });
 </script>

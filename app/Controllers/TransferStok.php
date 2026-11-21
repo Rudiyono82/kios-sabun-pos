@@ -114,6 +114,20 @@ class TransferStok extends BaseController
         $cabangTujuan = $this->cabangModel->find($idCabangTujuan);
 
         $db = \Config\Database::connect();
+
+        // Cegah Mutasi Transfer Duplikat (Double Click / Debounce 3 Detik)
+        $threeSecAgo = date('Y-m-d H:i:s', time() - 3);
+        $recentDuplicate = $db->table('transfer_stok')
+            ->where('id_cabang_asal', $currentCabangId)
+            ->where('id_cabang_tujuan', $idCabangTujuan)
+            ->where('created_at >=', $threeSecAgo)
+            ->orderBy('id', 'DESC')
+            ->get()->getRowArray();
+
+        if ($recentDuplicate) {
+            return redirect()->to(base_url('transfer-stok'))->with('success', 'Transfer stok berhasil diproses (No: ' . $recentDuplicate['no_transfer'] . ')');
+        }
+
         $db->transStart();
 
         $noTransfer = TransferStokModel::generateNoTransfer();

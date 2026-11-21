@@ -80,6 +80,25 @@ class Pembelian extends BaseController
         }
 
         $pembelianModel = new PembelianModel();
+
+        // Cegah Transaksi Duplikat (Double Click / Debounce 3 Detik)
+        $threeSecAgo = date('Y-m-d H:i:s', time() - 3);
+        $recentDuplicate = $db->table('pembelian')
+            ->where('kode_supplier', $json['kode_supplier'])
+            ->where('kode_user', session()->get('kode_user') ?? 'KASIR1')
+            ->where('created_at >=', $threeSecAgo)
+            ->orderBy('id', 'DESC')
+            ->get()->getRowArray();
+
+        if ($recentDuplicate) {
+            $db->transRollback();
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Transaksi pembelian berhasil disimpan!',
+                'no_beli' => $recentDuplicate['no_beli']
+            ]);
+        }
+
         $noBeli = $pembelianModel->generateNoBeli();
 
         $totalBiaya = 0;

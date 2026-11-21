@@ -759,8 +759,13 @@
             $('#display-total-item').text(`${keranjangBeli.length} Macam Produk (${new Intl.NumberFormat('id-ID').format(totalQty)} Satuan)`);
         }
 
+        let isSavingPembelian = false;
+
         // Simpan Transaksi Pembelian
-        $('#btn-simpan-pembelian').on('click', function() {
+        $('#btn-simpan-pembelian').on('click', function(e) {
+            e.preventDefault();
+            if (isSavingPembelian) return false;
+
             if (keranjangBeli.length === 0) {
                 Swal.fire('Keranjang Kosong', 'Tambahkan minimal satu barang ke dalam keranjang sebelum menyimpan.', 'warning');
                 return;
@@ -794,6 +799,10 @@
                 confirmButtonColor: '#16a34a'
             }).then((res) => {
                 if (res.isConfirmed) {
+                    if (isSavingPembelian) return false;
+                    isSavingPembelian = true;
+                    $('#btn-simpan-pembelian').prop('disabled', true).addClass('disabled');
+
                     if (typeof showSaveLoading === 'function') {
                         showSaveLoading('Menyimpan Transaksi Pembelian...', 'Mohon tunggu sebentar, data pembelian dan penambahan stok barang sedang diproses...');
                     } else {
@@ -816,6 +825,8 @@
                             });
                         },
                         error: function(xhr) {
+                            isSavingPembelian = false;
+                            $('#btn-simpan-pembelian').prop('disabled', false).removeClass('disabled');
                             if (typeof hideSaveLoading === 'function') hideSaveLoading();
                             const err = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan saat memproses data.';
                             Swal.fire('Gagal Menyimpan!', err, 'error');

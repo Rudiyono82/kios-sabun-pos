@@ -1678,7 +1678,7 @@
         }
 
         // =========================================================================
-        // PENGENDALI GLOBAL ANIMASI LOADING LINGKARAN BERPUTAR (SEMUA PROSES SIMPAN)
+        // PENGENDALI GLOBAL ANIMASI LOADING & PROTEKSI ANTI DOUBLE-CLICK / SUBMIT
         // =========================================================================
         window.showSaveLoading = function(title, sub) {
             if (title) $('#global-loading-title').text(title);
@@ -1690,17 +1690,17 @@
             $('#global-save-loading').fadeOut(150);
         };
 
-        // Otomatis bersihkan titik ribuan & tampilkan animasi lingkaran berputar sebelum form dikirim ke backend
+        // Otomatis bersihkan titik ribuan, cegah double submit, & tampilkan animasi lingkaran berputar sebelum form dikirim ke backend
         $(document).on('submit', 'form', function(e) {
             const form = this;
 
-            // Bersihkan currency format
+            // Bersihkan currency format terlebih dahulu
             $(form).find('.input-currency, input[data-type="currency"]').each(function() {
                 let clean = unformatRupiah($(this).val());
                 $(this).val(clean);
             });
 
-            // Jika form tidak valid secara HTML5, jangan tampilkan loading
+            // Jika form tidak valid secara HTML5, jangan proses
             if (form.checkValidity && !form.checkValidity()) {
                 return;
             }
@@ -1711,22 +1711,47 @@
                 return;
             }
 
+            // Proteksi Global Anti Double-Submit (Mencegah double click / submit beruntun)
+            if ($(form).data('is-submitting')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            $(form).data('is-submitting', true);
+
             // Tampilkan animasi lingkaran berputar / progress simpan
             window.showSaveLoading('Sedang Menyimpan Data...', 'Mohon tunggu sebentar, data sedang diproses dan disimpan ke database...');
 
-            // Disable tombol submit agar tidak terjadi double-submit dan tampilkan spinner kecil di tombol
-            const $submitBtn = $(form).find('button[type="submit"]:not(.btn-close)');
-            if ($submitBtn.length && !$submitBtn.prop('disabled')) {
-                $submitBtn.prop('disabled', true);
+            // Nonaktifkan tombol submit & beri visual disabled
+            const $submitBtn = $(form).find('button[type="submit"]:not(.btn-close), input[type="submit"]');
+            if ($submitBtn.length) {
+                $submitBtn.addClass('disabled').css('pointer-events', 'none');
                 if (!$submitBtn.find('.spinner-border').length) {
                     $submitBtn.prepend('<span class="spinner-border spinner-border-sm me-2" role="status"></span>');
                 }
             }
         });
 
+        // Reset proteksi submit saat modal ditutup agar dapat digunakan kembali
+        $(document).on('hidden.bs.modal', '.modal', function() {
+            const $form = $(this).find('form');
+            $form.removeData('is-submitting');
+            $form.find('button[type="submit"]:not(.btn-close), input[type="submit"]')
+                 .removeClass('disabled')
+                 .css('pointer-events', '')
+                 .prop('disabled', false)
+                 .find('.spinner-border').remove();
+        });
+
         // Sembunyikan otomatis jika AJAX selesai atau terjadi error
         $(document).ajaxError(function() {
             window.hideSaveLoading();
+            $('form').removeData('is-submitting');
+            $('form').find('button[type="submit"]:not(.btn-close), input[type="submit"]')
+                     .removeClass('disabled')
+                     .css('pointer-events', '')
+                     .prop('disabled', false)
+                     .find('.spinner-border').remove();
         });
 
         $(document).ready(function() {

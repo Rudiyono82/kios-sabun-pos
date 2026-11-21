@@ -49,6 +49,20 @@ class Retur extends BaseController
         $supplier = $db->table('supplier')->where('kode_supplier', $kodeSupplier)->get()->getRowArray();
         $namaSupplier = $supplier ? $supplier['nama_supplier'] : 'Supplier Umum';
 
+        // Cegah Transaksi Duplikat (Double Click / Debounce 3 Detik)
+        $threeSecAgo = date('Y-m-d H:i:s', time() - 3);
+        $recentDuplicate = $db->table('retur')
+            ->where('kode_supplier', $kodeSupplier)
+            ->where('kode_user', session()->get('kode_user') ?? 'ADMIN')
+            ->where('created_at >=', $threeSecAgo)
+            ->orderBy('id', 'DESC')
+            ->get()->getRowArray();
+
+        if ($recentDuplicate) {
+            $db->transRollback();
+            return redirect()->to(base_url('retur'))->with('success', 'Dokumen retur berhasil disimpan! (No: ' . $recentDuplicate['no_retur'] . ')');
+        }
+
         $statusAwal = $this->request->getPost('status') ?: 'Baru Proses';
         $tipePenyelesaian = $this->request->getPost('tipe_penyelesaian');
         $keterangan = $this->request->getPost('keterangan');

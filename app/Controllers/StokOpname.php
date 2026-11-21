@@ -72,6 +72,21 @@ class StokOpname extends BaseController
         $noSto = trim($this->request->getPost('no_sto'));
         $keterangan = trim($this->request->getPost('keterangan') ?? '');
 
+        // Cegah Transaksi Duplikat (Double Click / Debounce 3 Detik)
+        $threeSecAgo = date('Y-m-d H:i:s', time() - 3);
+        $recentDuplicate = $db->table('stok_opname')
+            ->where('no_sto', $noSto)
+            ->orGroupStart()
+                ->where('petugas', session()->get('kode_user') ?? 'ADMIN')
+                ->where('tanggal >=', $threeSecAgo)
+            ->groupEnd()
+            ->get()->getRowArray();
+
+        if ($recentDuplicate) {
+            $db->transRollback();
+            return redirect()->to(base_url('stok-opname'))->with('success', 'Hasil audit Stok Opname berhasil disimpan!');
+        }
+
         $idBarangList = $this->request->getPost('id_barang');
         $stokFisikList = $this->request->getPost('stok_fisik');
         $catatanList = $this->request->getPost('catatan_item');

@@ -114,6 +114,21 @@ class Keuangan extends BaseController
             return redirect()->back()->with('error', 'Nominal transaksi harus lebih dari 0.');
         }
 
+        // Cegah Transaksi Duplikat (Double Click / Debounce 3 Detik)
+        $threeSecAgo = date('Y-m-d H:i:s', time() - 3);
+        $recentDuplicate = $db->table('data_keuangan')
+            ->where('id_cabang', $idCabang)
+            ->where('jenis_keuangan', $jenis)
+            ->where('nama_keuangan', $nama)
+            ->where('total', $total)
+            ->where('tanggal >=', $threeSecAgo)
+            ->orderBy('id', 'DESC')
+            ->get()->getRowArray();
+
+        if ($recentDuplicate) {
+            return redirect()->to(base_url('keuangan'))->with('success', 'Transaksi kas operasional berhasil dicatat!');
+        }
+
         $tipePengeluaran = $this->request->getPost('tipe_pengeluaran') === 'pribadi' ? 'pribadi' : 'toko';
         $tglCustom = $this->request->getPost('tanggal') ? ($this->request->getPost('tanggal') . ' ' . date('H:i:s')) : date('Y-m-d H:i:s');
 
