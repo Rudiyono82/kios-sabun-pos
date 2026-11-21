@@ -336,7 +336,8 @@
     </div>
 </div>
 
-<!-- Modal Otorisasi: Ubah & Setujui Perubahan Harga (Admin) -->
+<?php if ($is_admin): ?>
+<!-- Modal Otorisasi: Ubah & Setujui Perubahan Harga (Khusus Admin / Owner) -->
 <div class="modal fade" id="modalEditPendingHarga" tabindex="-1" aria-labelledby="modalEditPendingHargaLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -602,6 +603,7 @@ $(document).ready(function() {
     });
 });
 </script>
+<?php endif; ?>
 
 <style>
 .hover-card {
