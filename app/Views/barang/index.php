@@ -56,7 +56,7 @@
                         <td class="text-center">
                             <?php $imgDisplay = !empty($b['gambar']) ? $b['gambar'] : (!empty($b['path_file']) ? $b['path_file'] : ''); ?>
                             <?php if (!empty($imgDisplay)): ?>
-                                <img src="<?= base_url('uploads/barang/' . $imgDisplay) ?>" alt="<?= esc($b['nama_barang']) ?>" class="rounded border shadow-xs" style="width: 36px; height: 36px; object-fit: cover; cursor: zoom-in;" onclick="window.open('<?= base_url('uploads/barang/' . $imgDisplay) ?>', '_blank')" title="Klik perbesar foto" onerror="this.parentElement.innerHTML='<div class=\'rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto\' style=\'width: 36px; height: 36px; font-size: 0.8rem;\'><i class=\'bi bi-image\'></i></div>';">
+                                <img src="<?= base_url('uploads/barang/' . $imgDisplay) ?>" alt="<?= esc($b['nama_barang']) ?>" data-zoom-title="<?= esc($b['nama_barang']) ?>" class="rounded border shadow-xs img-zoom-hover" style="width: 36px; height: 36px; object-fit: cover; cursor: zoom-in;" onclick="window.open('<?= base_url('uploads/barang/' . $imgDisplay) ?>', '_blank')" title="Klik perbesar foto" onerror="this.parentElement.innerHTML='<div class=\'rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto\' style=\'width: 36px; height: 36px; font-size: 0.8rem;\'><i class=\'bi bi-image\'></i></div>';">
                             <?php else: ?>
                                 <div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto" style="width: 36px; height: 36px; font-size: 0.8rem;">
                                     <i class="bi bi-image"></i>
@@ -246,7 +246,7 @@
                                     <div class="col-auto">
                                         <div id="preview-foto-box" class="rounded border bg-white d-flex align-items-center justify-content-center overflow-hidden position-relative shadow-sm" style="width: 100px; height: 100px;">
                                             <i class="bi bi-image text-muted fs-1" id="preview-foto-icon"></i>
-                                            <img id="preview-foto-img" src="" alt="Preview Foto" class="img-fluid d-none" style="width: 100%; height: 100%; object-fit: contain;">
+                                            <img id="preview-foto-img" src="" alt="Preview Foto" data-zoom-title="Preview Foto Barang" class="img-fluid d-none img-zoom-hover" style="width: 100%; height: 100%; object-fit: contain; cursor: zoom-in;">
                                         </div>
                                     </div>
                                     <div class="col">

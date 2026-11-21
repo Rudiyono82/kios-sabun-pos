@@ -1240,7 +1240,7 @@
         if (itemImg) {
             const imgUrl = '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(itemImg);
             $('#modal-qty-foto-box').html(`
-                <img src="${imgUrl}" class="img-fluid rounded" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<i class=\\'bi bi-image text-muted fs-3\\'></i>'">
+                <img src="${imgUrl}" alt="${item.nama_barang || ''}" data-zoom-title="${item.nama_barang || ''}" class="img-fluid rounded img-zoom-hover" style="width: 100%; height: 100%; object-fit: contain; cursor: zoom-in;" onerror="this.parentElement.innerHTML='<i class=\\'bi bi-image text-muted fs-3\\'></i>'">
             `);
         } else {
             $('#modal-qty-foto-box').html('<i class="bi bi-image text-muted fs-3"></i>');

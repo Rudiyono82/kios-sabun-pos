@@ -820,6 +820,80 @@
                 font-size: 0.88rem;
             }
         }
+
+        /* ============================================================ */
+        /* GLOBAL IMAGE ZOOM ON HOVER (POPUP GAMBAR PERBESAR)          */
+        /* ============================================================ */
+        .img-zoom-hover, img[src*="uploads/barang"], .zoomable-img, img[data-zoom-img] {
+            cursor: zoom-in !important;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .img-zoom-hover:hover, img[src*="uploads/barang"]:hover, .zoomable-img:hover, img[data-zoom-img]:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
+        }
+
+        #global-img-zoom-popup {
+            display: none;
+            position: fixed;
+            z-index: 106000;
+            pointer-events: none; /* Cegah flicker ketika mouse berada di dekat tepi popup */
+            background: #ffffff;
+            border-radius: 14px;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            box-shadow: 0 20px 45px -5px rgba(0, 0, 0, 0.4), 0 8px 18px rgba(0, 0, 0, 0.15);
+            padding: 8px;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            opacity: 0;
+            transform: scale(0.92);
+            max-width: 340px;
+            box-sizing: border-box;
+        }
+
+        #global-img-zoom-popup.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        #global-img-zoom-popup .zoom-img-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 10px;
+            min-width: 180px;
+            min-height: 180px;
+            max-width: 320px;
+            max-height: 320px;
+            overflow: hidden;
+        }
+
+        #global-img-zoom-popup img {
+            max-width: 320px;
+            max-height: 320px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            border-radius: 8px;
+        }
+
+        #global-img-zoom-caption {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #0f172a;
+            text-align: center;
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 320px;
+            border: 1px solid #e2e8f0;
+        }
     </style>
 </head>
 <body>
@@ -1826,7 +1900,134 @@
                 }, 200);
             });
         });
+
+        // ============================================================
+        // GLOBAL IMAGE ZOOM POPUP ON HOVER
+        // ============================================================
+        (function() {
+            let zoomTimeout = null;
+            let currentTarget = null;
+            const $popup = $('#global-img-zoom-popup');
+            const $zoomImg = $('#global-img-zoom-target');
+            const $caption = $('#global-img-zoom-caption');
+
+            function showZoom(imgEl) {
+                if (!imgEl) return;
+                const $el = $(imgEl);
+
+                // Abaikan jika elemen di dalam popup zoom itu sendiri
+                if ($el.closest('#global-img-zoom-popup').length) return;
+
+                const src = $el.attr('data-zoom-src') || $el.attr('src');
+                if (!src || src.trim() === '' || (src.indexOf('data:') === 0 && src.length < 50)) return;
+
+                // Abaikan jika gambar rusak, display none, atau belum ter-render
+                if (imgEl.naturalWidth === 0 && !imgEl.complete) return;
+                if ($el.css('display') === 'none' || $el.css('visibility') === 'hidden') return;
+
+                currentTarget = imgEl;
+
+                // Cegah tooltip bawaan browser (title) yang sering menutupi zoom
+                if ($el.attr('title')) {
+                    $el.data('saved-title', $el.attr('title')).removeAttr('title');
+                }
+
+                // Ambil label judul / nama barang
+                let titleText = $el.attr('data-zoom-title') || $el.attr('alt') || $el.data('saved-title') || '';
+                if (titleText.toLowerCase().includes('klik perbesar') || titleText.toLowerCase().includes('preview foto')) {
+                    titleText = $el.attr('data-zoom-title') || '';
+                }
+
+                $zoomImg.attr('src', src);
+                if (titleText && titleText.trim() !== '') {
+                    $caption.text(titleText).show();
+                } else {
+                    $caption.hide();
+                }
+
+                $popup.css('display', 'block');
+
+                // Hitung posisi floating terhadap viewport
+                const rect = imgEl.getBoundingClientRect();
+                const pWidth = $popup.outerWidth() || 300;
+                const pHeight = $popup.outerHeight() || 300;
+                const margin = 14;
+
+                // Posisi Horizontal: utamakan di sebelah kanan thumbnail
+                let left = rect.right + margin;
+                if (left + pWidth > window.innerWidth - 10) {
+                    // Jika sempit di kanan, taruh di sebelah kiri
+                    left = rect.left - pWidth - margin;
+                    if (left < 10) {
+                        left = Math.max(10, (window.innerWidth - pWidth) / 2);
+                    }
+                }
+
+                // Posisi Vertikal: sejajar dengan bagian tengah thumbnail
+                let top = rect.top + (rect.height / 2) - (pHeight / 2);
+                if (top + pHeight > window.innerHeight - 10) {
+                    top = window.innerHeight - pHeight - 10;
+                }
+                if (top < 10) {
+                    top = 10;
+                }
+
+                $popup.css({
+                    left: left + 'px',
+                    top: top + 'px'
+                });
+
+                requestAnimationFrame(() => {
+                    $popup.addClass('show');
+                });
+            }
+
+            function hideZoom() {
+                if (currentTarget) {
+                    const $t = $(currentTarget);
+                    if ($t.data('saved-title')) {
+                        $t.attr('title', $t.data('saved-title')).removeData('saved-title');
+                    }
+                    currentTarget = null;
+                }
+
+                $popup.removeClass('show');
+                clearTimeout(zoomTimeout);
+                zoomTimeout = setTimeout(() => {
+                    if (!$popup.hasClass('show')) {
+                        $popup.css('display', 'none');
+                        $zoomImg.attr('src', '');
+                    }
+                }, 160);
+            }
+
+            // Event delegation untuk semua thumbnail foto barang di sistem
+            $(document).on('mouseenter', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
+                clearTimeout(zoomTimeout);
+                showZoom(this);
+            });
+
+            $(document).on('mouseleave', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
+                hideZoom();
+            });
+
+            // Sembunyikan jika layar di-scroll atau window di-resize atau terjadi klik
+            $(window).on('scroll resize', function() {
+                hideZoom();
+            });
+            $(document).on('click', function() {
+                hideZoom();
+            });
+        })();
     </script>
+
+    <!-- Global Floating Image Zoom Popup on Hover -->
+    <div id="global-img-zoom-popup">
+        <div class="zoom-img-wrapper">
+            <img id="global-img-zoom-target" src="" alt="Zoom Foto">
+        </div>
+        <div id="global-img-zoom-caption" style="display: none;"></div>
+    </div>
     <?= $this->renderSection('scripts') ?>
 </body>
 </html>
