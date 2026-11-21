@@ -334,14 +334,14 @@
                                     <?= esc($p['no_faktur']) ?>
                                 </span>
                             </td>
-                            <td class="small">
+                            <td class="small" data-order="<?= strtotime($p['tanggal']) * 1000000 + ($p['id'] % 1000000) ?>">
                                 <div class="fw-semibold text-dark"><?= date('d/m/Y', strtotime($p['tanggal'])) ?></div>
                                 <div class="text-muted" style="font-size: 0.75rem;"><?= date('H:i', strtotime($p['tanggal'])) ?> WIB</div>
                             </td>
                             <td class="small text-secondary fw-medium">
                                 <?= esc($p['nama_kasir'] ?: $p['kode_user']) ?>
                             </td>
-                            <td class="small">
+                            <td class="small" data-order="<?= strtotime($p['tanggal']) * 1000000 + ($p['id'] % 1000000) ?>">
                                 <?php if (!empty($p['kode_member'])): ?>
                                     <span class="badge bg-success-subtle text-success fw-bold">
                                         <i class="bi bi-person-badge me-1"></i><?= esc($p['kode_member']) ?>

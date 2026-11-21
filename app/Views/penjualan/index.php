@@ -159,7 +159,7 @@
                     <?php foreach ($list as $p): ?>
                         <tr>
                             <td class="fw-bold font-monospace text-primary"><?= esc($p['no_faktur']) ?></td>
-                            <td class="small"><?= date('d/m/Y H:i', strtotime($p['tanggal'])) ?></td>
+                            <td class="small" data-order="<?= strtotime($p['tanggal']) * 1000000 + ($p['id'] % 1000000) ?>"><?= date('d/m/Y H:i', strtotime($p['tanggal'])) ?></td>
                             <td><span class="badge bg-secondary-subtle text-secondary"><?= esc($p['kode_user']) ?></span></td>
                             <td>
                                 <?php if (!empty($p['kode_member'])): ?>

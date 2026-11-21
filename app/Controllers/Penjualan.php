@@ -47,7 +47,7 @@ class Penjualan extends BaseController
                 ->groupEnd();
         }
 
-        $list = $builder->orderBy('id', 'DESC')->get()->getResultArray();
+        $list = $builder->orderBy('tanggal', 'DESC')->orderBy('id', 'DESC')->get()->getResultArray();
 
         // Ambil daftar cabang untuk filter Admin
         $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];

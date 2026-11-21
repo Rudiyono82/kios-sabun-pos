@@ -20,6 +20,11 @@ RUN apt-get update && apt-get install -y \
 RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
     && a2enmod mpm_prefork rewrite
 
+# Set system & PHP timezone to Asia/Jakarta (WIB)
+ENV TZ="Asia/Jakarta"
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+    && echo "date.timezone=Asia/Jakarta" > /usr/local/etc/php/conf.d/timezone.ini
+
 # Copy custom Apache virtual host
 COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
 
