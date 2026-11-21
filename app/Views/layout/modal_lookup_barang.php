@@ -380,8 +380,8 @@ const StockLookup = {
 
             const itemImg = item.gambar || item.path_file;
             const fotoThumbnail = itemImg 
-                ? `<img src="<?= base_url('uploads/barang/') ?>/${encodeURIComponent(itemImg)}" alt="${item.nama_barang || ''}" data-zoom-title="${item.nama_barang || ''}" class="rounded border shadow-xs img-zoom-hover" style="width: 32px; height: 32px; object-fit: cover; flex-shrink: 0; cursor: zoom-in;" onerror="this.style.display='none'">` 
-                : `<div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; flex-shrink: 0; font-size: 0.75rem;"><i class="bi bi-image"></i></div>`;
+                ? `<img src="<?= base_url('uploads/barang/') ?>/${encodeURIComponent(itemImg)}" alt="${item.nama_barang || ''}" class="rounded border shadow-xs" style="width: 32px; height: 32px; object-fit: cover; flex-shrink: 0; pointer-events: none;" onerror="this.style.display='none'">` 
+                : `<div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; flex-shrink: 0; font-size: 0.75rem; pointer-events: none;"><i class="bi bi-image"></i></div>`;
 
             const $tr = $(`
                 <tr class="lookup-item-row" data-index="${index}" style="cursor: pointer;">
@@ -417,8 +417,9 @@ const StockLookup = {
 
     // Sorot Baris Terpilih & Update Box Preview Kanan
     selectRow: function(item, $row) {
+        if (!item) return;
         this.selectedItem = item;
-        $('#table-lookup-items tr.lookup-item-row').removeClass('table-primary active border-primary');
+        $('#table-lookup-items tr.lookup-item-row.active').removeClass('table-primary active border-primary');
         $row.addClass('table-primary active');
 
         // Update Box Preview
@@ -430,15 +431,22 @@ const StockLookup = {
 
         // Update Foto Box Preview
         const itemImg = item.gambar || item.path_file;
+        const $previewBox = $('#lookup-preview-box');
         if (itemImg) {
             const imgUrl = '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(itemImg);
-            $('#lookup-preview-box').html(`
-                <div class="position-relative w-100 h-100 d-flex align-items-center justify-content-center p-1">
-                    <img src="${imgUrl}" alt="${item.nama_barang}" data-zoom-title="${item.nama_barang}" class="img-fluid rounded shadow-sm img-zoom-hover" style="max-height: 165px; max-width: 100%; object-fit: contain; cursor: zoom-in;" title="Klik untuk perbesar foto (Popup)" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'d-flex flex-column align-items-center justify-content-center text-muted\\'><i class=\\'bi bi-image fs-1 mb-1\\'></i><span class=\\'fw-bold text-dark fs-6\\'>Foto Tidak Ada</span></div>';">
-                </div>
-            `).css('background-color', '#f8fafc');
+            const $existingImg = $previewBox.find('img#lookup-preview-active-img');
+            if ($existingImg.length) {
+                $existingImg.attr('src', imgUrl).attr('alt', item.nama_barang || '').attr('data-zoom-title', item.nama_barang || '');
+                $previewBox.css('background-color', '#f8fafc');
+            } else {
+                $previewBox.html(`
+                    <div class="position-relative w-100 h-100 d-flex align-items-center justify-content-center p-1">
+                        <img id="lookup-preview-active-img" src="${imgUrl}" alt="${item.nama_barang}" data-zoom-title="${item.nama_barang}" class="img-fluid rounded shadow-sm img-zoom-hover" style="max-height: 165px; max-width: 100%; object-fit: contain; cursor: zoom-in;" title="Klik untuk perbesar foto (Popup)">
+                    </div>
+                `).css('background-color', '#f8fafc');
+            }
         } else {
-            $('#lookup-preview-box').html(`
+            $previewBox.html(`
                 <i class="bi bi-image text-muted opacity-50 fs-1 mb-1"></i>
                 <span class="fw-bold text-dark fs-5" id="lookup-preview-foto-text">Foto Tidak Ada</span>
                 <small class="text-muted" style="font-size: 0.72rem;">Belum ada gambar katalog produk</small>

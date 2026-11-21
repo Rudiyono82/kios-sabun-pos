@@ -37,7 +37,7 @@ class Laporan extends BaseController
 
         // Rekapitulasi
         $totalOmzet = 0;
-        $totalProfit = 0;
+        $realTotalProfit = 0;
         $totalQty = 0;
         $totalJerigenTukar = 0;
 
@@ -45,10 +45,9 @@ class Laporan extends BaseController
             $totalOmzet += (float) $p['grand_total'];
             $totalQty += (float) $p['total_qty'];
             $totalJerigenTukar += (float) $p['potongan_tukar_jerigen'];
+            $realTotalProfit += (float) ($p['total_profit'] ?? 0);
 
-            if ($isAdmin) {
-                $totalProfit += (float) ($p['total_profit'] ?? 0);
-            } else {
+            if (!$isAdmin) {
                 // Keamanan Finansial: Hapus data profit transaksi dari sisi kasir
                 unset($p['total_profit']);
             }
@@ -57,13 +56,23 @@ class Laporan extends BaseController
 
         $kasAwal = 0;
         $pengeluaran = 0;
+        $filteredKeuangan = [];
         foreach ($keuangan as $k) {
+            $nama = strtolower($k['nama_keuangan'] ?? '');
+            if (!$isAdmin && (strpos($nama, 'profit') !== false || strpos($nama, 'laba') !== false)) {
+                continue;
+            }
+            if (strpos($nama, 'total omzet') !== false || strpos($nama, 'total profit') !== false) {
+                continue;
+            }
             if ($k['jenis_keuangan'] === 'Kas Awal') $kasAwal += (float) $k['total'];
             if ($k['jenis_keuangan'] === 'Pengeluaran') $pengeluaran += (float) $k['total'];
+            $filteredKeuangan[] = $k;
         }
+        $keuangan = $filteredKeuangan;
 
         // Nomor Laporan berbasis konversi Hex Profit (warisan VB6 Access agar Owner bisa membaca laba dari kode hex)
-        $noLaporan = !empty($totalProfit) ? strtoupper(dechex((int) round($totalProfit))) : '0';
+        $noLaporan = !empty($realTotalProfit) ? strtoupper(dechex((int) round($realTotalProfit))) : '0';
 
         $data = [
             'title' => 'Laporan Harian Toko',
@@ -78,7 +87,7 @@ class Laporan extends BaseController
             'cabang_list' => $cabangList,
             'rekap' => [
                 'omzet' => $totalOmzet,
-                'profit' => $isAdmin ? $totalProfit : 0,
+                'profit' => $isAdmin ? $realTotalProfit : 0,
                 'no_laporan' => $noLaporan,
                 'qty' => $totalQty,
                 'tukar_jerigen' => $totalJerigenTukar,

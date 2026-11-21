@@ -233,6 +233,7 @@
     <!-- 4. PEMASUKAN KAS LAIN (JIKA ADA) -->
     <?php 
     $cleanPemasukanLain = [];
+    $totalCleanPemasukanLain = 0;
     if (!empty($list_pemasukan_lain)) {
         foreach ($list_pemasukan_lain as $p) {
             $n = strtolower($p['nama'] ?? '');
@@ -240,6 +241,7 @@
                 continue;
             }
             $cleanPemasukanLain[] = $p;
+            $totalCleanPemasukanLain += (float)($p['total'] ?? 0);
         }
     }
     ?>
@@ -255,7 +257,7 @@
             <?php endforeach; ?>
             <tr class="fw-bold">
                 <td>TOTAL PEMASUKAN LAIN</td>
-                <td class="text-end nowrap">Rp <?= number_format($pemasukan_lain, 0, ',', '.') ?></td>
+                <td class="text-end nowrap">Rp <?= number_format($totalCleanPemasukanLain, 0, ',', '.') ?></td>
             </tr>
         </table>
     <?php endif; ?>
@@ -275,10 +277,10 @@
             <td>+ Penjualan Tunai (Cash)</td>
             <td class="text-end nowrap">+Rp <?= number_format($total_tunai, 0, ',', '.') ?></td>
         </tr>
-        <?php if ($pemasukan_lain > 0): ?>
+        <?php if ($totalCleanPemasukanLain > 0): ?>
         <tr>
             <td>+ Pemasukan Kas Lain</td>
-            <td class="text-end nowrap">+Rp <?= number_format($pemasukan_lain, 0, ',', '.') ?></td>
+            <td class="text-end nowrap">+Rp <?= number_format($totalCleanPemasukanLain, 0, ',', '.') ?></td>
         </tr>
         <?php endif; ?>
         <tr>

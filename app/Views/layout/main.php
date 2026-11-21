@@ -1572,10 +1572,10 @@
 
         // Fitur Universal Drag & Move Seluruh Modal / Popup di Semua Halaman (Bisa Digeser-Geser)
         function initDraggablePopups() {
-            // 1. Universal Draggable Bootstrap 5 Modals
-            $(document).on('mousedown touchstart', '.modal-header', function(e) {
+            // 1. Universal Draggable Bootstrap 5 Modals (GPU Transform translate3d)
+            $(document).on('mousedown touchstart', '.modal-header, .modal-header-draggable', function(e) {
                 // Abaikan jika user mengklik tombol close, dropdown, link, atau input di header
-                if ($(e.target).closest('button, a, input, select, textarea, .btn-close').length > 0) return;
+                if ($(e.target).closest('button, a, input, select, textarea, .btn-close, .dropdown-menu').length > 0) return;
 
                 const $header = $(this);
                 const $dialog = $header.closest('.modal-dialog');
@@ -1587,30 +1587,38 @@
 
                 let startX = clientX;
                 let startY = clientY;
-                let initialLeft = parseFloat($dialog.css('left')) || 0;
-                let initialTop = parseFloat($dialog.css('top')) || 0;
+                let currentTransformX = parseFloat($dialog.attr('data-trans-x')) || 0;
+                let currentTransformY = parseFloat($dialog.attr('data-trans-y')) || 0;
 
                 $header.css('cursor', 'grabbing');
                 $('body').addClass('user-select-none');
 
                 const moveHandler = function(ev) {
+                    ev.preventDefault();
                     const curX = isTouch ? ev.originalEvent.touches[0].clientX : ev.clientX;
                     const curY = isTouch ? ev.originalEvent.touches[0].clientY : ev.clientY;
                     const dx = curX - startX;
                     const dy = curY - startY;
 
+                    const newX = currentTransformX + dx;
+                    const newY = currentTransformY + dy;
+
                     $dialog.css({
-                        'position': 'relative',
-                        'left': (initialLeft + dx) + 'px',
-                        'top': (initialTop + dy) + 'px',
-                        'margin-left': 'auto',
-                        'margin-right': 'auto'
+                        'transform': `translate3d(${newX}px, ${newY}px, 0px)`,
+                        'transition': 'none'
                     });
+                    $dialog.attr('data-temp-x', newX);
+                    $dialog.attr('data-temp-y', newY);
                 };
 
                 const endHandler = function() {
                     $header.css('cursor', 'grab');
                     $('body').removeClass('user-select-none');
+                    const savedX = $dialog.attr('data-temp-x');
+                    const savedY = $dialog.attr('data-temp-y');
+                    if (savedX !== undefined) $dialog.attr('data-trans-x', savedX);
+                    if (savedY !== undefined) $dialog.attr('data-trans-y', savedY);
+
                     if (isTouch) {
                         $(document).off('touchmove.modalDrag touchend.modalDrag');
                     } else {
@@ -1630,13 +1638,12 @@
 
             // Reset posisi modal saat ditutup agar kembali rapi di posisi default
             $(document).on('hidden.bs.modal', '.modal', function() {
-                $(this).find('.modal-dialog').css({
-                    'position': '',
-                    'left': '',
-                    'top': '',
-                    'margin-left': '',
-                    'margin-right': ''
-                });
+                $(this).find('.modal-dialog')
+                    .css({ 'transform': '', 'transition': '' })
+                    .removeAttr('data-trans-x')
+                    .removeAttr('data-trans-y')
+                    .removeAttr('data-temp-x')
+                    .removeAttr('data-temp-y');
             });
 
             // 2. Universal Draggable SweetAlert2 Popups
@@ -2019,17 +2026,19 @@
 
             // Event delegation untuk semua thumbnail foto barang di sistem (Hover Zoom)
             $(document).on('mouseenter', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
+                if ($(this).closest('#table-lookup-items').length) return; // Abaikan tabel lookup agar performa grid cepat & ringan
                 clearTimeout(zoomTimeout);
                 showZoom(this);
             });
 
             $(document).on('mouseleave', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
+                if ($(this).closest('#table-lookup-items').length) return;
                 hideZoom();
             });
 
             // Klik gambar barang: Buka Modal Zoom Window (bukan new tab) yang bisa digeser-geser di atas screen sebelumnya
             $(document).on('click', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
-                if ($(this).closest('#modalZoomFoto').length || $(this).closest('#global-img-zoom-popup').length) return;
+                if ($(this).closest('#modalZoomFoto').length || $(this).closest('#global-img-zoom-popup').length || $(this).closest('#table-lookup-items').length) return;
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -2049,7 +2058,7 @@
 
                 // Reset posisi modal jika sebelumnya digeser
                 const $dialog = $('#modalZoomFoto .modal-dialog');
-                $dialog.css({ transform: '', top: '', left: '' });
+                $dialog.css('transform', '').removeAttr('data-trans-x').removeAttr('data-trans-y');
 
                 $('#modalZoomFoto').modal('show');
             });
