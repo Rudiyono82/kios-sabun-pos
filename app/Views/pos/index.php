@@ -1597,7 +1597,8 @@
     $('#input-bayar').on('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            $('#btn-proses-transaksi').click();
+            e.stopPropagation();
+            $('#btn-proses-transaksi').trigger('click');
         }
     });
 
@@ -1620,7 +1621,19 @@
     });
 
     // 5. Proses Transaksi ke Server & Kirim WhatsApp jika Member
-    $('#btn-proses-transaksi').on('click', function() {
+    let isSubmittingTransaction = false;
+
+    $('#btn-proses-transaksi').on('click', function(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        if (isSubmittingTransaction) {
+            console.warn('Transaksi sedang diproses, mencegah double submit...');
+            return false;
+        }
+
         if (cart.length === 0) {
             Swal.fire('Keranjang Kosong', 'Silakan pilih produk yang akan dibeli.', 'warning');
             return;
@@ -1639,6 +1652,8 @@
             Swal.fire('Uang Kurang', 'Nominal uang pembayaran kurang dari total tagihan!', 'warning');
             return;
         }
+
+        isSubmittingTransaction = true;
 
         const kodeMember = ($('input[name="customer_type"]:checked').val() === 'member' && selectedMember) ? selectedMember.kode_member : null;
         const kodeVoucher = ($('input[name="customer_type"]:checked').val() === 'member') ? ($('#select-voucher-pos').val() || null) : null;
@@ -1666,6 +1681,7 @@
             contentType: 'application/json',
             data: JSON.stringify(payload),
             success: function(res) {
+                isSubmittingTransaction = false;
                 if (typeof hideSaveLoading === 'function') {
                     hideSaveLoading();
                 }
@@ -1708,6 +1724,7 @@
                 renderCart();
             },
             error: function(err) {
+                isSubmittingTransaction = false;
                 if (typeof hideSaveLoading === 'function') {
                     hideSaveLoading();
                 }
@@ -1846,12 +1863,15 @@
         // 11. Enter: Selesaikan Transaksi jika di Modal Bayar, atau Cetak Struk jika di Modal Struk
         else if (e.key === 'Enter') {
             if ($('#modalBayar').hasClass('show')) {
-                // Jika sedang mengetik di input-bayar dan menekan Enter, langsung proses transaksi
+                // Jika sedang di input-bayar, event sudah ditangani oleh keydown input-bayar
+                if (e.target && e.target.id === 'input-bayar') {
+                    return;
+                }
                 e.preventDefault();
-                $('#btn-proses-transaksi').click();
+                $('#btn-proses-transaksi').trigger('click');
             } else if ($('#modalStruk').hasClass('show')) {
                 e.preventDefault();
-                $('#btn-print-struk').click();
+                $('#btn-print-struk').trigger('click');
             }
         }
     });

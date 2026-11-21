@@ -467,6 +467,28 @@ try {
         // ignore
     }
 
+    // Hapus faktur duplikat J2611210008 (akibat double submit) dan kembalikan stoknya
+    try {
+        $dup = $pdo->query("SELECT * FROM `penjualan` WHERE no_faktur = 'J2611210008'")->fetch();
+        if ($dup) {
+            $dtlStmt = $pdo->query("SELECT id_barang, qty FROM `penjualan_detail` WHERE no_faktur = 'J2611210008'");
+            while ($dt = $dtlStmt->fetch()) {
+                $cabangId = (int)($dup['id_cabang'] ?? 1);
+                $qty = (float)$dt['qty'];
+                $idB = $dt['id_barang'];
+                $pdo->exec("UPDATE `stok_cabang` SET stok = stok + {$qty} WHERE id_barang = '{$idB}' AND id_cabang = {$cabangId}");
+                $pdo->exec("UPDATE `barang` SET stok = (SELECT COALESCE(SUM(stok), 0) FROM `stok_cabang` WHERE id_barang = '{$idB}') WHERE id_barang = '{$idB}'");
+            }
+            $pdo->exec("DELETE FROM `penjualan_detail` WHERE no_faktur = 'J2611210008'");
+            $pdo->exec("DELETE FROM `data_keuangan` WHERE nama_keuangan LIKE '%J2611210008%'");
+            $pdo->exec("DELETE FROM `kartu_stok` WHERE no_referensi = 'J2611210008'");
+            $pdo->exec("DELETE FROM `penjualan` WHERE no_faktur = 'J2611210008'");
+            echo "[MIGRATION] Removed duplicate invoice J2611210008 and restored stock.\n";
+        }
+    } catch (Exception $e) {
+        // ignore
+    }
+
     echo "\n=======================================================\n";
     echo "[MIGRATION SUCCESS] Seluruh tabel & data SQLite berhasil disinkronkan ke MySQL!\n";
     echo "=======================================================\n";
@@ -484,6 +506,28 @@ try {
         $pdo->exec("UPDATE `data_keuangan` SET tanggal = DATE_ADD(tanggal, INTERVAL 7 HOUR) WHERE nama_keuangan LIKE '%J261121%' AND HOUR(tanggal) <= 15;");
         $pdo->exec("UPDATE `kartu_stok` SET tanggal = DATE_ADD(tanggal, INTERVAL 7 HOUR) WHERE no_referensi LIKE 'J261121%' AND HOUR(tanggal) <= 15;");
         echo "[MIGRATION] Corrected UTC timestamps to WIB for today's transactions.\n";
+    } catch (Exception $e) {
+        // ignore
+    }
+
+    // Hapus faktur duplikat J2611210008 (akibat double submit) dan kembalikan stoknya
+    try {
+        $dup = $pdo->query("SELECT * FROM `penjualan` WHERE no_faktur = 'J2611210008'")->fetch();
+        if ($dup) {
+            $dtlStmt = $pdo->query("SELECT id_barang, qty FROM `penjualan_detail` WHERE no_faktur = 'J2611210008'");
+            while ($dt = $dtlStmt->fetch()) {
+                $cabangId = (int)($dup['id_cabang'] ?? 1);
+                $qty = (float)$dt['qty'];
+                $idB = $dt['id_barang'];
+                $pdo->exec("UPDATE `stok_cabang` SET stok = stok + {$qty} WHERE id_barang = '{$idB}' AND id_cabang = {$cabangId}");
+                $pdo->exec("UPDATE `barang` SET stok = (SELECT COALESCE(SUM(stok), 0) FROM `stok_cabang` WHERE id_barang = '{$idB}') WHERE id_barang = '{$idB}'");
+            }
+            $pdo->exec("DELETE FROM `penjualan_detail` WHERE no_faktur = 'J2611210008'");
+            $pdo->exec("DELETE FROM `data_keuangan` WHERE nama_keuangan LIKE '%J2611210008%'");
+            $pdo->exec("DELETE FROM `kartu_stok` WHERE no_referensi = 'J2611210008'");
+            $pdo->exec("DELETE FROM `penjualan` WHERE no_faktur = 'J2611210008'");
+            echo "[MIGRATION] Removed duplicate invoice J2611210008 and restored stock.\n";
+        }
     } catch (Exception $e) {
         // ignore
     }

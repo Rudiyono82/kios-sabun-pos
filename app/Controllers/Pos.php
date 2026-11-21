@@ -322,6 +322,32 @@ class Pos extends BaseController
         $bayar = (float) str_replace(['.', ',', ' '], '', (string)($json['bayar'] ?? 0));
         $kembalian = $bayar - $grandTotal;
 
+        // Cegah Transaksi Duplikat (Double Click / Debounce 3 Detik)
+        $threeSecAgo = date('Y-m-d H:i:s', time() - 3);
+        $recentDuplicate = $db->table('penjualan')
+            ->where('kode_user', session()->get('kode_user') ?? 'KASIR1')
+            ->where('id_cabang', $idCabang)
+            ->where('grand_total', $grandTotal)
+            ->where('total_item', $totalItem)
+            ->where('created_at >=', $threeSecAgo)
+            ->orderBy('id', 'DESC')
+            ->get()->getRowArray();
+
+        if ($recentDuplicate) {
+            $db->transRollback();
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Transaksi berhasil diproses!',
+                'no_faktur' => $recentDuplicate['no_faktur'],
+                'grand_total' => (float)$recentDuplicate['grand_total'],
+                'raw_total' => $rawGrandTotal,
+                'pembulatan' => $pembulatan,
+                'bayar' => (float)$recentDuplicate['bayar'],
+                'kembalian' => (float)$recentDuplicate['kembalian'],
+                'is_member' => !empty($json['kode_member'])
+            ]);
+        }
+
         // Insert Master Penjualan
         $db->table('penjualan')->insert([
             'id_cabang' => $idCabang,
