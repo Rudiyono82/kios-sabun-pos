@@ -280,7 +280,7 @@
                                     <td class="text-center text-muted fw-semibold"><?= $no++ ?></td>
                                     <td class="text-center">
                                         <?php if ($imgSrc): ?>
-                                            <img src="<?= $imgSrc ?>" alt="<?= esc($item['nama_barang']) ?>" data-zoom-title="<?= esc($item['nama_barang']) ?>" class="rounded border shadow-xs img-zoom-hover" style="width: 32px; height: 32px; object-fit: cover; cursor: zoom-in;" onclick="window.open('<?= $imgSrc ?>', '_blank')" title="Klik perbesar foto" onerror="this.style.display='none'">
+                                            <img src="<?= $imgSrc ?>" alt="<?= esc($item['nama_barang']) ?>" data-zoom-title="<?= esc($item['nama_barang']) ?>" class="rounded border shadow-xs img-zoom-hover" style="width: 32px; height: 32px; object-fit: cover; cursor: zoom-in;" title="Klik untuk perbesar foto (Popup)" onerror="this.style.display='none'">
                                         <?php else: ?>
                                             <div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted mx-auto" style="width: 32px; height: 32px; font-size: 0.75rem;">
                                                 <i class="bi bi-image"></i>

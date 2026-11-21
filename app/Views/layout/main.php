@@ -822,7 +822,7 @@
         }
 
         /* ============================================================ */
-        /* GLOBAL IMAGE ZOOM ON HOVER (POPUP GAMBAR PERBESAR)          */
+        /* GLOBAL IMAGE ZOOM ON HOVER & DRAGGABLE MODAL ZOOM           */
         /* ============================================================ */
         .img-zoom-hover, img[src*="uploads/barang"], .zoomable-img, img[data-zoom-img] {
             cursor: zoom-in !important;
@@ -839,14 +839,14 @@
             z-index: 106000;
             pointer-events: none; /* Cegah flicker ketika mouse berada di dekat tepi popup */
             background: #ffffff;
-            border-radius: 14px;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            box-shadow: 0 20px 45px -5px rgba(0, 0, 0, 0.4), 0 8px 18px rgba(0, 0, 0, 0.15);
-            padding: 8px;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 0, 0, 0.14);
+            box-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.45), 0 10px 20px rgba(0, 0, 0, 0.2);
+            padding: 10px;
             transition: opacity 0.15s ease, transform 0.15s ease;
             opacity: 0;
             transform: scale(0.92);
-            max-width: 340px;
+            max-width: 480px;
             box-sizing: border-box;
         }
 
@@ -861,38 +861,54 @@
             align-items: center;
             justify-content: center;
             background: #f8fafc;
-            border-radius: 10px;
-            min-width: 180px;
-            min-height: 180px;
-            max-width: 320px;
-            max-height: 320px;
+            border-radius: 12px;
+            min-width: 280px;
+            min-height: 280px;
+            max-width: 460px;
+            max-height: 460px;
             overflow: hidden;
         }
 
         #global-img-zoom-popup img {
-            max-width: 320px;
-            max-height: 320px;
+            max-width: 460px;
+            max-height: 460px;
             width: auto;
             height: auto;
             object-fit: contain;
             display: block;
-            border-radius: 8px;
+            border-radius: 10px;
         }
 
         #global-img-zoom-caption {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: #0f172a;
             text-align: center;
-            margin-top: 8px;
-            padding: 5px 10px;
+            margin-top: 10px;
+            padding: 6px 12px;
             background: #f1f5f9;
             border-radius: 8px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 320px;
+            max-width: 460px;
             border: 1px solid #e2e8f0;
+        }
+
+        /* High Z-Index Modal Zoom Foto agar tampil di atas modal lain */
+        #modalZoomFoto {
+            z-index: 107000 !important;
+        }
+        #modalZoomFoto + .modal-backdrop,
+        .modal-backdrop.show:last-of-type {
+            z-index: 106990 !important;
+        }
+        #modalZoomFoto .modal-header {
+            cursor: grab !important;
+            user-select: none !important;
+        }
+        #modalZoomFoto .modal-header:active {
+            cursor: grabbing !important;
         }
     </style>
 </head>
@@ -1947,11 +1963,11 @@
 
                 $popup.css('display', 'block');
 
-                // Hitung posisi floating terhadap viewport
+                // Hitung posisi floating terhadap viewport (Ukuran lebih besar & nyaman dilihat)
                 const rect = imgEl.getBoundingClientRect();
-                const pWidth = $popup.outerWidth() || 300;
-                const pHeight = $popup.outerHeight() || 300;
-                const margin = 14;
+                const pWidth = Math.min(480, window.innerWidth - 30);
+                const pHeight = Math.min(500, window.innerHeight - 30);
+                const margin = 16;
 
                 // Posisi Horizontal: utamakan di sebelah kanan thumbnail
                 let left = rect.right + margin;
@@ -2001,7 +2017,7 @@
                 }, 160);
             }
 
-            // Event delegation untuk semua thumbnail foto barang di sistem
+            // Event delegation untuk semua thumbnail foto barang di sistem (Hover Zoom)
             $(document).on('mouseenter', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
                 clearTimeout(zoomTimeout);
                 showZoom(this);
@@ -2011,11 +2027,35 @@
                 hideZoom();
             });
 
-            // Sembunyikan jika layar di-scroll atau window di-resize atau terjadi klik
-            $(window).on('scroll resize', function() {
+            // Klik gambar barang: Buka Modal Zoom Window (bukan new tab) yang bisa digeser-geser di atas screen sebelumnya
+            $(document).on('click', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
+                if ($(this).closest('#modalZoomFoto').length || $(this).closest('#global-img-zoom-popup').length) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
                 hideZoom();
+
+                const src = $(this).attr('data-zoom-src') || $(this).attr('src');
+                if (!src || src.trim() === '' || (src.indexOf('data:') === 0 && src.length < 50)) return;
+
+                let titleText = $(this).attr('data-zoom-title') || $(this).attr('alt') || $(this).data('saved-title') || 'Foto Produk';
+                if (titleText.toLowerCase().includes('klik perbesar') || titleText.toLowerCase().includes('preview foto')) {
+                    titleText = $(this).attr('data-zoom-title') || 'Foto Produk';
+                }
+
+                $('#modalZoomFotoTarget').attr('src', src);
+                $('#modalZoomFotoTitle').text(titleText);
+
+                // Reset posisi modal jika sebelumnya digeser
+                const $dialog = $('#modalZoomFoto .modal-dialog');
+                $dialog.css({ transform: '', top: '', left: '' });
+
+                $('#modalZoomFoto').modal('show');
             });
-            $(document).on('click', function() {
+
+            // Sembunyikan jika layar di-scroll atau window di-resize
+            $(window).on('scroll resize', function() {
                 hideZoom();
             });
         })();
@@ -2027,6 +2067,33 @@
             <img id="global-img-zoom-target" src="" alt="Zoom Foto">
         </div>
         <div id="global-img-zoom-caption" style="display: none;"></div>
+    </div>
+
+    <!-- Modal Zoom Foto Barang (Popup Window Di Atas Form & Bisa Digeser-geser) -->
+    <div class="modal fade" id="modalZoomFoto" tabindex="-1" aria-hidden="true" data-bs-backdrop="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 620px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
+                <div class="modal-header py-2 px-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                    <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                        <i class="bi bi-image text-info fs-5"></i>
+                        <h6 class="modal-title fw-bold text-white mb-0 text-truncate" id="modalZoomFotoTitle" style="font-size: 0.95rem;">Foto Produk</h6>
+                        <span class="badge bg-white bg-opacity-20 text-white small ms-1" style="font-size: 0.70rem;">
+                            <i class="bi bi-arrows-move me-1"></i>Bisa Digeser
+                        </span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-2 d-flex align-items-center justify-content-center bg-light" style="min-height: 380px; max-height: 80vh; overflow: hidden;">
+                    <img id="modalZoomFotoTarget" src="" alt="Foto Produk" class="img-fluid rounded" style="max-height: 75vh; width: 100%; object-fit: contain; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                </div>
+                <div class="modal-footer py-2 px-3 bg-white border-top d-flex justify-content-between align-items-center">
+                    <small class="text-muted" style="font-size: 0.75rem;">
+                        <i class="bi bi-arrows-move me-1 text-primary"></i>Klik &amp; tahan header di atas untuk memindahkan posisi popup
+                    </small>
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
     </div>
     <?= $this->renderSection('scripts') ?>
 </body>

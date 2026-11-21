@@ -434,7 +434,7 @@ const StockLookup = {
             const imgUrl = '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(itemImg);
             $('#lookup-preview-box').html(`
                 <div class="position-relative w-100 h-100 d-flex align-items-center justify-content-center p-1">
-                    <img src="${imgUrl}" alt="${item.nama_barang}" data-zoom-title="${item.nama_barang}" class="img-fluid rounded shadow-sm img-zoom-hover" style="max-height: 165px; max-width: 100%; object-fit: contain; cursor: zoom-in;" onclick="window.open('${imgUrl}', '_blank')" title="Klik untuk perbesar foto produk" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'d-flex flex-column align-items-center justify-content-center text-muted\\'><i class=\\'bi bi-image fs-1 mb-1\\'></i><span class=\\'fw-bold text-dark fs-6\\'>Foto Tidak Ada</span></div>';">
+                    <img src="${imgUrl}" alt="${item.nama_barang}" data-zoom-title="${item.nama_barang}" class="img-fluid rounded shadow-sm img-zoom-hover" style="max-height: 165px; max-width: 100%; object-fit: contain; cursor: zoom-in;" title="Klik untuk perbesar foto (Popup)" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'d-flex flex-column align-items-center justify-content-center text-muted\\'><i class=\\'bi bi-image fs-1 mb-1\\'></i><span class=\\'fw-bold text-dark fs-6\\'>Foto Tidak Ada</span></div>';">
                 </div>
             `).css('background-color', '#f8fafc');
         } else {
