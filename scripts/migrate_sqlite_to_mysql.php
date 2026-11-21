@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Script Migrasi Otomatis dari SQLite (writable/database.db) ke MySQL di Railway.
+ * Script Migrasi & Sinkronisasi Otomatis dari SQLite (writable/database.db) ke MySQL di Railway.
  * Berjalan otomatis saat container web-pos booting.
  */
 
@@ -50,7 +50,6 @@ echo "[MIGRATION] Opened SQLite database at {$sqlitePath}.\n";
 function sqliteToMysqlDdl(string $sqliteSql): string
 {
     $ddl = preg_replace('/^CREATE\s+TABLE\s+/i', 'CREATE TABLE IF NOT EXISTS ', $sqliteSql);
-    // Hapus foreign key SQLite yang sering bentrok tipe data int/bigint di MySQL
     $ddl = preg_replace('/,\s*FOREIGN\s+KEY\s*\([^)]+\)\s*REFERENCES\s+[^,\)]+\([^)]+\)(\s+ON\s+(DELETE|UPDATE)\s+[A-Z]+)*/i', '', $ddl);
     $ddl = preg_replace('/INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/i', 'BIGINT AUTO_INCREMENT PRIMARY KEY', $ddl);
     $ddl = preg_replace('/VARCHAR(?!\s*\()/i', 'VARCHAR(255)', $ddl);
@@ -61,7 +60,7 @@ function sqliteToMysqlDdl(string $sqliteSql): string
     return $ddl . " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;";
 }
 
-function insertBatch(PDO $pdo, string $tableName, array $rows): void
+function insertBatchIgnore(PDO $pdo, string $tableName, array $rows): void
 {
     if (empty($rows)) return;
 
@@ -81,12 +80,79 @@ function insertBatch(PDO $pdo, string $tableName, array $rows): void
         $valuesClauses[] = '(' . implode(', ', $placeholders) . ')';
     }
 
-    $sql = "INSERT INTO `{$tableName}` ({$colList}) VALUES " . implode(', ', $valuesClauses);
+    $sql = "INSERT IGNORE INTO `{$tableName}` ({$colList}) VALUES " . implode(', ', $valuesClauses);
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 }
 
-// 3. Proses Impor Schema & Data Per-Tabel
+function upsertBarangBatch(PDO $pdo, array $rows): void
+{
+    if (empty($rows)) return;
+
+    $cols = array_keys($rows[0]);
+    $escapedCols = array_map(fn($c) => "`{$c}`", $cols);
+    $colList = implode(', ', $escapedCols);
+
+    $valuesClauses = [];
+    $params = [];
+
+    foreach ($rows as $row) {
+        $placeholders = [];
+        foreach ($cols as $col) {
+            $placeholders[] = '?';
+            $params[] = $row[$col];
+        }
+        $valuesClauses[] = '(' . implode(', ', $placeholders) . ')';
+    }
+
+    $sql = "INSERT INTO `barang` ({$colList}) VALUES " . implode(', ', $valuesClauses) . "
+        ON DUPLICATE KEY UPDATE
+            `stok` = VALUES(`stok`),
+            `harga_beli` = VALUES(`harga_beli`),
+            `harga_jual` = VALUES(`harga_jual`),
+            `nama_barang` = VALUES(`nama_barang`),
+            `satuan` = VALUES(`satuan`),
+            `status` = VALUES(`status`),
+            `qty_paket_a` = VALUES(`qty_paket_a`),
+            `hrg_paket_a` = VALUES(`hrg_paket_a`),
+            `qty_paket_b` = VALUES(`qty_paket_b`),
+            `hrg_paket_b` = VALUES(`hrg_paket_b`),
+            `qty_paket_c` = VALUES(`qty_paket_c`),
+            `hrg_paket_c` = VALUES(`hrg_paket_c`),
+            `updated_at` = VALUES(`updated_at`)";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+}
+
+function upsertStokCabangBatch(PDO $pdo, array $rows): void
+{
+    if (empty($rows)) return;
+
+    $cols = array_keys($rows[0]);
+    $escapedCols = array_map(fn($c) => "`{$c}`", $cols);
+    $colList = implode(', ', $escapedCols);
+
+    $valuesClauses = [];
+    $params = [];
+
+    foreach ($rows as $row) {
+        $placeholders = [];
+        foreach ($cols as $col) {
+            $placeholders[] = '?';
+            $params[] = $row[$col];
+        }
+        $valuesClauses[] = '(' . implode(', ', $placeholders) . ')';
+    }
+
+    $sql = "INSERT INTO `stok_cabang` ({$colList}) VALUES " . implode(', ', $valuesClauses) . "
+        ON DUPLICATE KEY UPDATE `stok` = VALUES(`stok`)";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+}
+
+// 3. Proses Impor & Sinkronisasi Data Per-Tabel
 try {
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
     $pdo->exec("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';");
@@ -98,7 +164,7 @@ try {
         $tableList[] = $r;
     }
 
-    echo "[MIGRATION] Found " . count($tableList) . " tables in SQLite to verify/migrate.\n";
+    echo "[MIGRATION] Found " . count($tableList) . " tables in SQLite to verify/sync.\n";
 
     foreach ($tableList as $tInfo) {
         $tableName = $tInfo['name'];
@@ -114,10 +180,10 @@ try {
             try {
                 $pdo->exec($mysqlDdl);
             } catch (Exception $ddlErr) {
-                echo "[MIGRATION WARN] Table creation notice for `{$tableName}`: " . $ddlErr->getMessage() . "\n";
+                // Table might already exist
             }
 
-            // 3b. Cek jumlah baris di MySQL
+            // 3b. Cek jumlah baris di MySQL vs SQLite
             $mysqlRows = 0;
             try {
                 $mysqlRows = (int)$pdo->query("SELECT COUNT(*) FROM `{$tableName}`")->fetchColumn();
@@ -127,6 +193,226 @@ try {
 
             $sqliteRows = (int)$sqlite->querySingle("SELECT COUNT(*) FROM `{$tableName}`");
 
+            // KASUS 1: Tabel barang -> Selalu sync stok & harga terbaru (UPSERT)
+            if ($tableName === 'barang') {
+                echo "[MIGRATION] Syncing master `barang` (stok & harga) to MySQL...\n";
+                $dataRes = $sqlite->query("SELECT * FROM `barang`");
+                $batch = [];
+                $pdo->beginTransaction();
+                while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                    $batch[] = $row;
+                    if (count($batch) >= 250) {
+                        upsertBarangBatch($pdo, $batch);
+                        $batch = [];
+                    }
+                }
+                if (count($batch) > 0) {
+                    upsertBarangBatch($pdo, $batch);
+                }
+                $pdo->commit();
+                echo "[MIGRATION] `barang` synced successfully ($sqliteRows products).\n";
+                continue;
+            }
+
+            // KASUS 2: Tabel stok_cabang -> Selalu sync stok cabang
+            if ($tableName === 'stok_cabang') {
+                echo "[MIGRATION] Syncing `stok_cabang` to MySQL...\n";
+                $dataRes = $sqlite->query("SELECT * FROM `stok_cabang`");
+                $batch = [];
+                $pdo->beginTransaction();
+                while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                    $batch[] = $row;
+                    if (count($batch) >= 250) {
+                        upsertStokCabangBatch($pdo, $batch);
+                        $batch = [];
+                    }
+                }
+                if (count($batch) > 0) {
+                    upsertStokCabangBatch($pdo, $batch);
+                }
+                $pdo->commit();
+                echo "[MIGRATION] `stok_cabang` synced successfully.\n";
+                continue;
+            }
+
+            // KASUS 3: Tabel Penjualan (Master Transaksi) -> Insert transaksi baru
+            if ($tableName === 'penjualan') {
+                if ($sqliteRows > $mysqlRows) {
+                    echo "[MIGRATION] Syncing new `penjualan` transactions ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
+                    $existingFaktur = [];
+                    $stF = $pdo->query("SELECT no_faktur FROM `penjualan`");
+                    while ($f = $stF->fetchColumn()) {
+                        $existingFaktur[$f] = true;
+                    }
+
+                    $dataRes = $sqlite->query("SELECT * FROM `penjualan`");
+                    $batch = [];
+                    $inserted = 0;
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        if (!isset($existingFaktur[$row['no_faktur']])) {
+                            $batch[] = $row;
+                            $inserted++;
+                            if (count($batch) >= 250) {
+                                insertBatchIgnore($pdo, 'penjualan', $batch);
+                                $batch = [];
+                            }
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        insertBatchIgnore($pdo, 'penjualan', $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] `penjualan` synced: {$inserted} new transactions inserted into MySQL.\n";
+                } else {
+                    echo "[MIGRATION] `penjualan` is up to date ($mysqlRows transactions). Skipped.\n";
+                }
+                continue;
+            }
+
+            // KASUS 4: Tabel Penjualan Detail -> Insert detail transaksi baru
+            if ($tableName === 'penjualan_detail') {
+                if ($sqliteRows > $mysqlRows) {
+                    echo "[MIGRATION] Syncing new `penjualan_detail` ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
+                    $existingFaktur = [];
+                    $stF = $pdo->query("SELECT DISTINCT no_faktur FROM `penjualan_detail`");
+                    while ($f = $stF->fetchColumn()) {
+                        $existingFaktur[$f] = true;
+                    }
+
+                    $dataRes = $sqlite->query("SELECT * FROM `penjualan_detail`");
+                    $batch = [];
+                    $inserted = 0;
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        if (!isset($existingFaktur[$row['no_faktur']])) {
+                            $batch[] = $row;
+                            $inserted++;
+                            if (count($batch) >= 250) {
+                                insertBatchIgnore($pdo, 'penjualan_detail', $batch);
+                                $batch = [];
+                            }
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        insertBatchIgnore($pdo, 'penjualan_detail', $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] `penjualan_detail` synced: {$inserted} product rows inserted into MySQL.\n";
+                } else {
+                    echo "[MIGRATION] `penjualan_detail` is up to date ($mysqlRows rows). Skipped.\n";
+                }
+                continue;
+            }
+
+            // KASUS 5: Tabel Data Keuangan -> Insert mutasi kas baru
+            if ($tableName === 'data_keuangan') {
+                if ($sqliteRows > $mysqlRows) {
+                    echo "[MIGRATION] Syncing new `data_keuangan` ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
+                    $existingKeys = [];
+                    $stK = $pdo->query("SELECT tanggal, jenis_keuangan, nama_keuangan, total FROM `data_keuangan`");
+                    while ($rk = $stK->fetch()) {
+                        $kKey = $rk['tanggal'] . '|' . $rk['jenis_keuangan'] . '|' . $rk['nama_keuangan'] . '|' . (float)$rk['total'];
+                        $existingKeys[$kKey] = true;
+                    }
+
+                    $dataRes = $sqlite->query("SELECT * FROM `data_keuangan`");
+                    $batch = [];
+                    $inserted = 0;
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        $kKey = $row['tanggal'] . '|' . $row['jenis_keuangan'] . '|' . $row['nama_keuangan'] . '|' . (float)$row['total'];
+                        if (!isset($existingKeys[$kKey])) {
+                            $batch[] = $row;
+                            $inserted++;
+                            if (count($batch) >= 250) {
+                                insertBatchIgnore($pdo, 'data_keuangan', $batch);
+                                $batch = [];
+                            }
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        insertBatchIgnore($pdo, 'data_keuangan', $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] `data_keuangan` synced: {$inserted} new cash records inserted into MySQL.\n";
+                } else {
+                    echo "[MIGRATION] `data_keuangan` is up to date ($mysqlRows rows). Skipped.\n";
+                }
+                continue;
+            }
+
+            // KASUS 6: Tabel Pembelian -> Insert pembelian baru
+            if ($tableName === 'pembelian') {
+                if ($sqliteRows > $mysqlRows) {
+                    echo "[MIGRATION] Syncing new `pembelian` ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
+                    $existingBeli = [];
+                    $stB = $pdo->query("SELECT no_beli FROM `pembelian`");
+                    while ($b = $stB->fetchColumn()) {
+                        $existingBeli[$b] = true;
+                    }
+
+                    $dataRes = $sqlite->query("SELECT * FROM `pembelian`");
+                    $batch = [];
+                    $inserted = 0;
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        if (!isset($existingBeli[$row['no_beli']])) {
+                            $batch[] = $row;
+                            $inserted++;
+                            if (count($batch) >= 250) {
+                                insertBatchIgnore($pdo, 'pembelian', $batch);
+                                $batch = [];
+                            }
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        insertBatchIgnore($pdo, 'pembelian', $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] `pembelian` synced: {$inserted} new purchases inserted into MySQL.\n";
+                } else {
+                    echo "[MIGRATION] `pembelian` is up to date ($mysqlRows rows). Skipped.\n";
+                }
+                continue;
+            }
+
+            // KASUS 7: Tabel Pembelian Detail -> Insert rincian pembelian baru
+            if ($tableName === 'pembelian_detail') {
+                if ($sqliteRows > $mysqlRows) {
+                    echo "[MIGRATION] Syncing new `pembelian_detail` ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
+                    $existingBeli = [];
+                    $stB = $pdo->query("SELECT DISTINCT no_beli FROM `pembelian_detail`");
+                    while ($b = $stB->fetchColumn()) {
+                        $existingBeli[$b] = true;
+                    }
+
+                    $dataRes = $sqlite->query("SELECT * FROM `pembelian_detail`");
+                    $batch = [];
+                    $inserted = 0;
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        if (!isset($existingBeli[$row['no_beli']])) {
+                            $batch[] = $row;
+                            $inserted++;
+                            if (count($batch) >= 250) {
+                                insertBatchIgnore($pdo, 'pembelian_detail', $batch);
+                                $batch = [];
+                            }
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        insertBatchIgnore($pdo, 'pembelian_detail', $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] `pembelian_detail` synced: {$inserted} purchase item rows inserted into MySQL.\n";
+                } else {
+                    echo "[MIGRATION] `pembelian_detail` is up to date ($mysqlRows rows). Skipped.\n";
+                }
+                continue;
+            }
+
+            // KASUS STANDAR: Tabel lainnya (users, member, supplier, retur, audit_logs, dsb)
             if ($mysqlRows > 0) {
                 echo "[MIGRATION] Table `{$tableName}` already populated ({$mysqlRows} rows in MySQL). Skipped.\n";
                 continue;
@@ -138,26 +424,22 @@ try {
             }
 
             echo "[MIGRATION] Copying {$sqliteRows} rows for `{$tableName}` into MySQL...\n";
-            
             $dataRes = $sqlite->query("SELECT * FROM `{$tableName}`");
-            
             $batch = [];
-            $batchSize = 250;
             $totalInserted = 0;
-
             $pdo->beginTransaction();
 
             while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
                 $batch[] = $row;
-                if (count($batch) >= $batchSize) {
-                    insertBatch($pdo, $tableName, $batch);
+                if (count($batch) >= 250) {
+                    insertBatchIgnore($pdo, $tableName, $batch);
                     $totalInserted += count($batch);
                     $batch = [];
                 }
             }
 
             if (count($batch) > 0) {
-                insertBatch($pdo, $tableName, $batch);
+                insertBatchIgnore($pdo, $tableName, $batch);
                 $totalInserted += count($batch);
                 $batch = [];
             }
@@ -173,20 +455,10 @@ try {
         }
     }
 
-    // Buat marker log migrasi
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `_sqlite_migration_log` (
-            `id` INT AUTO_INCREMENT PRIMARY KEY,
-            `migrated_at` DATETIME,
-            `note` VARCHAR(255)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-    $pdo->exec("INSERT INTO `_sqlite_migration_log` (migrated_at, note) VALUES (NOW(), 'Migrasi SQLite ke MySQL berhasil.');");
-
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
 
     echo "\n=======================================================\n";
-    echo "[MIGRATION SUCCESS] Seluruh tabel & data SQLite berhasil dipindahkan ke MySQL!\n";
+    echo "[MIGRATION SUCCESS] Seluruh tabel & data SQLite berhasil disinkronkan ke MySQL!\n";
     echo "=======================================================\n";
 
 } catch (Exception $e) {
