@@ -40,6 +40,17 @@ class Barang extends BaseController
         $id = $this->request->getPost('id');
         $isAdmin = (session()->get('role') === 'admin');
 
+        // Proteksi Hak Akses: Hanya Admin yang dapat menambah atau mengedit Master Barang
+        if (!$isAdmin) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Akses ditolak! Kasir tidak memiliki wewenang untuk menambah atau mengedit master data barang.'
+                ]);
+            }
+            return redirect()->to('/barang')->with('error', 'Akses ditolak! Kasir tidak memiliki wewenang untuk menambah atau mengedit master data barang.');
+        }
+
         $idBarang   = strtoupper(trim((string)$this->request->getPost('id_barang')));
         $namaBarang = trim((string)$this->request->getPost('nama_barang'));
         $kategoriId = trim((string)$this->request->getPost('kategori_id'));
@@ -82,53 +93,18 @@ class Barang extends BaseController
             return (float) str_replace(['.', ',', ' '], '', (string)$val);
         };
 
-        // Pengaturan harga, paket grosir, dan stok:
-        // Saat TAMBAH BARU: Field harga beli, harga jual, grosir, dan paket A/B/C SEMUANYA ENABLED bisa di-input (Admin maupun Kasir)
-        // Saat EDIT:
-        //   - Jika Admin: Bebas menentukan dan mengubah seluruh harga & stok
-        //   - Jika Kasir: Pertahankan harga lama dari database (karena field harga di-lock/disabled saat edit)
-        if ($isAdmin) {
-            $data['harga_beli']   = $cleanNumber($this->request->getPost('harga_beli'));
-            $data['harga_jual']   = $cleanNumber($this->request->getPost('harga_jual'));
-            $data['harga_grosir'] = $cleanNumber($this->request->getPost('harga_grosir'));
-            $data['qty_paket_a']  = (float) $this->request->getPost('qty_paket_a');
-            $data['hrg_paket_a']  = $cleanNumber($this->request->getPost('hrg_paket_a'));
-            $data['qty_paket_b']  = (float) $this->request->getPost('qty_paket_b');
-            $data['hrg_paket_b']  = $cleanNumber($this->request->getPost('hrg_paket_b'));
-            $data['qty_paket_c']  = (float) $this->request->getPost('qty_paket_c');
-            $data['hrg_paket_c']  = $cleanNumber($this->request->getPost('hrg_paket_c'));
-            $data['stok']         = (float) $this->request->getPost('stok');
-            $data['min_stok']     = (float) ($this->request->getPost('min_stok') ?: 5);
-        } else {
-            // Role Kasir
-            if ($existing) {
-                // Pada Edit: Pertahankan harga & paket eksisting agar tidak ter-reset
-                $data['harga_beli']   = (float) ($existing['harga_beli'] ?? 0);
-                $data['harga_jual']   = (float) ($existing['harga_jual'] ?? 0);
-                $data['harga_grosir'] = (float) ($existing['harga_grosir'] ?? 0);
-                $data['qty_paket_a']  = (float) ($existing['qty_paket_a'] ?? 0);
-                $data['hrg_paket_a']  = (float) ($existing['hrg_paket_a'] ?? 0);
-                $data['qty_paket_b']  = (float) ($existing['qty_paket_b'] ?? 0);
-                $data['hrg_paket_b']  = (float) ($existing['hrg_paket_b'] ?? 0);
-                $data['qty_paket_c']  = (float) ($existing['qty_paket_c'] ?? 0);
-                $data['hrg_paket_c']  = (float) ($existing['hrg_paket_c'] ?? 0);
-                $data['stok']         = (float) ($existing['stok'] ?? 0);
-                $data['min_stok']     = (float) ($existing['min_stok'] ?? 5);
-            } else {
-                // Pada Tambah Baru: Kasir diizinkan input harga beli, harga jual, grosir & paket A/B/C
-                $data['harga_beli']   = $cleanNumber($this->request->getPost('harga_beli'));
-                $data['harga_jual']   = $cleanNumber($this->request->getPost('harga_jual'));
-                $data['harga_grosir'] = $cleanNumber($this->request->getPost('harga_grosir'));
-                $data['qty_paket_a']  = (float) $this->request->getPost('qty_paket_a');
-                $data['hrg_paket_a']  = $cleanNumber($this->request->getPost('hrg_paket_a'));
-                $data['qty_paket_b']  = (float) $this->request->getPost('qty_paket_b');
-                $data['hrg_paket_b']  = $cleanNumber($this->request->getPost('hrg_paket_b'));
-                $data['qty_paket_c']  = (float) $this->request->getPost('qty_paket_c');
-                $data['hrg_paket_c']  = $cleanNumber($this->request->getPost('hrg_paket_c'));
-                $data['stok']         = 0;
-                $data['min_stok']     = 5;
-            }
-        }
+        // Pengaturan harga, paket grosir, dan stok (Hanya Admin yang berhak input dan ubah)
+        $data['harga_beli']   = $cleanNumber($this->request->getPost('harga_beli'));
+        $data['harga_jual']   = $cleanNumber($this->request->getPost('harga_jual'));
+        $data['harga_grosir'] = $cleanNumber($this->request->getPost('harga_grosir'));
+        $data['qty_paket_a']  = (float) $this->request->getPost('qty_paket_a');
+        $data['hrg_paket_a']  = $cleanNumber($this->request->getPost('hrg_paket_a'));
+        $data['qty_paket_b']  = (float) $this->request->getPost('qty_paket_b');
+        $data['hrg_paket_b']  = $cleanNumber($this->request->getPost('hrg_paket_b'));
+        $data['qty_paket_c']  = (float) $this->request->getPost('qty_paket_c');
+        $data['hrg_paket_c']  = $cleanNumber($this->request->getPost('hrg_paket_c'));
+        $data['stok']         = (float) $this->request->getPost('stok');
+        $data['min_stok']     = (float) ($this->request->getPost('min_stok') ?: 5);
 
         // Handle Upload Foto / Gambar Barang
         $fileFoto = $this->request->getFile('foto_barang');

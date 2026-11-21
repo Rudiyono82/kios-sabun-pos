@@ -7,19 +7,21 @@ Dokumen ini berisi aturan permanen dan konsensus sistem yang wajib ditaati oleh 
 ## 1. KEAMANAN FINANSIAL & HAK AKSES ROLE (FINANCIAL DATA PRIVACY)
 
 ### A. Role Kasir (`role = 'kasir'`)
-1. **DILARANG KERAS** menampilkan, mengirimkan via JSON API, merender di tampilan HTML, atau mencetak di struk thermal kasir hal-hal berikut:
-   - **Estimasi Margin Profit Kotor / Bersih** (`total_profit`, `profit`).
-   - **Nomor Laporan Berkode Hex Profit** (warisan VB6 `dechex(totalProfit)`). Untuk kasir, nomor laporan wajib berupa nomor urut tanggal standar (`YYYYMMDD-XXX`).
-   - **Grafik Laba / Margin Profit** di Dashboard.
-   - **Rincian Laba per Item / Faktur** pada modal detail penjualan (`/penjualan/detail`).
-   - **Menu Laporan Owner & Valuasi Aset**.
-   - **Mengedit / Mengubah Data Master Harga Beli Barang** (field `harga_beli` saat edit barang wajib di-disabled/readonly untuk kasir; perubahan harga master pada modul pembelian wajib meminta otorisasi password admin).
+1. **DILARANG KERAS**:
+   - Menampilkan, mengirimkan via JSON API, merender di tampilan HTML, atau mencetak di struk thermal kasir:
+     - **Estimasi Margin Profit Kotor / Bersih** (`total_profit`, `profit`).
+     - **Nomor Laporan Berkode Hex Profit** (warisan VB6 `dechex(totalProfit)`). Untuk kasir, nomor laporan wajib berupa nomor urut tanggal standar (`YYYYMMDD-XXX`).
+     - **Grafik Laba / Margin Profit** di Dashboard.
+     - **Rincian Laba per Item / Faktur** pada modal detail penjualan (`/penjualan/detail`).
+     - **Menu Laporan Owner & Valuasi Aset**.
+   - **Menambah, Mengedit, atau Mengubah Data Master Barang** (kasir sama sekali tidak diizinkan mengedit/menambah master data barang; kasir hanya berhak melihat katalog barang / detail read-only).
+   - **Menginput atau Mengubah Harga Beli di Form Transaksi Pembelian atau Retur**:
+     - Di form Pembelian / Restock dan form Retur Supplier, kasir **TIDAK MENGINPUT** `harga_beli`.
+     - `harga_beli` bersifat **MURNI LOOKUP OTOMATIS (READ-ONLY)** dari Master Barang.
 
-2. **Data Finansial yang Diizinkan untuk Kasir (Kebutuhan Operasional Lengkap Toko)**:
-   - **Melihat & Menginput Harga Beli (Modal / HPP)** pada:
-     - Form transaksi Pembelian / Restock barang dari supplier sesuai nota belanja fisik.
-     - Form Retur Pembelian ke supplier.
-     - Tampilan daftar produk / katalog master barang dan rincian item (sebagai informasi / read-only).
+2. **Data & Hak Akses yang Diizinkan untuk Kasir (Kebutuhan Operasional Toko)**:
+   - Melihat daftar produk / katalog master barang dan rincian item secara *read-only* (termasuk melihat `harga_beli` sebagai informasi pengecekan tanpa izin edit).
+   - Menjalankan transaksi Pembelian / Restock barang dari supplier dan Retur Supplier dengan `harga_beli` yang terisi otomatis dari lookup Master Barang.
    - Saldo Kas Awal Laci Toko (`kas_awal`).
    - Total Omzet Penjualan (`omzet` / `grand_total`).
    - Total Pengeluaran / Biaya Operasional Toko (`pengeluaran`).
@@ -28,8 +30,8 @@ Dokumen ini berisi aturan permanen dan konsensus sistem yang wajib ditaati oleh 
    - Total Non-Tunai (QRIS & Transfer Bank).
 
 ### B. Role Administrator / Owner (`role = 'admin'`)
+- Merupakan **SATU-SATUNYA TEMPAT & ROLE** yang berhak menginput, menentukan, dan mengedit data `harga_beli` (HPP), harga jual, paket grosir, stok, serta seluruh master data barang pada form Master Barang.
 - Memiliki hak akses penuh melihat seluruh metrik finansial, HPP, profitabilitas per barang, estimasi laba kotor/bersih, laporan arus kas lengkap, valuasi aset toko, dan laporan owner.
-- Memiliki wewenang mengubah / mengedit master data harga beli dan harga jual produk.
 
 ---
 

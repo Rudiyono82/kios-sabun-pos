@@ -12,9 +12,11 @@
             <a href="<?= base_url('laporan/barang') ?>" class="btn btn-outline-primary rounded-pill px-3 fw-medium shadow-sm">
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Cetak / Export Laporan
             </a>
+            <?php if ($is_admin): ?>
             <button type="button" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
                 <i class="bi bi-plus-lg me-1"></i> Tambah Barang Baru
             </button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -109,19 +111,27 @@
                             </span>
                         </td>
                         <td class="text-center">
-                            <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-secondary btn-edit-barang" 
+                            <?php if ($is_admin): ?>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-secondary btn-edit-barang" 
+                                        data-barang='<?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>' 
+                                        title="Edit Data Barang">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-hapus" 
+                                        data-url="<?= base_url('barang/hapus/' . $b['id']) ?>" 
+                                        data-nama="<?= esc($b['nama_barang']) ?>"
+                                        title="Hapus Barang">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                            <?php else: ?>
+                                <button type="button" class="btn btn-outline-info btn-sm btn-view-barang py-0 px-2" 
                                     data-barang='<?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>' 
-                                    title="<?= $is_admin ? 'Edit Data Barang' : 'Lihat / Edit Barang' ?>">
-                                    <i class="bi <?= $is_admin ? 'bi-pencil-fill' : 'bi-eye-fill' ?>"></i>
+                                    title="Lihat Detail Produk (Read-Only)">
+                                    <i class="bi bi-eye"></i> Detail
                                 </button>
-                                <button type="button" class="btn btn-outline-danger btn-hapus" 
-                                    data-url="<?= base_url('barang/hapus/' . $b['id']) ?>" 
-                                    data-nama="<?= esc($b['nama_barang']) ?>"
-                                    title="Hapus Barang">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
-                            </div>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -425,10 +435,12 @@
                 </div>
 
                 <div class="modal-footer border-0 pt-0 d-flex gap-2">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+                    <?php if ($is_admin): ?>
+                    <button type="submit" id="btn-simpan-barang" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm">
                         <i class="bi bi-save me-1"></i> Simpan Data Barang
                     </button>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>
@@ -450,14 +462,28 @@
         }
     });
 
-    // Event Klik Edit / Lihat Data Barang (Gunakan Delegasi Dokumen untuk Dukungan Penuh DataTables)
-    $(document).on('click', '.btn-edit-barang', function() {
+    // Event Klik Edit (Admin) / Lihat Detail (Kasir)
+    $(document).on('click', '.btn-edit-barang, .btn-view-barang', function() {
+        const isViewOnly = $(this).hasClass('btn-view-barang') || !isAdmin;
         const b = $(this).data('barang');
         $('#form-barang-id').val(b.id);
-        $('#modalBarangHeader').removeClass('bg-primary text-white').addClass('bg-warning text-dark');
-        $('#modalBarangHeader .btn-close').removeClass('btn-close-white');
-        $('#modalBarangTitle').removeClass('text-white').addClass('text-dark').html('<i class="bi bi-pencil-square me-2"></i>' + (isAdmin ? ('Edit Barang: ' + b.nama_barang) : ('Lihat / Edit Detail: ' + b.nama_barang)));
-        $('#modalBarangSubtitle').removeClass('text-white text-opacity-75').addClass('text-dark text-opacity-75').text(isAdmin ? 'Perbarui informasi produk, harga jual, dan paket grosir' : 'Detail informasi produk (Harga dan Paket hanya dapat diubah oleh Admin)');
+
+        if (isViewOnly) {
+            $('#modalBarangHeader').removeClass('bg-primary text-white bg-warning text-dark').addClass('bg-info bg-opacity-10 text-dark');
+            $('#modalBarangHeader .btn-close').removeClass('btn-close-white');
+            $('#modalBarangTitle').removeClass('text-white').addClass('text-dark').html('<i class="bi bi-eye-fill text-info me-2"></i>Detail Produk: ' + b.nama_barang);
+            $('#modalBarangSubtitle').removeClass('text-white text-opacity-75').addClass('text-dark text-opacity-75').text('Informasi katalog produk (Hanya Admin yang dapat mengedit master data barang)');
+            $('#btn-simpan-barang').addClass('d-none');
+            $('#modalTambahBarang input:not([type="hidden"]), #modalTambahBarang select').prop('disabled', true);
+            $('#container-hapus-foto').addClass('d-none');
+        } else {
+            $('#modalBarangHeader').removeClass('bg-primary text-white bg-info bg-opacity-10').addClass('bg-warning text-dark');
+            $('#modalBarangHeader .btn-close').removeClass('btn-close-white');
+            $('#modalBarangTitle').removeClass('text-white').addClass('text-dark').html('<i class="bi bi-pencil-square me-2"></i>Edit Barang: ' + b.nama_barang);
+            $('#modalBarangSubtitle').removeClass('text-white text-opacity-75').addClass('text-dark text-opacity-75').text('Perbarui informasi produk, harga jual, dan paket grosir');
+            $('#btn-simpan-barang').removeClass('d-none');
+            $('#modalTambahBarang input, #modalTambahBarang select').prop('disabled', false);
+        }
         
         $('#form-id_barang').val(b.id_barang).prop('readonly', true);
         $('#form-barcode').val(b.barcode || '');
@@ -469,34 +495,29 @@
         $('#form-status').val(b.status || 'Aktif').trigger('change');
         $('#form-is_jerigen').prop('checked', b.is_jerigen == 1);
 
-        if (isAdmin) {
-            $('#form-harga_beli').val(formatRupiah(b.harga_beli || 0)).prop('disabled', false).removeClass('bg-light text-muted');
-            $('#form-harga_jual').val(formatRupiah(b.harga_jual || 0)).prop('disabled', false).removeClass('bg-light text-muted');
-            $('#form-harga_grosir').val(formatRupiah(b.harga_grosir || 0)).prop('disabled', false).removeClass('bg-light text-muted');
-            $('#form-qty_paket_a').val(b.qty_paket_a || 0).prop('disabled', false).removeClass('bg-light');
-            $('#form-hrg_paket_a').val(formatRupiah(b.hrg_paket_a || 0)).prop('disabled', false).removeClass('bg-light');
-            $('#form-qty_paket_b').val(b.qty_paket_b || 0).prop('disabled', false).removeClass('bg-light');
-            $('#form-hrg_paket_b').val(formatRupiah(b.hrg_paket_b || 0)).prop('disabled', false).removeClass('bg-light');
-            $('#form-qty_paket_c').val(b.qty_paket_c || 0).prop('disabled', false).removeClass('bg-light');
-            $('#form-hrg_paket_c').val(formatRupiah(b.hrg_paket_c || 0)).prop('disabled', false).removeClass('bg-light');
-            $('#form-stok').val(b.stok || 0);
-            $('#form-min_stok').val(b.min_stok || 5);
+        $('#form-harga_beli').val(formatRupiah(b.harga_beli || 0));
+        $('#form-harga_jual').val(formatRupiah(b.harga_jual || 0));
+        $('#form-harga_grosir').val(formatRupiah(b.harga_grosir || 0));
+        $('#form-qty_paket_a').val(b.qty_paket_a || 0);
+        $('#form-hrg_paket_a').val(formatRupiah(b.hrg_paket_a || 0));
+        $('#form-qty_paket_b').val(b.qty_paket_b || 0);
+        $('#form-hrg_paket_b').val(formatRupiah(b.hrg_paket_b || 0));
+        $('#form-qty_paket_c').val(b.qty_paket_c || 0);
+        $('#form-hrg_paket_c').val(formatRupiah(b.hrg_paket_c || 0));
+        $('#form-stok').val(b.stok || 0);
+        $('#form-min_stok').val(b.min_stok || 5);
+
+        if (isAdmin && !isViewOnly) {
+            $('#form-harga_beli, #form-harga_jual, #form-harga_grosir').removeClass('bg-light text-muted');
+            $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').removeClass('bg-light');
             $('#badge-header-harga').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-unlock-fill me-1"></i>Admin Enabled</span>');
             $('#badge-header-paket').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-unlock-fill me-1"></i>Admin Enabled</span>');
             $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
         } else {
-            // Kasir saat Edit: Harga dan Paket di-disabled / locked (hanya read-only)
-            $('#form-harga_beli').val(formatRupiah(b.harga_beli || 0)).prop('disabled', true).addClass('bg-light text-muted');
-            $('#form-harga_jual').val(formatRupiah(b.harga_jual || 0)).prop('disabled', true).addClass('bg-light text-muted');
-            $('#form-harga_grosir').val(formatRupiah(b.harga_grosir || 0)).prop('disabled', true).addClass('bg-light text-muted');
-            $('#form-qty_paket_a').val(b.qty_paket_a || 0).prop('disabled', true).addClass('bg-light');
-            $('#form-hrg_paket_a').val(formatRupiah(b.hrg_paket_a || 0)).prop('disabled', true).addClass('bg-light');
-            $('#form-qty_paket_b').val(b.qty_paket_b || 0).prop('disabled', true).addClass('bg-light');
-            $('#form-hrg_paket_b').val(formatRupiah(b.hrg_paket_b || 0)).prop('disabled', true).addClass('bg-light');
-            $('#form-qty_paket_c').val(b.qty_paket_c || 0).prop('disabled', true).addClass('bg-light');
-            $('#form-hrg_paket_c').val(formatRupiah(b.hrg_paket_c || 0)).prop('disabled', true).addClass('bg-light');
-            $('#badge-header-harga').html('<span class="badge bg-danger-subtle text-danger border border-danger-subtle small"><i class="bi bi-lock-fill me-1"></i>Harga Terkunci (Hanya Admin)</span>');
-            $('#badge-header-paket').html('<span class="badge bg-warning-subtle text-warning border border-warning-subtle small"><i class="bi bi-lock-fill me-1"></i>Hanya Admin (Kasir Read-Only)</span>');
+            $('#form-harga_beli, #form-harga_jual, #form-harga_grosir').addClass('bg-light text-muted');
+            $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').addClass('bg-light');
+            $('#badge-header-harga').html('<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small"><i class="bi bi-lock-fill me-1"></i>Read-Only</span>');
+            $('#badge-header-paket').html('<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small"><i class="bi bi-lock-fill me-1"></i>Read-Only</span>');
             $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').removeClass('d-none');
         }
 
@@ -510,7 +531,11 @@
             $('#form-gambar_lama').val(fotoToShow);
             $('#preview-foto-img').attr('src', '<?= base_url('uploads/barang/') ?>/' + encodeURIComponent(fotoToShow)).removeClass('d-none');
             $('#preview-foto-icon').addClass('d-none');
-            $('#container-hapus-foto').removeClass('d-none');
+            if (isAdmin && !isViewOnly) {
+                $('#container-hapus-foto').removeClass('d-none');
+            } else {
+                $('#container-hapus-foto').addClass('d-none');
+            }
         } else {
             $('#form-gambar_lama').val('');
             $('#preview-foto-img').attr('src', '').addClass('d-none');
