@@ -1587,111 +1587,167 @@
 
         // Fitur Universal Drag & Move Seluruh Modal / Popup di Semua Halaman (Bisa Digeser-Geser)
         function initDraggablePopups() {
-            // 1. Universal Draggable Bootstrap 5 Modals (Pointer Events GPU translate3d)
-            document.addEventListener('pointerdown', function(e) {
-                const header = e.target.closest('.modal-header, .modal-header-draggable');
-                if (!header) return;
-                if (e.target.closest('button, a, input, select, textarea, .btn-close, .dropdown-menu, [data-bs-dismiss="modal"]')) return;
+            // 1. Universal Draggable Bootstrap 5 Modals (Safe GPU translate3d with Threshold)
+            $(document).on('mousedown', '.modal-header, .modal-header-draggable', function(e) {
+                // Hanya tangani klik kiri utama
+                if (e.which !== 1) return;
 
-                const modal = header.closest('.modal');
-                if (!modal) return;
-                const dialog = modal.querySelector('.modal-dialog');
-                if (!dialog) return;
+                // Abaikan jika user mengklik tombol, link, input, select, textarea, atau tombol close
+                if ($(e.target).closest('button, a, input, select, textarea, .btn-close, .dropdown-menu, [data-bs-dismiss="modal"]').length > 0) return;
 
-                let startX = e.clientX;
-                let startY = e.clientY;
-                let initialX = parseFloat(dialog.getAttribute('data-pos-x')) || 0;
-                let initialY = parseFloat(dialog.getAttribute('data-pos-y')) || 0;
-                let lastX = initialX;
-                let lastY = initialY;
+                const $header = $(this);
+                const $dialog = $header.closest('.modal-dialog');
+                if (!$dialog.length) return;
 
-                header.style.cursor = 'grabbing';
-                document.body.classList.add('user-select-none');
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const initialX = parseFloat($dialog.data('drag-x')) || 0;
+                const initialY = parseFloat($dialog.data('drag-y')) || 0;
+                let isDragging = false;
 
-                function onPointerMove(ev) {
-                    ev.preventDefault();
+                function onMouseMove(ev) {
                     const dx = ev.clientX - startX;
                     const dy = ev.clientY - startY;
-                    lastX = initialX + dx;
-                    lastY = initialY + dy;
 
-                    dialog.style.transform = `translate3d(${lastX}px, ${lastY}px, 0px)`;
-                    dialog.style.transition = 'none';
+                    // Threshold 3px: Klik biasa tidak akan dianggap drag sehingga input/fokus tidak terganggu
+                    if (!isDragging) {
+                        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+                        isDragging = true;
+                        $header.css('cursor', 'grabbing');
+                        $('body').addClass('user-select-none');
+                    }
+
+                    ev.preventDefault();
+
+                    const currentX = initialX + dx;
+                    const currentY = initialY + dy;
+
+                    $dialog.css({
+                        'transform': `translate3d(${currentX}px, ${currentY}px, 0px)`,
+                        'transition': 'none'
+                    });
+                    $dialog.data('drag-x', currentX);
+                    $dialog.data('drag-y', currentY);
                 }
 
-                function onPointerUp() {
-                    header.style.cursor = 'grab';
-                    document.body.classList.remove('user-select-none');
-                    dialog.setAttribute('data-pos-x', lastX);
-                    dialog.setAttribute('data-pos-y', lastY);
-
-                    window.removeEventListener('pointermove', onPointerMove);
-                    window.removeEventListener('pointerup', onPointerUp);
-                    window.removeEventListener('pointercancel', onPointerUp);
+                function onMouseUp() {
+                    $(document).off('mousemove.modalDrag mouseup.modalDrag');
+                    $(window).off('blur.modalDrag');
+                    $header.css('cursor', 'grab');
+                    $('body').removeClass('user-select-none');
                 }
 
-                window.addEventListener('pointermove', onPointerMove, { passive: false });
-                window.addEventListener('pointerup', onPointerUp);
-                window.addEventListener('pointercancel', onPointerUp);
+                $(document).on('mousemove.modalDrag', onMouseMove);
+                $(document).on('mouseup.modalDrag', onMouseUp);
+                $(window).one('blur.modalDrag', onMouseUp);
+            });
+
+            // Touchscreen support untuk tablet kasir POS
+            $(document).on('touchstart', '.modal-header, .modal-header-draggable', function(e) {
+                if ($(e.target).closest('button, a, input, select, textarea, .btn-close, .dropdown-menu, [data-bs-dismiss="modal"]').length > 0) return;
+
+                const $header = $(this);
+                const $dialog = $header.closest('.modal-dialog');
+                if (!$dialog.length) return;
+
+                const touch = e.originalEvent.touches[0];
+                if (!touch) return;
+
+                const startX = touch.clientX;
+                const startY = touch.clientY;
+                const initialX = parseFloat($dialog.data('drag-x')) || 0;
+                const initialY = parseFloat($dialog.data('drag-y')) || 0;
+                let isDragging = false;
+
+                function onTouchMove(ev) {
+                    const t = ev.originalEvent.touches[0];
+                    if (!t) return;
+
+                    const dx = t.clientX - startX;
+                    const dy = t.clientY - startY;
+
+                    if (!isDragging) {
+                        if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+                        isDragging = true;
+                        $('body').addClass('user-select-none');
+                    }
+
+                    ev.preventDefault();
+
+                    const currentX = initialX + dx;
+                    const currentY = initialY + dy;
+
+                    $dialog.css({
+                        'transform': `translate3d(${currentX}px, ${currentY}px, 0px)`,
+                        'transition': 'none'
+                    });
+                    $dialog.data('drag-x', currentX);
+                    $dialog.data('drag-y', currentY);
+                }
+
+                function onTouchEnd() {
+                    $(document).off('touchmove.modalDrag touchend.modalDrag');
+                    $('body').removeClass('user-select-none');
+                }
+
+                $(document).on('touchmove.modalDrag', onTouchMove);
+                $(document).on('touchend.modalDrag', onTouchEnd);
             });
 
             // Reset posisi modal saat ditutup agar kembali rapi di posisi default
-            document.addEventListener('hidden.bs.modal', function(e) {
-                const modal = e.target;
-                if (!modal) return;
-                const dialog = modal.querySelector('.modal-dialog');
-                if (dialog) {
-                    dialog.style.transform = '';
-                    dialog.style.transition = '';
-                    dialog.removeAttribute('data-pos-x');
-                    dialog.removeAttribute('data-pos-y');
-                }
+            $(document).on('hidden.bs.modal', '.modal', function() {
+                $(this).find('.modal-dialog')
+                    .css({ 'transform': '', 'transition': '' })
+                    .removeData('drag-x')
+                    .removeData('drag-y');
             });
 
             // 2. Universal Draggable SweetAlert2 Popups
-            document.addEventListener('pointerdown', function(e) {
-                const swalHeader = e.target.closest('.swal2-title, .swal2-header');
-                if (!swalHeader) return;
-                if (e.target.closest('button, a, input, select, textarea, .swal2-close')) return;
+            $(document).on('mousedown', '.swal2-title, .swal2-header', function(e) {
+                if (e.which !== 1) return;
+                if ($(e.target).closest('button, a, input, select, textarea, .swal2-close').length > 0) return;
 
-                const popup = swalHeader.closest('.swal2-popup');
-                if (!popup) return;
+                const $popup = $(this).closest('.swal2-popup');
+                if (!$popup.length) return;
 
-                let startX = e.clientX;
-                let startY = e.clientY;
-                let initialX = parseFloat(popup.getAttribute('data-pos-x')) || 0;
-                let initialY = parseFloat(popup.getAttribute('data-pos-y')) || 0;
-                let lastX = initialX;
-                let lastY = initialY;
-
-                swalHeader.style.cursor = 'grabbing';
-                document.body.classList.add('user-select-none');
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const initialX = parseFloat($popup.data('drag-x')) || 0;
+                const initialY = parseFloat($popup.data('drag-y')) || 0;
+                let isDragging = false;
 
                 function onSwalMove(ev) {
-                    ev.preventDefault();
                     const dx = ev.clientX - startX;
                     const dy = ev.clientY - startY;
-                    lastX = initialX + dx;
-                    lastY = initialY + dy;
 
-                    popup.style.transform = `translate3d(${lastX}px, ${lastY}px, 0px)`;
-                    popup.style.transition = 'none';
+                    if (!isDragging) {
+                        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+                        isDragging = true;
+                        $('body').addClass('user-select-none');
+                    }
+
+                    ev.preventDefault();
+
+                    const currentX = initialX + dx;
+                    const currentY = initialY + dy;
+
+                    $popup.css({
+                        'transform': `translate3d(${currentX}px, ${currentY}px, 0px)`,
+                        'transition': 'none'
+                    });
+                    $popup.data('drag-x', currentX);
+                    $popup.data('drag-y', currentY);
                 }
 
                 function onSwalUp() {
-                    swalHeader.style.cursor = 'grab';
-                    document.body.classList.remove('user-select-none');
-                    popup.setAttribute('data-pos-x', lastX);
-                    popup.setAttribute('data-pos-y', lastY);
-
-                    window.removeEventListener('pointermove', onSwalMove);
-                    window.removeEventListener('pointerup', onSwalUp);
-                    window.removeEventListener('pointercancel', onSwalUp);
+                    $(document).off('mousemove.swalDrag mouseup.swalDrag');
+                    $(window).off('blur.swalDrag');
+                    $('body').removeClass('user-select-none');
                 }
 
-                window.addEventListener('pointermove', onSwalMove, { passive: false });
-                window.addEventListener('pointerup', onSwalUp);
-                window.addEventListener('pointercancel', onSwalUp);
+                $(document).on('mousemove.swalDrag', onSwalMove);
+                $(document).on('mouseup.swalDrag', onSwalUp);
+                $(window).one('blur.swalDrag', onSwalUp);
             });
         }
 
