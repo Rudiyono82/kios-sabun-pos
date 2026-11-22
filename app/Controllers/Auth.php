@@ -203,12 +203,21 @@ class Auth extends BaseController
 
         \App\Models\AuditLogModel::log('KAS_AWAL', 'KAS', "Menginput modal kas awal laci kasir sebesar Rp " . number_format($nominal, 0, ',', '.'), null, ['total' => $nominal], $idCabang);
 
+        // Hitung total akumulasi kas awal hari ini untuk cabang ini
+        $totalKasAwalHariIni = (float)($db->table('data_keuangan')
+            ->where('id_cabang', $idCabang)
+            ->where('DATE(tanggal)', date('Y-m-d'))
+            ->where('jenis_keuangan', 'Kas Awal')
+            ->selectSum('total')
+            ->get()->getRowArray()['total'] ?? $nominal);
+
         if ($this->request->isAJAX()) {
             return $this->response->setJSON([
                 'status' => 'success',
-                'message' => 'Uang Kas Awal Rp ' . number_format($nominal, 0, ',', '.') . ' berhasil dicatat di pembukuan toko! Transaksi kasir AKTIF (OPEN TRANSACTION).',
+                'message' => 'Uang Kas Awal Rp ' . number_format($nominal, 0, ',', '.') . ' berhasil dicatat di pembukuan toko! Total Kas Awal: Rp ' . number_format($totalKasAwalHariIni, 0, ',', '.'),
                 'nominal' => $nominal,
-                'formatted' => 'Rp ' . number_format($nominal, 0, ',', '.')
+                'total_kas_awal' => $totalKasAwalHariIni,
+                'formatted' => 'Rp ' . number_format($totalKasAwalHariIni, 0, ',', '.')
             ]);
         }
 

@@ -30,8 +30,8 @@
     </div>
     <div class="d-flex align-items-center gap-2">
         <?php if (!empty($has_kas_awal)): ?>
-            <span class="badge bg-primary text-white border border-primary px-2 py-1 shadow-sm" id="badge-status-pos" title="Modal Kas Awal Hari Ini: Rp <?= number_format($nominal_kas_awal, 0, ',', '.') ?>">
-                <i class="bi bi-unlock-fill me-1"></i>(OPEN TRANSACTION) <span class="d-none d-lg-inline">&bull; Kas: Rp <?= number_format($nominal_kas_awal, 0, ',', '.') ?></span>
+            <span class="badge bg-primary text-white border border-primary px-2 py-1 shadow-sm" id="badge-status-pos" role="button" style="cursor: pointer;" title="Modal Kas Awal Hari Ini: Rp <?= number_format($nominal_kas_awal, 0, ',', '.') ?> (Klik untuk tambah kas awal)">
+                <i class="bi bi-unlock-fill me-1"></i>(OPEN TRANSACTION) <span class="d-none d-lg-inline">&bull; Kas: Rp <?= number_format($nominal_kas_awal, 0, ',', '.') ?></span> <i class="bi bi-plus-circle ms-1 small opacity-75" title="Tambah Kas Awal"></i>
             </span>
         <?php else: ?>
             <button type="button" class="btn btn-sm btn-danger fw-bold shadow-sm" id="btn-trigger-kas-awal" title="Uang Kas Kasir Masih Rp 0. Klik untuk input kas awal laci!">
@@ -519,8 +519,9 @@
                         <small class="text-muted d-block mt-1">Contoh: 200000 (Pecahan uang kembalian pagi hari).</small>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="submit" id="btn-simpan-kas-awal-pos" class="btn btn-primary rounded-pill w-100 py-3 fw-bold fs-6 shadow">
+                <div class="modal-footer border-0 pt-0 d-flex gap-2">
+                    <button type="button" class="btn btn-light border px-3" data-bs-dismiss="modal" id="btn-batal-kas-awal" style="display: none;">Tutup</button>
+                    <button type="submit" id="btn-simpan-kas-awal-pos" class="btn btn-primary rounded-pill flex-grow-1 py-3 fw-bold fs-6 shadow">
                         <i class="bi bi-unlock-fill me-1"></i> SIMPAN KAS AWAL & BUKA TRANSAKSI
                     </button>
                 </div>
@@ -663,6 +664,20 @@
                 keyboard: false
             });
         }
+
+        if (hasKasAwal) {
+            $('#modalWajibKasAwalPos .modal-title').text('Tambah Modal Kas Awal Laci');
+            $('#modalWajibKasAwalPos .alert-warning').html('<i class="bi bi-info-circle-fill fs-5 text-primary me-2"></i><div><strong>Tambah Kas Awal Toko:</strong> Masukkan uang kas tambahan yang dimasukkan ke laci hari ini. Saldo kas awal akan otomatis diakumulasikan di pembukuan dan struk rekap.</div>');
+            $('#btn-simpan-kas-awal-pos').html('<i class="bi bi-plus-circle me-1"></i> SIMPAN TAMBAHAN KAS AWAL');
+            $('#btn-batal-kas-awal').show();
+            $('#input-nominal-kas-awal-pos').val('');
+        } else {
+            $('#modalWajibKasAwalPos .modal-title').text('Modal Kas Awal Laci Kasir');
+            $('#modalWajibKasAwalPos .alert-warning').html('<i class="bi bi-exclamation-triangle-fill fs-5 text-warning flex-shrink-0"></i><div><strong>Uang Kas Kasir Masih Rp 0!</strong> Sesuai SOP Toko, kasir wajib menginput saldo kas awal laci hari ini sebagai modal uang kembalian konsumen.</div>');
+            $('#btn-simpan-kas-awal-pos').html('<i class="bi bi-unlock-fill me-1"></i> SIMPAN KAS AWAL & BUKA TRANSAKSI');
+            $('#btn-batal-kas-awal').hide();
+        }
+
         modalEl.show();
         setTimeout(() => {
             $('#input-nominal-kas-awal-pos').focus().select();
@@ -676,7 +691,7 @@
         }
     });
 
-    $(document).on('click', '#btn-trigger-kas-awal', function() {
+    $(document).on('click', '#btn-trigger-kas-awal, #badge-status-pos', function() {
         bukaModalKasAwal();
     });
 
@@ -699,11 +714,16 @@
                 if (modalEl) modalEl.hide();
 
                 // Ubah status badge di top bar
-                $('#btn-trigger-kas-awal').replaceWith(`
-                    <span class="badge bg-primary text-white border border-primary px-2 py-1 shadow-sm" id="badge-status-pos" title="Modal Kas Awal: ${res.formatted}">
-                        <i class="bi bi-unlock-fill me-1"></i>(OPEN TRANSACTION) <span class="d-none d-lg-inline">&bull; Kas: ${res.formatted}</span>
+                const badgeHtml = `
+                    <span class="badge bg-primary text-white border border-primary px-2 py-1 shadow-sm" id="badge-status-pos" role="button" style="cursor: pointer;" title="Modal Kas Awal: ${res.formatted} (Klik untuk tambah kas awal)">
+                        <i class="bi bi-unlock-fill me-1"></i>(OPEN TRANSACTION) <span class="d-none d-lg-inline">&bull; Kas: ${res.formatted}</span> <i class="bi bi-plus-circle ms-1 small opacity-75" title="Tambah Kas Awal"></i>
                     </span>
-                `);
+                `;
+                if ($('#btn-trigger-kas-awal').length) {
+                    $('#btn-trigger-kas-awal').replaceWith(badgeHtml);
+                } else if ($('#badge-status-pos').length) {
+                    $('#badge-status-pos').replaceWith(badgeHtml);
+                }
 
                 Swal.fire({
                     icon: 'success',
