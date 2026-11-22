@@ -914,15 +914,14 @@
         #modalZoomFoto {
             z-index: 107000 !important;
         }
-        #modalZoomFoto + .modal-backdrop,
-        .modal-backdrop.show:last-of-type {
-            z-index: 106990 !important;
-        }
-        #modalZoomFoto .modal-header {
+        /* Universal Draggable Modal Header Styling */
+        .modal-header,
+        .modal-header-draggable {
             cursor: grab !important;
             user-select: none !important;
         }
-        #modalZoomFoto .modal-header:active {
+        .modal-header:active,
+        .modal-header-draggable:active {
             cursor: grabbing !important;
         }
     </style>
@@ -1394,6 +1393,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0 shadow-lg">
                 <form action="<?= base_url('auth/simpan-kas-awal') ?>" method="POST">
+                    <?= csrf_field() ?>
                     <div class="modal-header bg-primary text-white py-3 px-4">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-wallet2 fs-4 text-white"></i>
@@ -2118,6 +2118,15 @@
                 $dialog.css('transform', '').removeAttr('data-trans-x').removeAttr('data-trans-y');
 
                 $('#modalZoomFoto').modal('show');
+            });
+
+            // Pastikan backdrop modalZoomFoto berada tepat di bawah modalZoomFoto dan tidak mengganggu modal lain
+            $('#modalZoomFoto').on('show.bs.modal', function() {
+                setTimeout(() => {
+                    $('.modal-backdrop:last').css('z-index', 106990);
+                }, 10);
+            }).on('hidden.bs.modal', function() {
+                $('.modal-backdrop').css('z-index', '');
             });
 
             // Sembunyikan jika layar di-scroll atau window di-resize
