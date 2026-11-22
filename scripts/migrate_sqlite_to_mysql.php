@@ -525,6 +525,51 @@ try {
         // ignore
     }
 
+    // =========================================================================
+    // REKONSILIASI STOK HASIL RESTOCK / PEMBELIAN WEB POS
+    // =========================================================================
+    try {
+        echo "[MIGRATION] Reconciling stock from Web POS Purchases...\n";
+        // 1. Ambil seluruh pembelian yang diinput melalui Web POS (format no_beli B%)
+        $webPurchases = $pdo->query("
+            SELECT pd.id_barang, SUM(pd.qty) as total_qty, COALESCE(p.id_cabang, 1) as id_cabang
+            FROM `pembelian_detail` pd
+            JOIN `pembelian` p ON p.no_beli = pd.no_beli
+            WHERE p.no_beli LIKE 'B%'
+            GROUP BY pd.id_barang, COALESCE(p.id_cabang, 1)
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($webPurchases as $wp) {
+            $idB = $wp['id_barang'];
+            $qty = (float)$wp['total_qty'];
+            $idC = (int)$wp['id_cabang'];
+
+            // Cek apakah stok_cabang sudah mencakup qty restock ini
+            $chkSc = $pdo->prepare("SELECT id, stok FROM `stok_cabang` WHERE id_barang = ? AND id_cabang = ?");
+            $chkSc->execute([$idB, $idC]);
+            $scRow = $chkSc->fetch(PDO::FETCH_ASSOC);
+
+            if ($scRow) {
+                // Pastikan stok cabang bertambah sesuai qty pembelian
+                $pdo->exec("UPDATE `stok_cabang` SET stok = stok + {$qty}, updated_at = NOW() WHERE id = {$scRow['id']}");
+            } else {
+                $pdo->exec("INSERT INTO `stok_cabang` (id_barang, id_cabang, stok, min_stok, lokasi_rak, updated_at) VALUES ('{$idB}', {$idC}, {$qty}, 5, 'Rak Utama', NOW())");
+            }
+
+            // Selaraskan master barang
+            $pdo->exec("UPDATE `barang` SET stok = (SELECT COALESCE(SUM(stok), 0) FROM `stok_cabang` WHERE id_barang = '{$idB}') WHERE id_barang = '{$idB}'");
+            echo "[MIGRATION] Restored Web POS Restock for {$idB} (+{$qty} pcs).\n";
+        }
+
+        // 2. Harmonisasi menyeluruh: Jika stok_cabang = 0 tapi barang.stok > 0 (karena pembelian terdahulu)
+        $pdo->exec("UPDATE `stok_cabang` sc JOIN `barang` b ON b.id_barang = sc.id_barang SET sc.stok = b.stok WHERE sc.stok = 0 AND b.stok > 0");
+        $pdo->exec("UPDATE `barang` b JOIN (SELECT id_barang, SUM(stok) as tot_stok FROM `stok_cabang` GROUP BY id_barang) sc ON sc.id_barang = b.id_barang SET b.stok = sc.tot_stok WHERE sc.tot_stok > b.stok");
+        echo "[MIGRATION] Stock synchronization between `barang` and `stok_cabang` completed.\n";
+
+    } catch (Exception $e) {
+        echo "[MIGRATION NOTICE] Purchase stock reconciliation warning: " . $e->getMessage() . "\n";
+    }
+
     echo "\n=======================================================\n";
     echo "[MIGRATION SUCCESS] Seluruh tabel & data SQLite berhasil disinkronkan ke MySQL!\n";
     echo "=======================================================\n";

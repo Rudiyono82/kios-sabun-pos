@@ -104,6 +104,8 @@ class Pembelian extends BaseController
         $totalBiaya = 0;
         $detailRecords = [];
         $kartuStokRecords = [];
+        $idCabang = session()->get('id_cabang') ?: 1;
+        $stokCabangModel = new \App\Models\StokCabangModel();
         $userRole = strtolower((string) session()->get('role'));
         $userName = session()->get('nama_user') ?? session()->get('kode_user') ?? 'KASIR1';
 
@@ -128,12 +130,12 @@ class Pembelian extends BaseController
                 'subtotal' => $subtotal,
             ];
 
-            // Tambah stok barang ke master
-            $stokBaru = (float)$barang['stok'] + $qty;
-            $db->table('barang')->where('id_barang', $item['id_barang'])->update([
-                'stok' => $stokBaru,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
+            // Tambah stok barang ke cabang aktif
+            $sisaStokCabang = $stokCabangModel->updateStok($item['id_barang'], $idCabang, $qty);
+
+            // Update akumulasi stok di tabel master barang (untuk konsolidasi total)
+            $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$item['id_barang'], $item['id_barang']]);
+            $stokBaru = $sisaStokCabang;
 
             // Catat Kartu Stok
             $kartuStokRecords[] = [
@@ -186,6 +188,7 @@ class Pembelian extends BaseController
         $db->table('pembelian')->insert([
             'no_beli' => $noBeli,
             'tanggal' => date('Y-m-d H:i:s'),
+            'id_cabang' => $idCabang,
             'kode_supplier' => $json['kode_supplier'] ?? null,
             'nama_supplier' => $json['nama_supplier'] ?? null,
             'kode_user' => session()->get('kode_user') ?? 'ADMIN',
@@ -284,12 +287,15 @@ class Pembelian extends BaseController
         $db->transStart();
 
         // 1. Ambil detail barang dan kurangi stok kembali (karena pembelian dibatalkan)
+        $idCabang = (int)($pembelian['id_cabang'] ?? (session()->get('id_cabang') ?: 1));
+        $stokCabangModel = new \App\Models\StokCabangModel();
         $items = $db->table('pembelian_detail')->where('no_beli', $noBeli)->get()->getResultArray();
         foreach ($items as $item) {
             $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
             if ($barang) {
-                $stokBaru = max(0, $barang['stok'] - (float)$item['qty']);
-                $db->table('barang')->where('id_barang', $item['id_barang'])->update(['stok' => $stokBaru]);
+                $stokBaruCabang = $stokCabangModel->updateStok($item['id_barang'], $idCabang, -(float)$item['qty']);
+                $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$item['id_barang'], $item['id_barang']]);
+                $stokBaru = $stokBaruCabang;
 
                 // Catat Kartu Stok Keluar (Pembatalan Pembelian)
                 $db->table('kartu_stok')->insert([
