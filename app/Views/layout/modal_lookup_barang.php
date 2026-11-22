@@ -1,8 +1,7 @@
 <!-- MODAL LOOKUP LIST OF STOCK (POPUP PENCARIAN & PEMILIHAN BARANG) -->
 <style>
-/* High-Contrast Active Selection for LookUp Stock Grid */
+/* Ultra-Fast High-Contrast Active Selection for LookUp Stock Grid */
 #table-lookup-items tr.lookup-item-row {
-    transition: background-color 0.08s ease, color 0.08s ease;
     user-select: none;
 }
 
@@ -14,10 +13,7 @@
     color: #ffffff !important;
 }
 
-#table-lookup-items tr.lookup-item-row.active td,
-#table-lookup-items tr.lookup-item-row.active td *,
-#table-lookup-items tr.lookup-item-row.active:hover td,
-#table-lookup-items tr.lookup-item-row.active:hover td * {
+#table-lookup-items tr.lookup-item-row.active td {
     color: #ffffff !important;
 }
 
@@ -41,6 +37,15 @@
 
 #table-lookup-items tr.lookup-item-row:hover:not(.active) {
     background-color: #f0f9ff !important;
+}
+
+/* Matikan semua event hover / transform pada thumbnail tabel agar performa 100% cepat tanpa lag */
+#table-lookup-items img {
+    pointer-events: none !important;
+    transform: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    cursor: default !important;
 }
 </style>
 <div class="modal fade" id="modalLookupStock" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
@@ -344,12 +349,12 @@ const StockLookup = {
     // Render Tabel Hasil Pencarian
     renderTable: function(items) {
         const self = this;
+        self.items = items || [];
         const $tbody = $('#lookup-items-tbody');
-        $tbody.empty();
 
-        $('#lookup-count-number').text(items.length);
+        $('#lookup-count-number').text(self.items.length);
 
-        if (!items || items.length === 0) {
+        if (!self.items || self.items.length === 0) {
             let emptyMsg = 'Tidak ada barang yang cocok dengan kriteria pencarian.';
             let actionBtn = '';
             if (self.supplierCode) {
@@ -370,7 +375,9 @@ const StockLookup = {
             return;
         }
 
-        items.forEach((item, index) => {
+        const htmlRows = [];
+        for (let index = 0; index < self.items.length; index++) {
+            const item = self.items[index];
             const harga = (self.mode === 'penjualan') ? parseFloat(item.harga_jual || 0) : parseFloat(item.harga_beli || 0);
             const statusClass = item.status === 'Aktif' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle';
 
@@ -380,16 +387,16 @@ const StockLookup = {
 
             const itemImg = item.gambar || item.path_file;
             const fotoThumbnail = itemImg 
-                ? `<img src="<?= base_url('uploads/barang/') ?>/${encodeURIComponent(itemImg)}" alt="${item.nama_barang || ''}" class="rounded border shadow-xs" style="width: 32px; height: 32px; object-fit: cover; flex-shrink: 0; pointer-events: none;" onerror="this.style.display='none'">` 
+                ? `<img src="<?= base_url('uploads/barang/') ?>/${encodeURIComponent(itemImg)}" alt="" class="rounded border shadow-xs no-zoom-img" style="width: 32px; height: 32px; object-fit: cover; flex-shrink: 0; pointer-events: none;" onerror="this.style.display='none'">` 
                 : `<div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; flex-shrink: 0; font-size: 0.75rem; pointer-events: none;"><i class="bi bi-image"></i></div>`;
 
-            const $tr = $(`
+            htmlRows.push(`
                 <tr class="lookup-item-row" data-index="${index}" style="cursor: pointer;">
                     <td class="fw-bold text-dark text-nowrap">${item.id_barang}</td>
-                    <td class="fw-semibold text-dark text-truncate" style="max-width: 300px;" title="${item.nama_barang}">
+                    <td class="fw-semibold text-dark text-truncate" style="max-width: 300px;" title="${item.nama_barang || ''}">
                         <div class="d-flex align-items-center gap-2">
                             ${fotoThumbnail}
-                            <span class="text-truncate">${item.nama_barang}</span>
+                            <span class="text-truncate">${item.nama_barang || ''}</span>
                         </div>
                     </td>
                     <td><span class="badge bg-light text-dark border">${item.nama_kategori || 'Umum'}</span></td>
@@ -403,15 +410,14 @@ const StockLookup = {
                     </td>
                 </tr>
             `);
+        }
 
-            $tr.data('item', item);
-            $tbody.append($tr);
-        });
+        $tbody.html(htmlRows.join(''));
 
         // Pilih baris pertama secara default
         const $firstRow = $tbody.find('tr.lookup-item-row').first();
         if ($firstRow.length) {
-            self.selectRow(items[0], $firstRow);
+            self.selectRow(self.items[0], $firstRow);
         }
     },
 
@@ -535,7 +541,10 @@ $(document).ready(function() {
                 $target = (nextIndex < $rows.length) ? $rows.eq(nextIndex) : $rows.last();
             }
             if ($target.length) {
-                StockLookup.selectRow($target.data('item'), $target);
+                const idx = $target.data('index');
+                if (StockLookup.items && StockLookup.items[idx]) {
+                    StockLookup.selectRow(StockLookup.items[idx], $target);
+                }
                 $target[0].scrollIntoView({ block: 'nearest', behavior: 'auto' });
             }
         } else if (e.key === 'ArrowUp') {
@@ -550,7 +559,10 @@ $(document).ready(function() {
                 $target = (prevIndex >= 0) ? $rows.eq(prevIndex) : $rows.first();
             }
             if ($target.length) {
-                StockLookup.selectRow($target.data('item'), $target);
+                const idx = $target.data('index');
+                if (StockLookup.items && StockLookup.items[idx]) {
+                    StockLookup.selectRow(StockLookup.items[idx], $target);
+                }
                 $target[0].scrollIntoView({ block: 'nearest', behavior: 'auto' });
             }
         } else if (e.key === 'Enter') {
@@ -562,32 +574,41 @@ $(document).ready(function() {
                 StockLookup.confirmSelection();
             } else if ($rows.length) {
                 const $first = $rows.first();
-                StockLookup.selectRow($first.data('item'), $first);
+                const idx = $first.data('index');
+                if (StockLookup.items && StockLookup.items[idx]) {
+                    StockLookup.selectRow(StockLookup.items[idx], $first);
+                }
                 StockLookup.confirmSelection();
             }
         }
     });
 
-    // 1. Klik pada baris tabel
+    // 1. Klik pada baris tabel (Instan tanpa lag)
     $(document).on('click', '.lookup-item-row', function() {
-        const item = $(this).data('item');
-        StockLookup.selectRow(item, $(this));
+        const idx = $(this).data('index');
+        if (StockLookup.items && StockLookup.items[idx]) {
+            StockLookup.selectRow(StockLookup.items[idx], $(this));
+        }
     });
 
     // 2. Dobel klik baris tabel langsung konfirmasi pilihan
     $(document).on('dblclick', '.lookup-item-row', function() {
-        const item = $(this).data('item');
-        StockLookup.selectRow(item, $(this));
-        StockLookup.confirmSelection();
+        const idx = $(this).data('index');
+        if (StockLookup.items && StockLookup.items[idx]) {
+            StockLookup.selectRow(StockLookup.items[idx], $(this));
+            StockLookup.confirmSelection();
+        }
     });
 
     // 3. Klik tombol "Pilih" pada baris
     $(document).on('click', '.btn-choose-row', function(e) {
         e.stopPropagation();
         const $row = $(this).closest('tr');
-        const item = $row.data('item');
-        StockLookup.selectRow(item, $row);
-        StockLookup.confirmSelection();
+        const idx = $row.data('index');
+        if (StockLookup.items && StockLookup.items[idx]) {
+            StockLookup.selectRow(StockLookup.items[idx], $row);
+            StockLookup.confirmSelection();
+        }
     });
 
     // 4. Klik tombol "Pilih" utama (Footer dan Box Preview)
@@ -629,7 +650,10 @@ $(document).ready(function() {
                 $target = (nextIndex < $rows.length) ? $rows.eq(nextIndex) : $rows.last();
             }
             if ($target.length) {
-                StockLookup.selectRow($target.data('item'), $target);
+                const idx = $target.data('index');
+                if (StockLookup.items && StockLookup.items[idx]) {
+                    StockLookup.selectRow(StockLookup.items[idx], $target);
+                }
                 $target[0].scrollIntoView({ block: 'nearest', behavior: 'auto' });
             }
         } else if (e.key === 'ArrowUp') {
@@ -638,13 +662,16 @@ $(document).ready(function() {
             const $active = $rows.filter('.active');
             let $target;
             if (!$active.length) {
-                $target = $rows.last();
+                $target = $rows.first();
             } else {
                 const prevIndex = $rows.index($active) - 1;
                 $target = (prevIndex >= 0) ? $rows.eq(prevIndex) : $rows.first();
             }
             if ($target.length) {
-                StockLookup.selectRow($target.data('item'), $target);
+                const idx = $target.data('index');
+                if (StockLookup.items && StockLookup.items[idx]) {
+                    StockLookup.selectRow(StockLookup.items[idx], $target);
+                }
                 $target[0].scrollIntoView({ block: 'nearest', behavior: 'auto' });
             }
         } else if (e.key === 'Enter') {

@@ -824,13 +824,28 @@
         /* ============================================================ */
         /* GLOBAL IMAGE ZOOM ON HOVER & DRAGGABLE MODAL ZOOM           */
         /* ============================================================ */
-        .img-zoom-hover, img[src*="uploads/barang"], .zoomable-img, img[data-zoom-img] {
+        .img-zoom-hover:not(#table-lookup-items img), 
+        img[src*="uploads/barang"]:not(#table-lookup-items img):not(.no-zoom-img), 
+        .zoomable-img, 
+        img[data-zoom-img] {
             cursor: zoom-in !important;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
-        .img-zoom-hover:hover, img[src*="uploads/barang"]:hover, .zoomable-img:hover, img[data-zoom-img]:hover {
+        .img-zoom-hover:not(#table-lookup-items img):hover, 
+        img[src*="uploads/barang"]:not(#table-lookup-items img):not(.no-zoom-img):hover, 
+        .zoomable-img:hover, 
+        img[data-zoom-img]:hover {
             transform: scale(1.08);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
+        }
+
+        #table-lookup-items img,
+        .no-zoom-img {
+            pointer-events: none !important;
+            transform: none !important;
+            transition: none !important;
+            box-shadow: none !important;
+            cursor: inherit !important;
         }
 
         #global-img-zoom-popup {
@@ -1572,125 +1587,111 @@
 
         // Fitur Universal Drag & Move Seluruh Modal / Popup di Semua Halaman (Bisa Digeser-Geser)
         function initDraggablePopups() {
-            // 1. Universal Draggable Bootstrap 5 Modals (GPU Transform translate3d)
-            $(document).on('mousedown touchstart', '.modal-header, .modal-header-draggable', function(e) {
-                // Abaikan jika user mengklik tombol close, dropdown, link, atau input di header
-                if ($(e.target).closest('button, a, input, select, textarea, .btn-close, .dropdown-menu').length > 0) return;
+            // 1. Universal Draggable Bootstrap 5 Modals (Pointer Events GPU translate3d)
+            document.addEventListener('pointerdown', function(e) {
+                const header = e.target.closest('.modal-header, .modal-header-draggable');
+                if (!header) return;
+                if (e.target.closest('button, a, input, select, textarea, .btn-close, .dropdown-menu, [data-bs-dismiss="modal"]')) return;
 
-                const $header = $(this);
-                const $dialog = $header.closest('.modal-dialog');
-                if (!$dialog.length) return;
+                const modal = header.closest('.modal');
+                if (!modal) return;
+                const dialog = modal.querySelector('.modal-dialog');
+                if (!dialog) return;
 
-                const isTouch = (e.type === 'touchstart');
-                const clientX = isTouch ? e.originalEvent.touches[0].clientX : e.clientX;
-                const clientY = isTouch ? e.originalEvent.touches[0].clientY : e.clientY;
+                let startX = e.clientX;
+                let startY = e.clientY;
+                let initialX = parseFloat(dialog.getAttribute('data-pos-x')) || 0;
+                let initialY = parseFloat(dialog.getAttribute('data-pos-y')) || 0;
+                let lastX = initialX;
+                let lastY = initialY;
 
-                let startX = clientX;
-                let startY = clientY;
-                let currentTransformX = parseFloat($dialog.attr('data-trans-x')) || 0;
-                let currentTransformY = parseFloat($dialog.attr('data-trans-y')) || 0;
+                header.style.cursor = 'grabbing';
+                document.body.classList.add('user-select-none');
 
-                $header.css('cursor', 'grabbing');
-                $('body').addClass('user-select-none');
-
-                const moveHandler = function(ev) {
+                function onPointerMove(ev) {
                     ev.preventDefault();
-                    const curX = isTouch ? ev.originalEvent.touches[0].clientX : ev.clientX;
-                    const curY = isTouch ? ev.originalEvent.touches[0].clientY : ev.clientY;
-                    const dx = curX - startX;
-                    const dy = curY - startY;
+                    const dx = ev.clientX - startX;
+                    const dy = ev.clientY - startY;
+                    lastX = initialX + dx;
+                    lastY = initialY + dy;
 
-                    const newX = currentTransformX + dx;
-                    const newY = currentTransformY + dy;
-
-                    $dialog.css({
-                        'transform': `translate3d(${newX}px, ${newY}px, 0px)`,
-                        'transition': 'none'
-                    });
-                    $dialog.attr('data-temp-x', newX);
-                    $dialog.attr('data-temp-y', newY);
-                };
-
-                const endHandler = function() {
-                    $header.css('cursor', 'grab');
-                    $('body').removeClass('user-select-none');
-                    const savedX = $dialog.attr('data-temp-x');
-                    const savedY = $dialog.attr('data-temp-y');
-                    if (savedX !== undefined) $dialog.attr('data-trans-x', savedX);
-                    if (savedY !== undefined) $dialog.attr('data-trans-y', savedY);
-
-                    if (isTouch) {
-                        $(document).off('touchmove.modalDrag touchend.modalDrag');
-                    } else {
-                        $(document).off('mousemove.modalDrag mouseup.modalDrag');
-                    }
-                };
-
-                if (isTouch) {
-                    $(document).on('touchmove.modalDrag', moveHandler);
-                    $(document).on('touchend.modalDrag', endHandler);
-                } else {
-                    $(document).on('mousemove.modalDrag', moveHandler);
-                    $(document).on('mouseup.modalDrag', endHandler);
-                    e.preventDefault();
+                    dialog.style.transform = `translate3d(${lastX}px, ${lastY}px, 0px)`;
+                    dialog.style.transition = 'none';
                 }
+
+                function onPointerUp() {
+                    header.style.cursor = 'grab';
+                    document.body.classList.remove('user-select-none');
+                    dialog.setAttribute('data-pos-x', lastX);
+                    dialog.setAttribute('data-pos-y', lastY);
+
+                    window.removeEventListener('pointermove', onPointerMove);
+                    window.removeEventListener('pointerup', onPointerUp);
+                    window.removeEventListener('pointercancel', onPointerUp);
+                }
+
+                window.addEventListener('pointermove', onPointerMove, { passive: false });
+                window.addEventListener('pointerup', onPointerUp);
+                window.addEventListener('pointercancel', onPointerUp);
             });
 
             // Reset posisi modal saat ditutup agar kembali rapi di posisi default
-            $(document).on('hidden.bs.modal', '.modal', function() {
-                $(this).find('.modal-dialog')
-                    .css({ 'transform': '', 'transition': '' })
-                    .removeAttr('data-trans-x')
-                    .removeAttr('data-trans-y')
-                    .removeAttr('data-temp-x')
-                    .removeAttr('data-temp-y');
+            document.addEventListener('hidden.bs.modal', function(e) {
+                const modal = e.target;
+                if (!modal) return;
+                const dialog = modal.querySelector('.modal-dialog');
+                if (dialog) {
+                    dialog.style.transform = '';
+                    dialog.style.transition = '';
+                    dialog.removeAttribute('data-pos-x');
+                    dialog.removeAttribute('data-pos-y');
+                }
             });
 
             // 2. Universal Draggable SweetAlert2 Popups
-            $(document).on('mousedown touchstart', '.swal2-title, .swal2-header', function(e) {
-                if ($(e.target).closest('button, a, input, select, textarea, .swal2-close').length > 0) return;
+            document.addEventListener('pointerdown', function(e) {
+                const swalHeader = e.target.closest('.swal2-title, .swal2-header');
+                if (!swalHeader) return;
+                if (e.target.closest('button, a, input, select, textarea, .swal2-close')) return;
 
-                const $popup = $(this).closest('.swal2-popup');
-                if (!$popup.length) return;
+                const popup = swalHeader.closest('.swal2-popup');
+                if (!popup) return;
 
-                const isTouch = (e.type === 'touchstart');
-                const clientX = isTouch ? e.originalEvent.touches[0].clientX : e.clientX;
-                const clientY = isTouch ? e.originalEvent.touches[0].clientY : e.clientY;
+                let startX = e.clientX;
+                let startY = e.clientY;
+                let initialX = parseFloat(popup.getAttribute('data-pos-x')) || 0;
+                let initialY = parseFloat(popup.getAttribute('data-pos-y')) || 0;
+                let lastX = initialX;
+                let lastY = initialY;
 
-                let startX = clientX;
-                let startY = clientY;
-                let initialLeft = parseFloat($popup.css('left')) || 0;
-                let initialTop = parseFloat($popup.css('top')) || 0;
+                swalHeader.style.cursor = 'grabbing';
+                document.body.classList.add('user-select-none');
 
-                const moveHandler = function(ev) {
-                    const curX = isTouch ? ev.originalEvent.touches[0].clientX : ev.clientX;
-                    const curY = isTouch ? ev.originalEvent.touches[0].clientY : ev.clientY;
-                    const dx = curX - startX;
-                    const dy = curY - startY;
+                function onSwalMove(ev) {
+                    ev.preventDefault();
+                    const dx = ev.clientX - startX;
+                    const dy = ev.clientY - startY;
+                    lastX = initialX + dx;
+                    lastY = initialY + dy;
 
-                    $popup.css({
-                        'position': 'relative',
-                        'left': (initialLeft + dx) + 'px',
-                        'top': (initialTop + dy) + 'px'
-                    });
-                };
-
-                const endHandler = function() {
-                    if (isTouch) {
-                        $(document).off('touchmove.swalDrag touchend.swalDrag');
-                    } else {
-                        $(document).off('mousemove.swalDrag mouseup.swalDrag');
-                    }
-                };
-
-                if (isTouch) {
-                    $(document).on('touchmove.swalDrag', moveHandler);
-                    $(document).on('touchend.swalDrag', endHandler);
-                } else {
-                    $(document).on('mousemove.swalDrag', moveHandler);
-                    $(document).on('mouseup.swalDrag', endHandler);
-                    e.preventDefault();
+                    popup.style.transform = `translate3d(${lastX}px, ${lastY}px, 0px)`;
+                    popup.style.transition = 'none';
                 }
+
+                function onSwalUp() {
+                    swalHeader.style.cursor = 'grab';
+                    document.body.classList.remove('user-select-none');
+                    popup.setAttribute('data-pos-x', lastX);
+                    popup.setAttribute('data-pos-y', lastY);
+
+                    window.removeEventListener('pointermove', onSwalMove);
+                    window.removeEventListener('pointerup', onSwalUp);
+                    window.removeEventListener('pointercancel', onSwalUp);
+                }
+
+                window.addEventListener('pointermove', onSwalMove, { passive: false });
+                window.addEventListener('pointerup', onSwalUp);
+                window.addEventListener('pointercancel', onSwalUp);
             });
         }
 
@@ -2026,19 +2027,19 @@
 
             // Event delegation untuk semua thumbnail foto barang di sistem (Hover Zoom)
             $(document).on('mouseenter', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
-                if ($(this).closest('#table-lookup-items').length) return; // Abaikan tabel lookup agar performa grid cepat & ringan
+                if ($(this).is('#table-lookup-items img, .no-zoom-img') || $(this).closest('#table-lookup-items').length) return; // Abaikan tabel lookup agar performa grid cepat & ringan
                 clearTimeout(zoomTimeout);
                 showZoom(this);
             });
 
             $(document).on('mouseleave', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
-                if ($(this).closest('#table-lookup-items').length) return;
+                if ($(this).is('#table-lookup-items img, .no-zoom-img') || $(this).closest('#table-lookup-items').length) return;
                 hideZoom();
             });
 
             // Klik gambar barang: Buka Modal Zoom Window (bukan new tab) yang bisa digeser-geser di atas screen sebelumnya
             $(document).on('click', 'img[src*="uploads/barang"], .img-zoom-hover, .zoomable-img, img[data-zoom-img]', function(e) {
-                if ($(this).closest('#modalZoomFoto').length || $(this).closest('#global-img-zoom-popup').length || $(this).closest('#table-lookup-items').length) return;
+                if ($(this).is('#table-lookup-items img, .no-zoom-img') || $(this).closest('#modalZoomFoto').length || $(this).closest('#global-img-zoom-popup').length || $(this).closest('#table-lookup-items').length) return;
 
                 e.preventDefault();
                 e.stopPropagation();
