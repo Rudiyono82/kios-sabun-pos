@@ -679,10 +679,16 @@
         }
 
         modalEl.show();
-        setTimeout(() => {
-            $('#input-nominal-kas-awal-pos').focus().select();
-        }, 400);
     }
+
+    // Pastikan kursor otomatis fokus dan select ke textbox nominal kas awal saat modal terbuka
+    $('#modalWajibKasAwalPos').on('shown.bs.modal', function () {
+        const $inp = $('#input-nominal-kas-awal-pos');
+        $inp.trigger('focus').select();
+        setTimeout(() => {
+            $inp.trigger('focus').select();
+        }, 80);
+    });
 
     // Jika kasir buka POS dan Kas Awal belum diinput hari ini, langsung munculkan popup wajib
     $(document).ready(function() {

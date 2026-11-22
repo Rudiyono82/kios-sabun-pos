@@ -1408,7 +1408,7 @@
                             <label class="form-label small fw-semibold text-muted">Nominal Kas Awal (Rp)</label>
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text bg-white fw-bold">Rp</span>
-                                <input type="text" inputmode="numeric" name="nominal_kas_awal" class="form-control text-end fw-bold fs-4 text-primary input-currency" placeholder="0" autofocus required>
+                                <input type="text" inputmode="numeric" id="input_nominal_kas_awal" name="nominal_kas_awal" class="form-control text-end fw-bold fs-4 text-primary input-currency" placeholder="0" autofocus required>
                             </div>
                         </div>
                     </div>
@@ -1464,17 +1464,22 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Auto-show Modal Kas Awal saat login pertama hari ini
+        // Auto-show Modal Kas Awal saat login pertama hari ini & pastikan kursor langsung fokus ke textbox
         $(document).ready(function() {
             if ($('#modalKasAwal').length) {
+                $('#modalKasAwal').on('shown.bs.modal', function () {
+                    const $inp = $(this).find('input[name="nominal_kas_awal"]');
+                    $inp.trigger('focus').select();
+                    setTimeout(() => {
+                        $inp.trigger('focus').select();
+                    }, 80);
+                });
+
                 const modalKasAwalEl = new bootstrap.Modal(document.getElementById('modalKasAwal'), {
                     backdrop: 'static',
                     keyboard: false
                 });
                 modalKasAwalEl.show();
-                setTimeout(() => {
-                    $('#modalKasAwal input[name="nominal_kas_awal"]').focus().select();
-                }, 400);
             }
         });
 
