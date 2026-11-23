@@ -18,7 +18,6 @@ $routes->post('profile/update', 'Auth::updateProfile', ['filter' => 'auth']);
 $routes->get('/', 'Dashboard::index', ['filter' => 'auth']);
 $routes->get('/dashboard', 'Dashboard::index', ['filter' => 'auth']);
 $routes->get('dashboard/grafik', 'Dashboard::grafik', ['filter' => 'auth']);
-$routes->get('dashboard/cek-omzet', 'Dashboard::cekOmzet');
 $routes->get('dashboard/live-kasir', 'Dashboard::liveKasir', ['filter' => 'admin']);
 $routes->get('monitoring-kasir', 'Dashboard::liveKasir', ['filter' => 'admin']);
 
