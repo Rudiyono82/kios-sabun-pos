@@ -86,8 +86,9 @@
                 <label class="form-label small fw-bold text-muted mb-1">Status Pembayaran:</label>
                 <select name="status_bayar" class="form-select select2">
                     <option value="semua">-- Semua Status --</option>
-                    <option value="Lunas" <?= $status_bayar === 'Lunas' ? 'selected' : '' ?>>Lunas</option>
-                    <option value="Hutang" <?= ($status_bayar === 'Hutang' || $status_bayar === 'Tempo') ? 'selected' : '' ?>>Hutang / Tempo</option>
+                    <option value="Lunas" <?= ($status_bayar === 'Lunas' || $status_bayar === 'Lunas (Tunai)') ? 'selected' : '' ?>>Lunas (Tunai - Kas Toko)</option>
+                    <option value="Lunas (Transfer)" <?= $status_bayar === 'Lunas (Transfer)' ? 'selected' : '' ?>>Lunas (Transfer - Non-Kas)</option>
+                    <option value="Hutang" <?= ($status_bayar === 'Hutang' || $status_bayar === 'Tempo' || $status_bayar === 'Hutang / Tempo') ? 'selected' : '' ?>>Hutang / Tempo</option>
                 </select>
             </div>
 
@@ -285,10 +286,15 @@
                                 <?= esc($b['kode_user'] ?: 'Admin') ?>
                             </td>
                             <td class="text-center">
-                                <?php if (strtolower(trim($b['status_bayar'] ?? '')) === 'lunas'): ?>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">Lunas</span>
+                                <?php 
+                                    $sb = $b['status_bayar'] ?? '';
+                                    if ($sb === 'Lunas (Transfer)'): 
+                                ?>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle fw-bold"><i class="bi bi-bank me-1"></i>Lunas (Transfer)</span>
+                                <?php elseif ($sb === 'Lunas' || $sb === 'Lunas (Tunai)'): ?>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold"><i class="bi bi-cash me-1"></i>Lunas (Tunai)</span>
                                 <?php else: ?>
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">Hutang / Tempo</span>
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold"><i class="bi bi-clock-history me-1"></i><?= esc($sb ?: 'Hutang / Tempo') ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-end fw-bold text-dark">

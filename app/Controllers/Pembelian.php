@@ -206,14 +206,16 @@ class Pembelian extends BaseController
             $db->table('kartu_stok')->insertBatch($kartuStokRecords);
         }
 
-        // Catat pengeluaran di keuangan jika lunas
-        if (($json['status_bayar'] ?? 'Lunas') === 'Lunas') {
+        // Catat pengeluaran di keuangan jika lunas tunai (potong kas toko)
+        // Jika status_bayar == 'Lunas (Transfer)' atau 'Hutang / Tempo', TIDAK memotong kas toko hari ini
+        $statusBayar = $json['status_bayar'] ?? 'Lunas';
+        if ($statusBayar === 'Lunas' || $statusBayar === 'Lunas (Tunai)') {
             $db->table('data_keuangan')->insert([
                 'tanggal' => date('Y-m-d H:i:s'),
                 'jenis_keuangan' => 'Pengeluaran',
                 'nama_keuangan' => 'Belanja Restock ' . $noBeli,
-                'total' => $totalBiaya,
-                'keterangan' => 'Supplier: ' . ($json['nama_supplier'] ?? '-'),
+                'total' => $finalTotalBiaya,
+                'keterangan' => 'Supplier: ' . ($json['nama_supplier'] ?? '-') . ' (Tunai Kas Laci)',
                 'kode_user' => session()->get('kode_user') ?? 'ADMIN'
             ]);
         }

@@ -57,10 +57,14 @@
             </div>
             <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">Status Pembayaran</label>
-                <select id="beli-status-bayar" class="form-select form-select-sm">
-                    <option value="Lunas">Lunas (Potong Kas)</option>
+                <select id="beli-status-bayar" class="form-select form-select-sm fw-semibold">
+                    <option value="Lunas">Lunas (Tunai - Potong Kas Toko)</option>
+                    <option value="Lunas (Transfer)">Lunas (Transfer - Tidak Potong Kas)</option>
                     <option value="Hutang / Tempo">Hutang / Tempo (Kredit)</option>
                 </select>
+                <div id="status-bayar-keterangan" class="form-text small mt-1" style="font-size: 0.72rem;">
+                    <span class="text-success"><i class="bi bi-cash-stack me-1"></i>Memotong saldo kas fisik laci kasir hari ini.</span>
+                </div>
             </div>
             <div class="mb-0">
                 <label class="form-label small fw-bold mb-1">Catatan Pembelian</label>
@@ -431,6 +435,19 @@
             }
             $('#display-total-item').text(`${keranjangBeli.length} Macam Produk (${new Intl.NumberFormat('id-ID').format(totalQty)} Satuan)`);
         }
+
+        // Keterangan Status Bayar Dinamis
+        $('#beli-status-bayar').on('change', function() {
+            const val = $(this).val();
+            const $ket = $('#status-bayar-keterangan');
+            if (val === 'Lunas') {
+                $ket.html('<span class="text-success"><i class="bi bi-cash-stack me-1"></i>Memotong saldo kas fisik laci kasir hari ini.</span>');
+            } else if (val === 'Lunas (Transfer)') {
+                $ket.html('<span class="text-info fw-bold"><i class="bi bi-bank me-1"></i>Dibayar via Transfer Rekening (TIDAK memotong kas fisik laci).</span>');
+            } else {
+                $ket.html('<span class="text-warning text-dark"><i class="bi bi-clock-history me-1"></i>Pembelian tempo/kredit (belum lunas, tidak potong kas).</span>');
+            }
+        });
 
         let isSavingPembelian = false;
 

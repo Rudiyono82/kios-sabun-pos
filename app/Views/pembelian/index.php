@@ -123,9 +123,19 @@
                             </td>
                             <td><span class="badge bg-secondary-subtle text-secondary"><?= esc($r['kode_user']) ?></span></td>
                             <td>
-                                <span class="badge <?= $r['status_bayar'] === 'Lunas' ? 'bg-success' : 'bg-warning text-dark' ?> rounded-pill">
-                                    <?= esc($r['status_bayar']) ?>
-                                </span>
+                                <?php if ($r['status_bayar'] === 'Lunas (Transfer)'): ?>
+                                    <span class="badge bg-info text-dark rounded-pill">
+                                        <i class="bi bi-bank me-1"></i>Lunas (Transfer)
+                                    </span>
+                                <?php elseif ($r['status_bayar'] === 'Lunas' || $r['status_bayar'] === 'Lunas (Tunai)'): ?>
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="bi bi-cash-stack me-1"></i>Lunas (Tunai)
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge bg-warning text-dark rounded-pill">
+                                        <i class="bi bi-clock-history me-1"></i><?= esc($r['status_bayar']) ?>
+                                    </span>
+                                <?php endif; ?>
                             </td>
                             <td class="text-end fw-bold text-dark fs-6">
                                 Rp <?= number_format($r['total_biaya'], 0, ',', '.') ?>
@@ -238,7 +248,13 @@
                     $('#detail-no-beli').text(p.no_beli);
                     $('#detail-tgl').text(p.tanggal);
                     $('#detail-supplier').text(p.nama_supplier || 'Supplier Umum');
-                    $('#detail-status').text(p.status_bayar);
+                    if (p.status_bayar === 'Lunas (Transfer)') {
+                        $('#detail-status').attr('class', 'text-info small fw-bold').html('<i class="bi bi-bank me-1"></i>Lunas (Transfer)');
+                    } else if (p.status_bayar === 'Lunas' || p.status_bayar === 'Lunas (Tunai)') {
+                        $('#detail-status').attr('class', 'text-success small fw-bold').html('<i class="bi bi-cash-stack me-1"></i>Lunas (Tunai)');
+                    } else {
+                        $('#detail-status').attr('class', 'text-warning text-dark small fw-bold').html('<i class="bi bi-clock-history me-1"></i>' + (p.status_bayar || 'Hutang / Tempo'));
+                    }
                     $('#detail-petugas').text(p.kode_user);
                     $('#detail-catatan').text(p.catatan || 'Tidak ada catatan.');
                     $('#detail-total-biaya').text('Rp ' + new Intl.NumberFormat('id-ID').format(p.total_biaya));

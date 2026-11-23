@@ -1139,7 +1139,20 @@ class Laporan extends BaseController
             $builder->where('kode_supplier', $kodeSupplier);
         }
         if ($statusBayar !== 'semua' && !empty($statusBayar)) {
-            $builder->where('status_bayar', $statusBayar);
+            if ($statusBayar === 'Lunas') {
+                $builder->groupStart()
+                    ->where('status_bayar', 'Lunas')
+                    ->orWhere('status_bayar', 'Lunas (Tunai)')
+                    ->groupEnd();
+            } elseif ($statusBayar === 'Hutang') {
+                $builder->groupStart()
+                    ->where('status_bayar', 'Hutang')
+                    ->orWhere('status_bayar', 'Tempo')
+                    ->orWhere('status_bayar', 'Hutang / Tempo')
+                    ->groupEnd();
+            } else {
+                $builder->where('status_bayar', $statusBayar);
+            }
         }
         if (!empty($q)) {
             $builder->groupStart()
