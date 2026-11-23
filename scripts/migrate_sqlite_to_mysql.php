@@ -559,19 +559,21 @@ try {
             foreach ($testTxs as $ttx) {
                 $fn = $ttx['no_faktur'];
                 echo "  - Menghapus Faktur Test: $fn (Rp {$ttx['grand_total']})\n";
-                $dtlStmt = $pdo->query("SELECT id_barang, qty FROM `penjualan_detail` WHERE `no_faktur` = " . $pdo->quote($fn));
-                while ($dt = $dtlStmt->fetch()) {
-                    $cabangId = (int)($ttx['id_cabang'] ?? 1);
-                    $qty = (float)$dt['qty'];
-                    $idB = $dt['id_barang'];
-                    $pdo->exec("UPDATE `stok_cabang` SET stok = stok + {$qty} WHERE id_barang = " . $pdo->quote($idB) . " AND id_cabang = {$cabangId}");
-                    $pdo->exec("UPDATE `barang` SET stok = (SELECT COALESCE(SUM(stok), 0) FROM `stok_cabang` WHERE id_barang = " . $pdo->quote($idB) . ") WHERE id_barang = " . $pdo->quote($idB));
-                }
-                $pdo->exec("DELETE FROM `penjualan_detail` WHERE `no_faktur` = " . $pdo->quote($fn));
-                $pdo->exec("DELETE FROM `data_keuangan` WHERE `nama_keuangan` LIKE " . $pdo->quote("%{$fn}%"));
-                $pdo->exec("DELETE FROM `kartu_stok` WHERE `no_referensi` = " . $pdo->quote($fn));
-                $pdo->exec("DELETE FROM `audit_logs` WHERE `action_detail` LIKE " . $pdo->quote("%{$fn}%"));
-                $pdo->exec("DELETE FROM `penjualan` WHERE `no_faktur` = " . $pdo->quote($fn));
+                try {
+                    $dtlStmt = $pdo->query("SELECT id_barang, qty FROM `penjualan_detail` WHERE `no_faktur` = " . $pdo->quote($fn));
+                    while ($dt = $dtlStmt->fetch()) {
+                        $cabangId = (int)($ttx['id_cabang'] ?? 1);
+                        $qty = (float)$dt['qty'];
+                        $idB = $dt['id_barang'];
+                        $pdo->exec("UPDATE `stok_cabang` SET stok = stok + {$qty} WHERE id_barang = " . $pdo->quote($idB) . " AND id_cabang = {$cabangId}");
+                        $pdo->exec("UPDATE `barang` SET stok = (SELECT COALESCE(SUM(stok), 0) FROM `stok_cabang` WHERE id_barang = " . $pdo->quote($idB) . ") WHERE id_barang = " . $pdo->quote($idB));
+                    }
+                } catch (\Throwable $e) {}
+
+                try { $pdo->exec("DELETE FROM `penjualan_detail` WHERE `no_faktur` = " . $pdo->quote($fn)); } catch (\Throwable $e) {}
+                try { $pdo->exec("DELETE FROM `data_keuangan` WHERE `nama_keuangan` LIKE " . $pdo->quote("%{$fn}%")); } catch (\Throwable $e) {}
+                try { $pdo->exec("DELETE FROM `kartu_stok` WHERE `no_referensi` = " . $pdo->quote($fn)); } catch (\Throwable $e) {}
+                try { $pdo->exec("DELETE FROM `penjualan` WHERE `no_faktur` = " . $pdo->quote($fn)); } catch (\Throwable $e) {}
             }
             echo "[CLEANUP TEST TX] Selesai menghapus seluruh transaksi uji coba Web POS.\n";
         }
