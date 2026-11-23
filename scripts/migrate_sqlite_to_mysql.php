@@ -551,54 +551,32 @@ try {
         // ignore
     }
 
-    // Hapus seluruh faktur duplikat hari ini (akibat double submit Enter) dan kembalikan stoknya
+    // Hapus seluruh faktur uji coba Web POS (prefix J261123) pada tanggal 23 Nov 2026 dan kembalikan stoknya
     try {
-        $duplicates = ['J2611210002', 'J2611210004', 'J2611210006', 'J2611210008'];
-        foreach ($duplicates as $dupFaktur) {
-            $dup = $pdo->query("SELECT * FROM `penjualan` WHERE no_faktur = '{$dupFaktur}'")->fetch();
-            if ($dup) {
-                $dtlStmt = $pdo->query("SELECT id_barang, qty FROM `penjualan_detail` WHERE no_faktur = '{$dupFaktur}'");
+        $testTxs = $pdo->query("SELECT no_faktur, grand_total, id_cabang FROM `penjualan` WHERE `no_faktur` LIKE 'J261123%'")->fetchAll();
+        if (!empty($testTxs)) {
+            echo "[CLEANUP TEST TX] Ditemukan " . count($testTxs) . " transaksi uji coba Web POS untuk dibersihkan:\n";
+            foreach ($testTxs as $ttx) {
+                $fn = $ttx['no_faktur'];
+                echo "  - Menghapus Faktur Test: $fn (Rp {$ttx['grand_total']})\n";
+                $dtlStmt = $pdo->query("SELECT id_barang, qty FROM `penjualan_detail` WHERE `no_faktur` = " . $pdo->quote($fn));
                 while ($dt = $dtlStmt->fetch()) {
-                    $cabangId = (int)($dup['id_cabang'] ?? 1);
+                    $cabangId = (int)($ttx['id_cabang'] ?? 1);
                     $qty = (float)$dt['qty'];
                     $idB = $dt['id_barang'];
-                    $pdo->exec("UPDATE `stok_cabang` SET stok = stok + {$qty} WHERE id_barang = '{$idB}' AND id_cabang = {$cabangId}");
-                    $pdo->exec("UPDATE `barang` SET stok = (SELECT COALESCE(SUM(stok), 0) FROM `stok_cabang` WHERE id_barang = '{$idB}') WHERE id_barang = '{$idB}'");
+                    $pdo->exec("UPDATE `stok_cabang` SET stok = stok + {$qty} WHERE id_barang = " . $pdo->quote($idB) . " AND id_cabang = {$cabangId}");
+                    $pdo->exec("UPDATE `barang` SET stok = (SELECT COALESCE(SUM(stok), 0) FROM `stok_cabang` WHERE id_barang = " . $pdo->quote($idB) . ") WHERE id_barang = " . $pdo->quote($idB));
                 }
-                $pdo->exec("DELETE FROM `penjualan_detail` WHERE no_faktur = '{$dupFaktur}'");
-                $pdo->exec("DELETE FROM `data_keuangan` WHERE nama_keuangan LIKE '%{$dupFaktur}%'");
-                $pdo->exec("DELETE FROM `kartu_stok` WHERE no_referensi = '{$dupFaktur}'");
-                $pdo->exec("DELETE FROM `penjualan` WHERE no_faktur = '{$dupFaktur}'");
-                echo "[MIGRATION] Removed duplicate invoice {$dupFaktur} and restored stock.\n";
+                $pdo->exec("DELETE FROM `penjualan_detail` WHERE `no_faktur` = " . $pdo->quote($fn));
+                $pdo->exec("DELETE FROM `data_keuangan` WHERE `nama_keuangan` LIKE " . $pdo->quote("%{$fn}%"));
+                $pdo->exec("DELETE FROM `kartu_stok` WHERE `no_referensi` = " . $pdo->quote($fn));
+                $pdo->exec("DELETE FROM `audit_logs` WHERE `action_detail` LIKE " . $pdo->quote("%{$fn}%"));
+                $pdo->exec("DELETE FROM `penjualan` WHERE `no_faktur` = " . $pdo->quote($fn));
             }
+            echo "[CLEANUP TEST TX] Selesai menghapus seluruh transaksi uji coba Web POS.\n";
         }
     } catch (Exception $e) {
-        // ignore
-    }
-
-    // Hapus seluruh faktur duplikat hari ini (akibat double submit Enter) dan kembalikan stoknya
-    try {
-        $duplicates = ['J2611210002', 'J2611210004', 'J2611210006', 'J2611210008'];
-        foreach ($duplicates as $dupFaktur) {
-            $dup = $pdo->query("SELECT * FROM `penjualan` WHERE no_faktur = '{$dupFaktur}'")->fetch();
-            if ($dup) {
-                $dtlStmt = $pdo->query("SELECT id_barang, qty FROM `penjualan_detail` WHERE no_faktur = '{$dupFaktur}'");
-                while ($dt = $dtlStmt->fetch()) {
-                    $cabangId = (int)($dup['id_cabang'] ?? 1);
-                    $qty = (float)$dt['qty'];
-                    $idB = $dt['id_barang'];
-                    $pdo->exec("UPDATE `stok_cabang` SET stok = stok + {$qty} WHERE id_barang = '{$idB}' AND id_cabang = {$cabangId}");
-                    $pdo->exec("UPDATE `barang` SET stok = (SELECT COALESCE(SUM(stok), 0) FROM `stok_cabang` WHERE id_barang = '{$idB}') WHERE id_barang = '{$idB}'");
-                }
-                $pdo->exec("DELETE FROM `penjualan_detail` WHERE no_faktur = '{$dupFaktur}'");
-                $pdo->exec("DELETE FROM `data_keuangan` WHERE nama_keuangan LIKE '%{$dupFaktur}%'");
-                $pdo->exec("DELETE FROM `kartu_stok` WHERE no_referensi = '{$dupFaktur}'");
-                $pdo->exec("DELETE FROM `penjualan` WHERE no_faktur = '{$dupFaktur}'");
-                echo "[MIGRATION] Removed duplicate invoice {$dupFaktur} and restored stock.\n";
-            }
-        }
-    } catch (Exception $e) {
-        // ignore
+        echo "[CLEANUP TEST TX NOTICE] " . $e->getMessage() . "\n";
     }
 
     // Hapus seluruh catatan rekapan sintetik Total Profit dan Total Omzet dari data_keuangan MySQL
