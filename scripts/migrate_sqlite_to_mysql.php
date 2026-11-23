@@ -250,6 +250,7 @@ try {
                 $pdo->beginTransaction();
                 while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
                     if (!isset($existingFaktur[$row['no_faktur']])) {
+                        unset($row['id']);
                         $batch[] = $row;
                         $inserted++;
                         if (count($batch) >= 250) {
@@ -281,6 +282,7 @@ try {
                 $pdo->beginTransaction();
                 while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
                     if (!isset($existingFaktur[$row['no_faktur']])) {
+                        unset($row['id']);
                         $batch[] = $row;
                         $inserted++;
                         if (count($batch) >= 250) {
@@ -314,6 +316,7 @@ try {
                 while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
                     $kKey = $row['tanggal'] . '|' . $row['jenis_keuangan'] . '|' . $row['nama_keuangan'] . '|' . (float)$row['total'];
                     if (!isset($existingKeys[$kKey])) {
+                        unset($row['id']);
                         $batch[] = $row;
                         $inserted++;
                         if (count($batch) >= 250) {
@@ -381,6 +384,7 @@ try {
                 $pdo->beginTransaction();
                 while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
                     if (!isset($existingBeli[$row['no_beli']])) {
+                        unset($row['id']);
                         $batch[] = $row;
                         $inserted++;
                         if (count($batch) >= 250) {
@@ -426,6 +430,7 @@ try {
                     $pdo->beginTransaction();
                     while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
                         if (!isset($existingBeli[$row['no_beli']])) {
+                            unset($row['id']);
                             $batch[] = $row;
                             $inserted++;
                             if (count($batch) >= 250) {
@@ -591,6 +596,43 @@ try {
         echo "[MIGRATION] Cleaned synthetic Total Profit and Total Omzet rows from data_keuangan in MySQL.\n";
     } catch (Exception $e) {
         // ignore
+    }
+
+    // =========================================================================
+    // SINKRONISASI PEMULIHAN KHUSUS TRANSAKSI HARI INI (SAFETY NET J00140708, dsb)
+    // =========================================================================
+    try {
+        $todayTxs = $sqlite->query("SELECT * FROM `penjualan` WHERE DATE(tanggal) = '2026-11-23'");
+        while ($tx = $todayTxs->fetchArray(SQLITE3_ASSOC)) {
+            $faktur = $tx['no_faktur'];
+            $chk = $pdo->prepare("SELECT COUNT(*) FROM `penjualan` WHERE `no_faktur` = ?");
+            $chk->execute([$faktur]);
+            if ((int)$chk->fetchColumn() === 0) {
+                echo "[MIGRATION RECOVERY] Force inserting missing transaction {$faktur} into MySQL...\n";
+                unset($tx['id']);
+                $cols = array_keys($tx);
+                $escapedCols = array_map(fn($c) => "`{$c}`", $cols);
+                $colList = implode(', ', $escapedCols);
+                $placeholders = implode(', ', array_fill(0, count($cols), '?'));
+                $insP = $pdo->prepare("INSERT INTO `penjualan` ({$colList}) VALUES ({$placeholders})");
+                $insP->execute(array_values($tx));
+
+                // Also ensure its details
+                $dtls = $sqlite->query("SELECT * FROM `penjualan_detail` WHERE `no_faktur` = '{$faktur}'");
+                while ($dRow = $dtls->fetchArray(SQLITE3_ASSOC)) {
+                    unset($dRow['id']);
+                    $dCols = array_keys($dRow);
+                    $dEscaped = array_map(fn($c) => "`{$c}`", $dCols);
+                    $dColList = implode(', ', $dEscaped);
+                    $dPlaceholders = implode(', ', array_fill(0, count($dCols), '?'));
+                    $insD = $pdo->prepare("INSERT INTO `penjualan_detail` ({$dColList}) VALUES ({$dPlaceholders})");
+                    $insD->execute(array_values($dRow));
+                }
+                echo "[MIGRATION RECOVERY] Successfully recovered {$faktur} and its detail rows.\n";
+            }
+        }
+    } catch (Exception $eRec) {
+        echo "[MIGRATION RECOVERY NOTICE] " . $eRec->getMessage() . "\n";
     }
 
     // =========================================================================

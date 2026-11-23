@@ -64,6 +64,7 @@ class Dashboard extends BaseController
             ->where("DATE(tanggal)", $today)
             ->orderBy('no_faktur', 'ASC')
             ->get()->getResultArray();
+
         return $this->response->setJSON([
             'today' => $today,
             'count' => count($rows),
