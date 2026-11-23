@@ -272,7 +272,7 @@
                         <thead class="table-light small">
                             <tr>
                                 <th style="width: 45px;" class="text-center">No</th>
-                                <th>Produk Sabun / Parfum</th>
+                                <th>Nama Barang</th>
                                 <th class="text-center" style="width: 75px;">Qty</th>
                                 <th class="text-end" style="width: 140px; white-space: nowrap;">Harga Satuan</th>
                                 <th class="text-end" style="width: 160px; white-space: nowrap;">Subtotal (Rp)</th>
@@ -399,7 +399,7 @@
                             <tr>
                                 <th style="width: 35px;" class="text-center">No</th>
                                 <th style="width: 120px;">ID Barang</th>
-                                <th>Nama Produk Sabun & Parfum</th>
+                                <th>Nama Barang</th>
                                 <th class="text-center" style="width: 80px;">Qty</th>
                                 <th class="text-end" style="width: 130px;">Harga Satuan</th>
                                 <th class="text-end" style="width: 140px;">Subtotal</th>
