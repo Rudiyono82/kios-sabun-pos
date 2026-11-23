@@ -383,12 +383,74 @@ foreach ($targetDatabases as $sqlitePath) {
     $db->commit();
     echo "Pembelian: $newBeliCount pembelian baru ($newBeliDtlCount detail item).\n";
 
+    // 5. BARANG PENDING STOK
+    if (!empty($data['barang_pending_stok'])) {
+        echo "--- 5. Sinkronisasi Barang Pending Stok ---\n";
+        $existingPending = [];
+        $stmtP = $db->query("SELECT id FROM barang_pending_stok");
+        while ($r = $stmtP->fetch()) {
+            $existingPending[$r['id']] = true;
+        }
+
+        $insertPendingStmt = $db->prepare("INSERT INTO barang_pending_stok (
+            id, ref_id, tgl_input, id_barang, nama_barang, stok_pending,
+            harga_beli_lama, harga_beli, harga_jual_lama, harga_jual,
+            qty_paket_a, harga_paket_a, qty_paket_b, harga_paket_b, qty_paket_c, harga_paket_c,
+            status_persetujuan, status_eksekusi, user_input, created_at, updated_at
+        ) VALUES (
+            :id, :ref_id, :tgl_input, :id_barang, :nama_barang, :stok_pending,
+            :harga_beli_lama, :harga_beli, :harga_jual_lama, :harga_jual,
+            :qty_paket_a, :harga_paket_a, :qty_paket_b, :harga_paket_b, :qty_paket_c, :harga_paket_c,
+            :status_persetujuan, :status_eksekusi, :user_input, :created_at, :updated_at
+        )");
+
+        $newPendingCount = 0;
+        $db->beginTransaction();
+        foreach ($data['barang_pending_stok'] as $ps) {
+            $id = (int)$ps['ID'];
+            if (isset($existingPending[$id])) continue;
+
+            $idB = trim($ps['ID_BARANG']);
+            $bRef = $barangNameMap[$idB] ?? null;
+            $namaB = $bRef ? $bRef['nama_barang'] : ('Barang ' . $idB);
+
+            $insertPendingStmt->execute([
+                ':id'                 => $id,
+                ':ref_id'             => $ps['REF_ID'] ?: '',
+                ':tgl_input'          => $ps['TGL_INPUT'],
+                ':id_barang'          => $idB,
+                ':nama_barang'        => $namaB,
+                ':stok_pending'       => (float)($ps['STOK_PENDING'] ?: 0),
+                ':harga_beli_lama'    => (float)($bRef['harga_beli'] ?? 0),
+                ':harga_beli'         => (float)($ps['HRG_BELI'] ?: 0),
+                ':harga_jual_lama'    => (float)($bRef['harga_jual'] ?? 0),
+                ':harga_jual'         => (float)($ps['HRG_JUAL'] ?: 0),
+                ':qty_paket_a'        => (int)($ps['QTY_PAKET_A'] ?: 0),
+                ':harga_paket_a'      => (float)($ps['HRG_PAKET_A'] ?: 0),
+                ':qty_paket_b'        => (int)($ps['QTY_PAKET_B'] ?: 0),
+                ':harga_paket_b'      => (float)($ps['HRG_PAKET_B'] ?: 0),
+                ':qty_paket_c'        => (int)($ps['QTY_PAKET_C'] ?: 0),
+                ':harga_paket_c'      => (float)($ps['HRG_PAKET_C'] ?: 0),
+                ':status_persetujuan' => ($ps['STATUS'] == 1 ? 'Disetujui' : 'Belum Setuju'),
+                ':status_eksekusi'    => ($ps['STATUS'] == 1 ? 1 : 0),
+                ':user_input'         => 'KASIR',
+                ':created_at'         => $ps['TGL_INPUT'],
+                ':updated_at'         => date('Y-m-d H:i:s'),
+            ]);
+            $existingPending[$id] = true;
+            $newPendingCount++;
+        }
+        $db->commit();
+        echo "Barang Pending Stok: $newPendingCount baris baru ditambahkan.\n";
+    }
+
     // Hitung total akhir
     $tBarang = $db->query("SELECT COUNT(*) FROM barang")->fetchColumn();
     $tJual = $db->query("SELECT COUNT(*) FROM penjualan")->fetchColumn();
     $tJualDtl = $db->query("SELECT COUNT(*) FROM penjualan_detail")->fetchColumn();
     $tKeu = $db->query("SELECT COUNT(*) FROM data_keuangan")->fetchColumn();
     $tBeli = $db->query("SELECT COUNT(*) FROM pembelian")->fetchColumn();
+    $tPending = $db->query("SELECT COUNT(*) FROM barang_pending_stok")->fetchColumn();
 
     echo "\nRingkasan Total di Database $sqlitePath:\n";
     echo "  - Total Barang       : $tBarang produk\n";
@@ -396,6 +458,7 @@ foreach ($targetDatabases as $sqlitePath) {
     echo "  - Total Item Terjual : $tJualDtl baris\n";
     echo "  - Total Keuangan/Kas : $tKeu baris\n";
     echo "  - Total Pembelian    : $tBeli transaksi\n";
+    echo "  - Total Pending Stok : $tPending baris\n";
 }
 
 echo "\n=======================================================\n";

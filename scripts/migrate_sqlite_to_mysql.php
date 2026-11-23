@@ -412,6 +412,41 @@ try {
                 continue;
             }
 
+            // KASUS 8: Tabel Barang Pending Stok -> Sync pending stok baru
+            if ($tableName === 'barang_pending_stok') {
+                if ($sqliteRows > $mysqlRows) {
+                    echo "[MIGRATION] Syncing new `barang_pending_stok` ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
+                    $existingIds = [];
+                    $stP = $pdo->query("SELECT id FROM `barang_pending_stok`");
+                    while ($pid = $stP->fetchColumn()) {
+                        $existingIds[$pid] = true;
+                    }
+
+                    $dataRes = $sqlite->query("SELECT * FROM `barang_pending_stok`");
+                    $batch = [];
+                    $inserted = 0;
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        if (!isset($existingIds[$row['id']])) {
+                            $batch[] = $row;
+                            $inserted++;
+                            if (count($batch) >= 250) {
+                                insertBatchIgnore($pdo, 'barang_pending_stok', $batch);
+                                $batch = [];
+                            }
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        insertBatchIgnore($pdo, 'barang_pending_stok', $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] `barang_pending_stok` synced: {$inserted} pending rows inserted into MySQL.\n";
+                } else {
+                    echo "[MIGRATION] `barang_pending_stok` is up to date ($mysqlRows rows). Skipped.\n";
+                }
+                continue;
+            }
+
             // KASUS STANDAR: Tabel lainnya (users, member, supplier, retur, audit_logs, dsb)
             if ($mysqlRows > 0) {
                 echo "[MIGRATION] Table `{$tableName}` already populated ({$mysqlRows} rows in MySQL). Skipped.\n";
