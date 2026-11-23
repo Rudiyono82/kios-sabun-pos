@@ -97,6 +97,9 @@ class Retur extends BaseController
         $detailRecords = [];
         $namaBarangSummary = [];
 
+        $idCabang = (int)(session()->get('id_cabang') ?: 1);
+        $stokCabangModel = new \App\Models\StokCabangModel();
+
         foreach ($items as $item) {
             $idBarang = $item['id_barang'];
             $qty = (float) $item['qty'];
@@ -112,9 +115,9 @@ class Retur extends BaseController
             $totalNilaiRetur += $subtotal;
             $namaBarangSummary[] = $barang['nama_barang'] . " (" . number_format($qty, 0, ',', '.') . ")";
 
-            // 1. MUTASI STOK: Barang rijek/expired SELALU DIPOTONG KELUAR dari stok toko hari ini
-            $sisaStok = $barang['stok'] - $qty;
-            $db->table('barang')->where('id_barang', $idBarang)->update(['stok' => $sisaStok]);
+            // 1. MUTASI STOK: Barang rijek/expired SELALU DIPOTONG KELUAR dari stok cabang & master toko
+            $sisaStok = $stokCabangModel->updateStok($idBarang, $idCabang, -(float)$qty);
+            $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$idBarang, $idBarang]);
 
             // Catat kartu stok KELUAR untuk barang rijek
             $db->table('kartu_stok')->insert([
@@ -164,8 +167,8 @@ class Retur extends BaseController
                 foreach ($detailRecords as $det) {
                     $brg = $db->table('barang')->where('id_barang', $det['id_barang_retur'])->get()->getRowArray();
                     if ($brg) {
-                        $sisaSetelahGanti = $brg['stok'] + (float)$det['qty_retur'];
-                        $db->table('barang')->where('id_barang', $det['id_barang_retur'])->update(['stok' => $sisaSetelahGanti]);
+                        $sisaSetelahGanti = $stokCabangModel->updateStok($det['id_barang_retur'], $idCabang, (float)$det['qty_retur']);
+                        $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$det['id_barang_retur'], $det['id_barang_retur']]);
 
                         $db->table('kartu_stok')->insert([
                             'tanggal'      => date('Y-m-d H:i:s'),
@@ -191,8 +194,8 @@ class Retur extends BaseController
                     $namaBarangGanti = $barangGanti['nama_barang'];
                     $nilaiGanti = $qtyGanti * (float)$barangGanti['harga_beli'];
 
-                    $sisaBarangGanti = $barangGanti['stok'] + $qtyGanti;
-                    $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $sisaBarangGanti]);
+                    $sisaBarangGanti = $stokCabangModel->updateStok($idBarangGanti, $idCabang, (float)$qtyGanti);
+                    $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$idBarangGanti, $idBarangGanti]);
 
                     $db->table('kartu_stok')->insert([
                         'tanggal'      => date('Y-m-d H:i:s'),
@@ -347,6 +350,8 @@ class Retur extends BaseController
 
         $processedCount = 0;
         $processedSummary = [];
+        $idCabang = (int)(session()->get('id_cabang') ?: 1);
+        $stokCabangModel = new \App\Models\StokCabangModel();
 
         if (!empty($items)) {
             // MODE MULTI-ITEM / PENYELESAIAN PARSIAL (BERTAHAP)
@@ -370,8 +375,8 @@ class Retur extends BaseController
                     $idBrg = $det['id_barang_retur'];
                     $brg = $db->table('barang')->where('id_barang', $idBrg)->get()->getRowArray();
                     if ($brg) {
-                        $stokBaru = (float)$brg['stok'] + $qtyDatang;
-                        $db->table('barang')->where('id_barang', $idBrg)->update(['stok' => $stokBaru]);
+                        $stokBaru = $stokCabangModel->updateStok($idBrg, $idCabang, (float)$qtyDatang);
+                        $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$idBrg, $idBrg]);
 
                         $db->table('kartu_stok')->insert([
                             'tanggal'      => $tglSelesai,
@@ -407,8 +412,8 @@ class Retur extends BaseController
                     $brgB = $db->table('barang')->where('id_barang', $idBarangGanti)->get()->getRowArray();
                     if (!$brgB) continue;
 
-                    $stokBaruB = (float)$brgB['stok'] + $qtyDatang;
-                    $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $stokBaruB]);
+                    $stokBaruB = $stokCabangModel->updateStok($idBarangGanti, $idCabang, (float)$qtyDatang);
+                    $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$idBarangGanti, $idBarangGanti]);
 
                     $db->table('kartu_stok')->insert([
                         'tanggal'      => $tglSelesai,
@@ -471,15 +476,17 @@ class Retur extends BaseController
             $idBarangGanti = null;
             $namaBarangGanti = null;
             $nilaiGanti = 0;
+            $idCabang = (int)(session()->get('id_cabang') ?: 1);
+            $stokCabangModel = new \App\Models\StokCabangModel();
 
             if ($tipePenyelesaian === 'Ganti_Barang_Sama') {
                 $idBarangGanti = $retur['id_barang_retur'];
                 $namaBarangGanti = $retur['nama_barang_retur'];
                 $barang = $db->table('barang')->where('id_barang', $idBarangGanti)->get()->getRowArray();
                 if ($barang) {
-                    $stokBaru = (float)$barang['stok'] + $qtyGanti;
+                    $stokBaru = $stokCabangModel->updateStok($idBarangGanti, $idCabang, (float)$qtyGanti);
+                    $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$idBarangGanti, $idBarangGanti]);
                     $nilaiGanti = $qtyGanti * (float)($barang['harga_beli'] ?? 0);
-                    $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $stokBaru]);
 
                     $db->table('kartu_stok')->insert([
                         'tanggal' => $tglSelesai,
@@ -497,9 +504,9 @@ class Retur extends BaseController
                 $barangB = $db->table('barang')->where('id_barang', $idBarangGanti)->get()->getRowArray();
                 if ($barangB) {
                     $namaBarangGanti = $barangB['nama_barang'];
-                    $stokBaruB = (float)$barangB['stok'] + $qtyGanti;
+                    $stokBaruB = $stokCabangModel->updateStok($idBarangGanti, $idCabang, (float)$qtyGanti);
+                    $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$idBarangGanti, $idBarangGanti]);
                     $nilaiGanti = $qtyGanti * (float)($barangB['harga_beli'] ?? 0);
-                    $db->table('barang')->where('id_barang', $idBarangGanti)->update(['stok' => $stokBaruB]);
 
                     $db->table('kartu_stok')->insert([
                         'tanggal' => $tglSelesai,
@@ -685,6 +692,8 @@ class Retur extends BaseController
         }
 
         $db->transStart();
+        $idCabang = (int)(session()->get('id_cabang') ?: 1);
+        $stokCabangModel = new \App\Models\StokCabangModel();
 
         // 2. Kembalikan stok barang yang diretur (karena retur dibatalkan/dihapus)
         $detailItems = $db->table('retur_supplier_detail')->where('no_retur', $retur['no_retur'])->get()->getResultArray();
@@ -692,8 +701,8 @@ class Retur extends BaseController
             foreach ($detailItems as $det) {
                 $brg = $db->table('barang')->where('id_barang', $det['id_barang_retur'])->get()->getRowArray();
                 if ($brg) {
-                    $stokBaru = $brg['stok'] + (float)$det['qty_retur'];
-                    $db->table('barang')->where('id_barang', $det['id_barang_retur'])->update(['stok' => $stokBaru]);
+                    $stokBaru = $stokCabangModel->updateStok($det['id_barang_retur'], $idCabang, (float)$det['qty_retur']);
+                    $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$det['id_barang_retur'], $det['id_barang_retur']]);
 
                     $db->table('kartu_stok')->insert([
                         'tanggal'      => date('Y-m-d H:i:s'),
@@ -711,8 +720,8 @@ class Retur extends BaseController
         } else {
             $barangRetur = $db->table('barang')->where('id_barang', $retur['id_barang_retur'])->get()->getRowArray();
             if ($barangRetur) {
-                $stokBaruRetur = $barangRetur['stok'] + (float)$retur['qty_retur'];
-                $db->table('barang')->where('id_barang', $retur['id_barang_retur'])->update(['stok' => $stokBaruRetur]);
+                $stokBaruRetur = $stokCabangModel->updateStok($retur['id_barang_retur'], $idCabang, (float)$retur['qty_retur']);
+                $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$retur['id_barang_retur'], $retur['id_barang_retur']]);
 
                 $db->table('kartu_stok')->insert([
                     'tanggal'      => date('Y-m-d H:i:s'),
@@ -732,8 +741,8 @@ class Retur extends BaseController
             if (in_array($retur['tipe_penyelesaian'], ['Ganti_Barang_Sama', 'Ganti_Barang_Lain']) && !empty($retur['id_barang_ganti'])) {
                 $barangGanti = $db->table('barang')->where('id_barang', $retur['id_barang_ganti'])->get()->getRowArray();
                 if ($barangGanti) {
-                    $stokBaruGanti = max(0, $barangGanti['stok'] - (float)$retur['qty_ganti']);
-                    $db->table('barang')->where('id_barang', $retur['id_barang_ganti'])->update(['stok' => $stokBaruGanti]);
+                    $stokBaruGanti = $stokCabangModel->updateStok($retur['id_barang_ganti'], $idCabang, -(float)$retur['qty_ganti']);
+                    $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$retur['id_barang_ganti'], $retur['id_barang_ganti']]);
 
                     $db->table('kartu_stok')->insert([
                         'tanggal' => date('Y-m-d H:i:s'),
