@@ -1,6 +1,25 @@
 <?= $this->extend('layout/main') ?>
 
 <?= $this->section('content') ?>
+<style>
+    /* Styling seragam untuk komponen input pembelian & Select2 */
+    .restock-ctrl {
+        height: 36px !important;
+        min-height: 36px !important;
+    }
+    .select2-container--bootstrap-5 .select2-selection--single {
+        height: 36px !important;
+        min-height: 36px !important;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        line-height: 26px !important;
+        font-size: 0.82rem !important;
+    }
+</style>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
     <div>
         <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
@@ -8,24 +27,24 @@
         </h5>
         <span class="text-muted" style="font-size: 0.74rem;">Catat transaksi pembelian bahan baku kimia / kemasan / barang jadi dengan pembaruan stok otomatis.</span>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <!-- BOX TOTAL BIAYA PEMBELIAN (Pojok Kanan Atas Sesuai Gambar Petunjuk) -->
-        <div class="card border-0 shadow-sm px-3 py-1 text-end" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac !important; border-radius: 10px; min-width: 250px;">
-            <div class="d-flex justify-content-between align-items-center gap-2">
-                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.68rem; letter-spacing: 0.5px;">TOTAL PEMBELIAN:</span>
-                <span class="badge bg-white text-success border border-success-subtle font-monospace py-0 px-2" id="display-total-item" style="font-size: 0.70rem;">0 Item Masuk</span>
+    <div class="d-flex align-items-stretch gap-2" style="height: 44px;">
+        <!-- BOX TOTAL BIAYA PEMBELIAN (Pojok Kanan Atas Sejajar Sempurna) -->
+        <div class="d-flex align-items-center justify-content-between px-3 shadow-sm" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac !important; border-radius: 8px; min-width: 250px; height: 100%;">
+            <div class="d-flex flex-column justify-content-center me-3 text-start">
+                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; line-height: 1.1; letter-spacing: 0.5px;">TOTAL PEMBELIAN:</span>
+                <span class="badge bg-white text-success border border-success-subtle font-monospace mt-1 py-0 px-1" id="display-total-item" style="font-size: 0.66rem; line-height: 1.2;">0 Item Masuk</span>
             </div>
-            <div class="d-flex align-items-baseline justify-content-end gap-1 mt-0">
-                <h3 class="fw-bold text-success mb-0 font-monospace" id="display-total-biaya" style="font-size: 1.55rem; line-height: 1.1;">Rp 0</h3>
+            <div class="d-flex flex-column justify-content-center text-end">
+                <h4 class="fw-bold text-success mb-0 font-monospace" id="display-total-biaya" style="font-size: 1.35rem; line-height: 1.1;">Rp 0</h4>
+                <div id="beli-pembulatan-info" class="text-muted d-none font-monospace mt-0" style="font-size: 0.60rem; line-height: 1;"></div>
             </div>
-            <div id="beli-pembulatan-info" class="small text-muted d-none font-monospace mt-0" style="font-size: 0.65rem;"></div>
         </div>
 
-        <!-- Tombol Simpan Transaksi & Kembali -->
-        <button type="button" class="btn btn-success rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-1" id="btn-simpan-pembelian" title="Simpan transaksi pembelian (Shortcut: F9 atau Ctrl+S)">
-            <i class="bi bi-check-circle-fill"></i> Simpan Transaksi <span class="badge bg-white bg-opacity-25 ms-1" style="font-size: 0.68rem;">[F9]</span>
+        <!-- Tombol Simpan Transaksi & Kembali (Tinggi & Radius Seragam) -->
+        <button type="button" class="btn btn-success px-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1 text-nowrap" id="btn-simpan-pembelian" style="border-radius: 8px; height: 100%; font-size: 0.82rem;" title="Simpan transaksi pembelian (Shortcut: F9 atau Ctrl+S)">
+            <i class="bi bi-check-circle-fill fs-6"></i> Simpan Transaksi <span class="badge bg-white bg-opacity-25 ms-1" style="font-size: 0.68rem;">[F9]</span>
         </button>
-        <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold" style="font-size: 0.8rem;">
+        <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary px-3 fw-semibold d-flex align-items-center justify-content-center text-nowrap" style="border-radius: 8px; height: 100%; font-size: 0.82rem;">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>
@@ -94,42 +113,42 @@
             <div class="row g-2 align-items-start">
                 <!-- 1. Cari Produk -->
                 <div class="col-12 col-md-5">
-                    <div class="d-flex justify-content-between align-items-center mb-1" style="height: 20px; line-height: 20px;">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="height: 22px; line-height: 22px;">
                         <label class="form-label small fw-bold mb-0 text-truncate">
                             Cari Produk / Bahan Baku <span class="text-danger">*</span>
                         </label>
-                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold d-flex align-items-center gap-1 shadow-sm" id="btn-open-lookup-beli" style="font-size: 0.72rem; height: 20px;" title="Buka LookUp List of Stock Modal Popup (Shortcut: F2)">
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold d-flex align-items-center gap-1 shadow-sm" id="btn-open-lookup-beli" style="font-size: 0.72rem; height: 22px;" title="Buka LookUp List of Stock Modal Popup (Shortcut: F2)">
                             <i class="bi bi-card-checklist"></i> LookUp Barang <span class="badge bg-primary-subtle text-primary py-0 px-1" style="font-size: 0.65rem;">[F2]</span>
                         </button>
                     </div>
-                    <select id="pilih-barang" class="form-select" style="height: 34px;" disabled>
+                    <select id="pilih-barang" class="form-select restock-ctrl" disabled>
                         <option value="">-- Wajib Pilih Mitra Supplier Dahulu --</option>
                     </select>
                 </div>
 
                 <!-- 2. Qty Beli -->
                 <div class="col-6 col-md-2">
-                    <label class="form-label small fw-bold mb-1 text-truncate d-block" style="height: 20px; line-height: 20px;">
+                    <label class="form-label small fw-bold mb-1 text-truncate d-block" style="height: 22px; line-height: 22px;">
                         Qty Beli <span class="text-danger">*</span>
                     </label>
-                    <input type="number" id="input-qty-beli" class="form-control text-center fw-bold" style="height: 34px;" value="1" min="0.1" step="any" title="Tekan Enter untuk langsung menambahkan ke keranjang">
+                    <input type="number" id="input-qty-beli" class="form-control text-center fw-bold restock-ctrl" value="1" min="0.1" step="any" title="Tekan Enter untuk langsung menambahkan ke keranjang">
                 </div>
 
                 <!-- 3. Harga Beli Modal (Lookup Master) -->
                 <div class="col-6 col-md-3">
-                    <label class="form-label small fw-bold mb-1 text-truncate" style="height: 20px; line-height: 20px;">
+                    <label class="form-label small fw-bold mb-1 text-truncate" style="height: 22px; line-height: 22px;">
                         Harga Modal (Lookup)
                     </label>
-                    <div class="input-group" style="height: 34px;">
-                        <span class="input-group-text bg-light text-muted fw-bold py-0 px-2" style="font-size: 0.75rem;">Rp</span>
-                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control text-end fw-bold bg-light input-currency" style="height: 34px;" placeholder="0" readonly title="Harga modal terisi otomatis dari Master Data Barang (Lookup)">
+                    <div class="input-group restock-ctrl">
+                        <span class="input-group-text bg-light text-muted fw-bold py-0 px-2 restock-ctrl" style="font-size: 0.75rem;">Rp</span>
+                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control text-end fw-bold bg-light input-currency restock-ctrl" placeholder="0" readonly title="Harga modal terisi otomatis dari Master Data Barang (Lookup)">
                     </div>
                 </div>
 
                 <!-- 4. Tombol Tambah -->
                 <div class="col-12 col-md-2">
-                    <label class="form-label small fw-bold mb-1 d-none d-md-block" style="height: 20px; line-height: 20px; visibility: hidden;">Aksi</label>
-                    <button type="button" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-sm" id="btn-tambah-item" style="height: 34px; font-size: 0.78rem;" title="Tambah item ini ke keranjang belanja (Shortcut: Enter)">
+                    <label class="form-label small fw-bold mb-1 d-none d-md-block" style="height: 22px; line-height: 22px; visibility: hidden;">Aksi</label>
+                    <button type="button" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-sm restock-ctrl" id="btn-tambah-item" style="font-size: 0.78rem;" title="Tambah item ini ke keranjang belanja (Shortcut: Enter)">
                         <i class="bi bi-plus-lg fs-6"></i> Tambah <span class="badge bg-white bg-opacity-25 py-0 px-1" style="font-size: 0.65rem;">[Enter]</span>
                     </button>
                 </div>
