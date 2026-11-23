@@ -1624,7 +1624,7 @@
         if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
-            if (isSubmittingTransaction || $('#btn-proses-transaksi').prop('disabled')) {
+            if (isSubmittingTransaction || (Date.now() - lastSubmitTime < 2500) || $('#btn-proses-transaksi').prop('disabled')) {
                 return false;
             }
             $('#btn-proses-transaksi').trigger('click');
@@ -1651,6 +1651,7 @@
 
     // 5. Proses Transaksi ke Server & Kirim WhatsApp jika Member (Dilengkapi Anti Double-Click & Idempotency Key)
     let isSubmittingTransaction = false;
+    let lastSubmitTime = 0;
     let currentClientToken = 'POS-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
 
     $('#btn-proses-transaksi').on('click', function(e) {
@@ -1659,12 +1660,20 @@
             e.stopPropagation();
         }
 
-        if (isSubmittingTransaction || $(this).prop('disabled') || $(this).hasClass('disabled')) {
-            console.warn('Transaksi sedang diproses, mencegah double submit...');
+        const now = Date.now();
+        if (isSubmittingTransaction || (now - lastSubmitTime < 2500) || $(this).prop('disabled') || $(this).hasClass('disabled')) {
+            console.warn('Transaksi sedang diproses atau cooldown aktif, mencegah double submit...');
             return false;
         }
 
+        // Kunci tombol transaksi secara instan di awal sebelum kalkulasi & async request
+        isSubmittingTransaction = true;
+        lastSubmitTime = now;
+        $('#btn-proses-transaksi').prop('disabled', true).addClass('disabled').css('pointer-events', 'none').html('<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...');
+
         if (cart.length === 0) {
+            isSubmittingTransaction = false;
+            $('#btn-proses-transaksi').prop('disabled', false).removeClass('disabled').css('pointer-events', '').html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI <kbd class="bg-white text-success font-monospace px-2 py-0 ms-1">[Enter]</kbd>');
             Swal.fire('Keranjang Kosong', 'Silakan pilih produk yang akan dibeli.', 'warning');
             return;
         }
@@ -1679,13 +1688,11 @@
         const bayar = unformatRupiah($('#input-bayar').val()) || 0;
 
         if (bayar < grandTotal) {
+            isSubmittingTransaction = false;
+            $('#btn-proses-transaksi').prop('disabled', false).removeClass('disabled').css('pointer-events', '').html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI <kbd class="bg-white text-success font-monospace px-2 py-0 ms-1">[Enter]</kbd>');
             Swal.fire('Uang Kurang', 'Nominal uang pembayaran kurang dari total tagihan!', 'warning');
             return;
         }
-
-        // Kunci tombol transaksi secara instan untuk mencegah double-click
-        isSubmittingTransaction = true;
-        $('#btn-proses-transaksi').prop('disabled', true).addClass('disabled').css('pointer-events', 'none').html('<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...');
 
         const kodeMember = ($('input[name="customer_type"]:checked').val() === 'member' && selectedMember) ? selectedMember.kode_member : null;
         const kodeVoucher = ($('input[name="customer_type"]:checked').val() === 'member') ? ($('#select-voucher-pos').val() || null) : null;
@@ -1753,6 +1760,9 @@
                 $('#input-bayar').val('');
                 renderCart();
                 currentClientToken = 'POS-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+                setTimeout(function() {
+                    isSubmittingTransaction = false;
+                }, 1000);
             },
             error: function(err) {
                 if (typeof hideSaveLoading === 'function') {
@@ -1761,7 +1771,7 @@
                 // Debounce 1.5 detik sebelum tombol bayar dibuka kembali jika terjadi kegagalan
                 setTimeout(function() {
                     isSubmittingTransaction = false;
-                    $('#btn-proses-transaksi').prop('disabled', false).removeClass('disabled').css('pointer-events', '').html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
+                    $('#btn-proses-transaksi').prop('disabled', false).removeClass('disabled').css('pointer-events', '').html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI <kbd class="bg-white text-success font-monospace px-2 py-0 ms-1">[Enter]</kbd>');
                 }, 1500);
 
                 const resJson = err.responseJSON;
@@ -1876,8 +1886,8 @@
                 return;
             }
             if ($('#modalBayar').hasClass('show')) {
-                if (!isSubmittingTransaction && !$('#btn-proses-transaksi').prop('disabled')) {
-                    $('#btn-proses-transaksi').click();
+                if (!isSubmittingTransaction && (Date.now() - lastSubmitTime >= 2500) && !$('#btn-proses-transaksi').prop('disabled')) {
+                    $('#btn-proses-transaksi').trigger('click');
                 }
             } else {
                 bukaModalBayar();
@@ -1922,7 +1932,7 @@
                     return;
                 }
                 e.preventDefault();
-                if (!isSubmittingTransaction && !$('#btn-proses-transaksi').prop('disabled')) {
+                if (!isSubmittingTransaction && (Date.now() - lastSubmitTime >= 2500) && !$('#btn-proses-transaksi').prop('disabled')) {
                     $('#btn-proses-transaksi').trigger('click');
                 }
             }

@@ -237,6 +237,17 @@ try {
 
             // KASUS 3: Tabel Penjualan (Master Transaksi) -> Insert transaksi baru
             if ($tableName === 'penjualan') {
+                try {
+                    $chkCol = $pdo->query("SHOW COLUMNS FROM `penjualan` LIKE 'client_token'")->fetch();
+                    if (!$chkCol) {
+                        $pdo->exec("ALTER TABLE `penjualan` ADD COLUMN `client_token` VARCHAR(64) NULL AFTER `id_cabang`");
+                        $pdo->exec("ALTER TABLE `penjualan` ADD INDEX `idx_penjualan_client_token` (`client_token`)");
+                        echo "[MIGRATION] Added `client_token` column & index to MySQL `penjualan`.\n";
+                    }
+                } catch (Exception $e) {
+                    echo "[MIGRATION NOTICE] client_token check: " . $e->getMessage() . "\n";
+                }
+
                 echo "[MIGRATION] Checking `penjualan` transactions ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
                 $existingFaktur = [];
                 $stF = $pdo->query("SELECT no_faktur FROM `penjualan`");

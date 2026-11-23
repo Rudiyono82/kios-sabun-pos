@@ -230,321 +230,336 @@ class Pos extends BaseController
             ]);
         }
 
-        // 1.1 Named Lock: Serialisasi request bersamaan dari kasir/user yang sama (Cegah Race Condition Double-Click)
+        // 1.1 Named Lock & Read Committed: Serialisasi request bersamaan dari kasir/cabang yang sama
         $isMysql = (strpos(strtolower($db->DBDriver), 'mysql') !== false);
         $lockName = 'pos_tx_lock_' . md5($userCode . '_' . $idCabang);
         if ($isMysql) {
+            try {
+                $db->query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;");
+            } catch (\Throwable $e) {}
             $db->query("SELECT GET_LOCK(?, 10)", [$lockName]);
         }
 
-        // 1.2 Idempotency Check: Cek apakah token transaksi dari client sudah pernah diproses
-        $clientToken = !empty($json['client_token']) ? trim((string)$json['client_token']) : null;
-        if ($clientToken) {
-            $tokenMatch = $db->table('penjualan')
-                ->where('kode_user', $userCode)
-                ->where('id_cabang', $idCabang)
-                ->like('catatan', '[TOKEN:' . $clientToken . ']')
-                ->orderBy('id', 'DESC')
-                ->get()->getRowArray();
+        try {
+            // 1.2 Idempotency Check: Cek apakah token transaksi dari client sudah pernah diproses
+            $clientToken = !empty($json['client_token']) ? trim((string)$json['client_token']) : null;
+            if ($clientToken) {
+                $tokenMatch = $db->table('penjualan')
+                    ->groupStart()
+                        ->where('client_token', $clientToken)
+                        ->orLike('catatan', '[TOKEN:' . $clientToken . ']')
+                    ->groupEnd()
+                    ->orderBy('id', 'DESC')
+                    ->get()->getRowArray();
 
-            if ($tokenMatch) {
-                if ($isMysql) {
-                    $db->query("SELECT RELEASE_LOCK(?)", [$lockName]);
-                }
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => 'Transaksi berhasil diproses!',
-                    'no_faktur' => $tokenMatch['no_faktur'],
-                    'grand_total' => (float)$tokenMatch['grand_total'],
-                    'raw_total' => (float)$tokenMatch['grand_total'],
-                    'pembulatan' => 0,
-                    'bayar' => (float)$tokenMatch['bayar'],
-                    'kembalian' => (float)$tokenMatch['kembalian'],
-                    'is_member' => !empty($tokenMatch['kode_member'])
-                ]);
-            }
-        }
-
-        $db->transStart();
-
-        $penjualanModel = new PenjualanModel();
-        $noFaktur = $penjualanModel->generateNoFaktur();
-
-        $totalItem = count($json['items']);
-        $totalQty = 0;
-        $subtotal = 0;
-        $totalProfit = 0;
-
-        $detailRecords = [];
-        $kartuStokRecords = [];
-
-        $idCabang = (int)(session()->get('id_cabang') ?: 1);
-        $stokCabangModel = new \App\Models\StokCabangModel();
-
-        foreach ($json['items'] as $item) {
-            $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
-            if (!$barang) continue;
-
-            $qty = (float) $item['qty'];
-            $hargaJual = (float) $item['harga_jual'];
-            $hargaBeli = (float) $barang['harga_beli'];
-            $itemSubtotal = $qty * $hargaJual;
-            $itemProfit = ($hargaJual - $hargaBeli) * $qty;
-
-            $totalQty += $qty;
-            $subtotal += $itemSubtotal;
-            $totalProfit += $itemProfit;
-
-            $detailRecords[] = [
-                'no_faktur' => $noFaktur,
-                'id_barang' => $item['id_barang'],
-                'nama_barang' => $barang['nama_barang'],
-                'harga_beli' => $hargaBeli,
-                'harga_jual' => $hargaJual,
-                'qty' => $qty,
-                'subtotal' => $itemSubtotal,
-                'profit' => $itemProfit,
-            ];
-
-            // Potong stok barang di cabang aktif
-            $sisaStok = $stokCabangModel->updateStok($item['id_barang'], $idCabang, -$qty);
-
-            // Update akumulasi stok di tabel master barang (untuk konsolidasi total)
-            $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$item['id_barang'], $item['id_barang']]);
-
-            // Catat ke kartu stok
-            $kartuStokRecords[] = [
-                'tanggal' => date('Y-m-d H:i:s'),
-                'id_barang' => $item['id_barang'],
-                'tipe' => 'KELUAR',
-                'no_referensi' => $noFaktur,
-                'masuk' => 0,
-                'keluar' => $qty,
-                'sisa' => $sisaStok,
-                'keterangan' => 'Penjualan Kasir ' . $noFaktur . ' (Cabang #' . $idCabang . ')'
-            ];
-        }
-
-        $diskon = (float) str_replace(['.', ',', ' '], '', (string)($json['diskon'] ?? 0));
-        $potonganJerigen = (float) ($json['potongan_tukar_jerigen'] ?? 0);
-        $kodeVoucher = !empty($json['kode_voucher']) ? trim((string)$json['kode_voucher']) : null;
-        $potonganVoucher = 0;
-
-        // Validasi Voucher Point Member
-        if (!empty($kodeVoucher)) {
-            $vch = $db->table('voucher')
-                ->where('kode_voucher', $kodeVoucher)
-                ->where('is_aktif', 1)
-                ->get()->getRowArray();
-
-            if ($vch) {
-                if (!empty($json['kode_member']) && !empty($vch['kode_member']) && $vch['kode_member'] !== $json['kode_member']) {
-                    return $this->response->setStatusCode(400)->setJSON([
-                        'status' => 'error',
-                        'message' => 'Voucher ' . $kodeVoucher . ' bukan milik member yang dipilih!'
+                if ($tokenMatch) {
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'message' => 'Transaksi berhasil diproses!',
+                        'no_faktur' => $tokenMatch['no_faktur'],
+                        'grand_total' => (float)$tokenMatch['grand_total'],
+                        'raw_total' => (float)$tokenMatch['grand_total'],
+                        'pembulatan' => 0,
+                        'bayar' => (float)$tokenMatch['bayar'],
+                        'kembalian' => (float)$tokenMatch['kembalian'],
+                        'is_member' => !empty($tokenMatch['kode_member'])
                     ]);
                 }
-                $maxPotongan = max(0, $subtotal - $diskon - $potonganJerigen);
-                $potonganVoucher = min((float)$vch['nilai_voucher'], $maxPotongan);
-            } else {
-                return $this->response->setStatusCode(400)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Voucher ' . $kodeVoucher . ' tidak aktif atau sudah pernah digunakan!'
+            }
+
+            // Hitung kalkulasi item terlebih dahulu sebelum transaksi & pemotongan stok
+            $totalItem = count($json['items']);
+            $totalQty = 0;
+            $subtotal = 0;
+            $totalProfit = 0;
+            $itemHolders = [];
+
+            foreach ($json['items'] as $item) {
+                $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
+                if (!$barang) continue;
+
+                $qty = (float) $item['qty'];
+                $hargaJual = (float) $item['harga_jual'];
+                $hargaBeli = (float) $barang['harga_beli'];
+                $itemSubtotal = $qty * $hargaJual;
+                $itemProfit = ($hargaJual - $hargaBeli) * $qty;
+
+                $totalQty += $qty;
+                $subtotal += $itemSubtotal;
+                $totalProfit += $itemProfit;
+
+                $itemHolders[] = [
+                    'id_barang' => $item['id_barang'],
+                    'nama_barang' => $barang['nama_barang'],
+                    'harga_beli' => $hargaBeli,
+                    'harga_jual' => $hargaJual,
+                    'qty' => $qty,
+                    'subtotal' => $itemSubtotal,
+                    'profit' => $itemProfit,
+                ];
+            }
+
+            $diskon = (float) str_replace(['.', ',', ' '], '', (string)($json['diskon'] ?? 0));
+            $potonganJerigen = (float) ($json['potongan_tukar_jerigen'] ?? 0);
+            $kodeVoucher = !empty($json['kode_voucher']) ? trim((string)$json['kode_voucher']) : null;
+            $potonganVoucher = 0;
+
+            // Validasi Voucher Point Member
+            if (!empty($kodeVoucher)) {
+                $vch = $db->table('voucher')
+                    ->where('kode_voucher', $kodeVoucher)
+                    ->where('is_aktif', 1)
+                    ->get()->getRowArray();
+
+                if ($vch) {
+                    if (!empty($json['kode_member']) && !empty($vch['kode_member']) && $vch['kode_member'] !== $json['kode_member']) {
+                        return $this->response->setStatusCode(400)->setJSON([
+                            'status' => 'error',
+                            'message' => 'Voucher ' . $kodeVoucher . ' bukan milik member yang dipilih!'
+                        ]);
+                    }
+                    $maxPotongan = max(0, $subtotal - $diskon - $potonganJerigen);
+                    $potonganVoucher = min((float)$vch['nilai_voucher'], $maxPotongan);
+                } else {
+                    return $this->response->setStatusCode(400)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Voucher ' . $kodeVoucher . ' tidak aktif atau sudah pernah digunakan!'
+                    ]);
+                }
+            }
+
+            $rawGrandTotal = max(0, $subtotal - $diskon - $potonganJerigen - $potonganVoucher);
+            $grandTotal = roundPosTotal($rawGrandTotal);
+            $pembulatan = $grandTotal - $rawGrandTotal;
+
+            $bayar = (float) str_replace(['.', ',', ' '], '', (string)($json['bayar'] ?? 0));
+            $kembalian = $bayar - $grandTotal;
+
+            // 1.3 Debounce Check: Cek transaksi terakhir kasir ini dalam window 30 detik (sebelum potong stok & buat faktur baru)
+            $lastTx = $db->table('penjualan')
+                ->where('kode_user', $userCode)
+                ->where('id_cabang', $idCabang)
+                ->orderBy('id', 'DESC')
+                ->limit(1)
+                ->get()->getRowArray();
+
+            if ($lastTx) {
+                $txTime = strtotime($lastTx['created_at'] ?? $lastTx['tanggal'] ?? '');
+                $timeDiff = abs(time() - $txTime);
+                if ($timeDiff <= 30 && (float)$lastTx['grand_total'] == $grandTotal && (int)$lastTx['total_item'] == $totalItem && (float)$lastTx['total_qty'] == $totalQty) {
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'message' => 'Transaksi berhasil diproses!',
+                        'no_faktur' => $lastTx['no_faktur'],
+                        'grand_total' => (float)$lastTx['grand_total'],
+                        'raw_total' => (float)$lastTx['grand_total'],
+                        'pembulatan' => 0,
+                        'bayar' => (float)$lastTx['bayar'],
+                        'kembalian' => (float)$lastTx['kembalian'],
+                        'is_member' => !empty($lastTx['kode_member'])
+                    ]);
+                }
+            }
+
+            $db->transStart();
+
+            $penjualanModel = new PenjualanModel();
+            $noFaktur = $penjualanModel->generateNoFaktur();
+
+            $detailRecords = [];
+            $kartuStokRecords = [];
+            $stokCabangModel = new \App\Models\StokCabangModel();
+
+            foreach ($itemHolders as $item) {
+                $detailRecords[] = [
+                    'no_faktur' => $noFaktur,
+                    'id_barang' => $item['id_barang'],
+                    'nama_barang' => $item['nama_barang'],
+                    'harga_beli' => $item['harga_beli'],
+                    'harga_jual' => $item['harga_jual'],
+                    'qty' => $item['qty'],
+                    'subtotal' => $item['subtotal'],
+                    'profit' => $item['profit'],
+                ];
+
+                // Potong stok barang di cabang aktif
+                $sisaStok = $stokCabangModel->updateStok($item['id_barang'], $idCabang, -$item['qty']);
+
+                // Update akumulasi stok di tabel master barang (untuk konsolidasi total)
+                $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$item['id_barang'], $item['id_barang']]);
+
+                // Catat ke kartu stok
+                $kartuStokRecords[] = [
+                    'tanggal' => date('Y-m-d H:i:s'),
+                    'id_barang' => $item['id_barang'],
+                    'tipe' => 'KELUAR',
+                    'no_referensi' => $noFaktur,
+                    'masuk' => 0,
+                    'keluar' => $item['qty'],
+                    'sisa' => $sisaStok,
+                    'keterangan' => 'Penjualan Kasir ' . $noFaktur . ' (Cabang #' . $idCabang . ')'
+                ];
+            }
+
+            // Insert Master Penjualan
+            $db->table('penjualan')->insert([
+                'id_cabang' => $idCabang,
+                'no_faktur' => $noFaktur,
+                'tanggal' => date('Y-m-d H:i:s'),
+                'kode_user' => $userCode,
+                'nama_kasir' => session()->get('nama_user') ?? 'Kasir Utama',
+                'kode_member' => $json['kode_member'] ?: null,
+                'total_item' => $totalItem,
+                'total_qty' => $totalQty,
+                'subtotal' => $subtotal,
+                'diskon' => $diskon,
+                'potongan_tukar_jerigen' => $potonganJerigen,
+                'kode_voucher' => $kodeVoucher,
+                'potongan_voucher' => $potonganVoucher,
+                'grand_total' => $grandTotal,
+                'bayar' => $bayar,
+                'kembalian' => $kembalian >= 0 ? $kembalian : 0,
+                'metode_bayar' => $json['metode_bayar'] ?? 'Cash',
+                'no_kartu' => $json['no_kartu'] ?? null,
+                'total_profit' => $totalProfit,
+                'client_token' => $clientToken,
+                'catatan' => trim(($json['catatan'] ?? '') . ($clientToken ? ' [TOKEN:' . $clientToken . ']' : '')),
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            // Jika ada voucher yang digunakan, tandai terpakai
+            if (!empty($kodeVoucher)) {
+                $db->table('voucher')->where('kode_voucher', $kodeVoucher)->update([
+                    'is_aktif' => 0,
+                    'no_faktur_terpakai' => $noFaktur,
+                    'tgl_terpakai' => date('Y-m-d H:i:s')
                 ]);
             }
-        }
 
-        $rawGrandTotal = max(0, $subtotal - $diskon - $potonganJerigen - $potonganVoucher);
-        $grandTotal = roundPosTotal($rawGrandTotal);
-        $pembulatan = $grandTotal - $rawGrandTotal;
-
-        $bayar = (float) str_replace(['.', ',', ' '], '', (string)($json['bayar'] ?? 0));
-        $kembalian = $bayar - $grandTotal;
-
-        // Cegah Transaksi Duplikat (Double Click / Debounce 30 Detik)
-        $thirtySecAgo = date('Y-m-d H:i:s', time() - 30);
-        $recentDuplicate = $db->table('penjualan')
-            ->where('kode_user', $userCode)
-            ->where('id_cabang', $idCabang)
-            ->where('grand_total', $grandTotal)
-            ->where('total_item', $totalItem)
-            ->where('total_qty', $totalQty)
-            ->where('created_at >=', $thirtySecAgo)
-            ->orderBy('id', 'DESC')
-            ->get()->getRowArray();
-
-        if ($recentDuplicate) {
-            $db->transRollback();
-            if ($isMysql) {
-                $db->query("SELECT RELEASE_LOCK(?)", [$lockName]);
+            // Insert Details
+            if (!empty($detailRecords)) {
+                $db->table('penjualan_detail')->insertBatch($detailRecords);
             }
+
+            // Insert Kartu Stok
+            if (!empty($kartuStokRecords)) {
+                $db->table('kartu_stok')->insertBatch($kartuStokRecords);
+            }
+
+            // Catat ke Arus Kas
+            $db->table('data_keuangan')->insert([
+                'id_cabang' => $idCabang,
+                'tanggal' => date('Y-m-d H:i:s'),
+                'jenis_keuangan' => 'Pemasukan',
+                'nama_keuangan' => 'Penjualan ' . $noFaktur . ' (' . ($json['metode_bayar'] ?? 'Cash') . ')',
+                'total' => $grandTotal,
+                'keterangan' => 'Kasir POS (' . (session()->get('nama_cabang') ?? 'Cabang') . ')',
+                'kode_user' => session()->get('kode_user') ?? 'KASIR1'
+            ]);
+
+            // Catat ke Audit Trail
+            \App\Models\AuditLogModel::log('TRANSAKSI_POS', 'POS', "Penjualan Faktur {$noFaktur} senilai Rp " . number_format($grandTotal, 0, ',', '.') . " (" . ($json['metode_bayar'] ?? 'Cash') . ") oleh " . (session()->get('nama_user') ?? 'Kasir'), null, ['no_faktur' => $noFaktur, 'grand_total' => $grandTotal, 'total_item' => $totalItem], $idCabang);
+
+            // Jika ada member, tambah point & total belanja dan siapkan data WA
+            $memberData = null;
+            $totalPoin = 0;
+            $waUrl = null;
+            $waText = null;
+            $profil = $db->table('profil_toko')->get()->getRowArray() ?? ['nama_toko' => 'KIOS SABUN & PARFUM'];
+
+            if (!empty($json['kode_member'])) {
+                $memberData = $db->table('member')->where('kode_member', $json['kode_member'])->get()->getRowArray();
+                $pointTambah = floor($grandTotal / 10000); // 1 point per 10rb
+                $totalPoin = ($memberData['point'] ?? 0) + $pointTambah;
+
+                $db->query("UPDATE member SET point = point + ?, total_belanja = total_belanja + ? WHERE kode_member = ?", [
+                    $pointTambah, $grandTotal, $json['kode_member']
+                ]);
+
+                // Susun pesan WhatsApp yang rapi
+                $phoneRaw = $memberData['telepon'] ?? '';
+                $phoneClean = preg_replace('/[^0-9]/', '', $phoneRaw);
+                if (str_starts_with($phoneClean, '0')) {
+                    $phoneClean = '62' . substr($phoneClean, 1);
+                }
+
+                $tokoNama = $profil['nama_toko'] ?? 'KIOS SABUN & PARFUM LAUNDRY';
+                $tokoAlamat = $profil['alamat'] ?? 'Metland Cileungsi';
+                $tokoTelp = $profil['telepon'] ?? '';
+
+                $msg = "*STRUK ELEKTRONIK RESMI*\n";
+                $msg .= "*" . strtoupper($tokoNama) . "*\n";
+                $msg .= $tokoAlamat . ($tokoTelp ? " | Telp/WA: " . $tokoTelp : "") . "\n";
+                $msg .= "----------------------------------------\n";
+                $msg .= "No. Nota   : *" . $noFaktur . "*\n";
+                $msg .= "Waktu      : " . date('d/m/Y H:i') . " WIB\n";
+                $msg .= "Kasir      : " . (session()->get('nama_user') ?? 'Kasir') . "\n";
+                $msg .= "Pelanggan  : *" . ($memberData['nama'] ?? 'Member') . "* (" . $json['kode_member'] . ")\n";
+                $msg .= "----------------------------------------\n";
+                $msg .= "*RINCIAN PEMBELIAN:*\n";
+                foreach ($detailRecords as $item) {
+                    $msg .= "• " . $item['nama_barang'] . "\n";
+                    $msg .= "   " . $item['qty'] . " x Rp " . number_format($item['harga_jual'], 0, ',', '.') . " = Rp " . number_format($item['subtotal'], 0, ',', '.') . "\n";
+                }
+                $msg .= "----------------------------------------\n";
+                $msg .= "Subtotal   : Rp " . number_format($subtotal, 0, ',', '.') . "\n";
+                if ($diskon > 0) {
+                    $msg .= "Diskon     : -Rp " . number_format($diskon, 0, ',', '.') . "\n";
+                }
+                if ($potonganJerigen > 0) {
+                    $msg .= "Tukar Jerigen 5L : -Rp " . number_format($potonganJerigen, 0, ',', '.') . "\n";
+                }
+                if ($potonganVoucher > 0) {
+                    $msg .= "Potongan Voucher (" . $kodeVoucher . ") : -Rp " . number_format($potonganVoucher, 0, ',', '.') . "\n";
+                }
+                if ($pembulatan != 0) {
+                    $msg .= "Pembulatan : " . ($pembulatan > 0 ? "+" : "") . "Rp " . number_format($pembulatan, 0, ',', '.') . "\n";
+                }
+                $msg .= "*TOTAL BAYAR : Rp " . number_format($grandTotal, 0, ',', '.') . "*\n";
+                $msg .= "Bayar (" . ($json['metode_bayar'] ?? 'Cash') . ") : Rp " . number_format($bayar, 0, ',', '.') . "\n";
+                $msg .= "Kembalian  : Rp " . number_format($kembalian > 0 ? $kembalian : 0, 0, ',', '.') . "\n";
+                $msg .= "----------------------------------------\n";
+                $msg .= "Total Poin Member: *" . number_format($totalPoin, 0, ',', '.') . " Poin* (+" . $pointTambah . ")\n";
+                $msg .= "\nTerima kasih telah berbelanja di toko kami! 🙏\n";
+                $msg .= "_Struk ini sah dan diterbitkan secara digital oleh Sistem POS Kios Sabun._";
+
+                $waText = $msg;
+                if (!empty($phoneClean) && strlen($phoneClean) >= 9) {
+                    $waUrl = 'https://api.whatsapp.com/send?phone=' . $phoneClean . '&text=' . rawurlencode($msg);
+                }
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal memproses transaksi penjualan!'
+                ]);
+            }
+
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Transaksi berhasil diproses!',
-                'no_faktur' => $recentDuplicate['no_faktur'],
-                'grand_total' => (float)$recentDuplicate['grand_total'],
+                'no_faktur' => $noFaktur,
+                'grand_total' => $grandTotal,
                 'raw_total' => $rawGrandTotal,
                 'pembulatan' => $pembulatan,
-                'bayar' => (float)$recentDuplicate['bayar'],
-                'kembalian' => (float)$recentDuplicate['kembalian'],
-                'is_member' => !empty($json['kode_member'])
+                'bayar' => $bayar,
+                'kembalian' => $kembalian,
+                'is_member' => !empty($json['kode_member']),
+                'member_nama' => $memberData['nama'] ?? null,
+                'member_phone' => $memberData['telepon'] ?? null,
+                'wa_url' => $waUrl,
+                'wa_text' => $waText
             ]);
-        }
-
-        // Insert Master Penjualan
-        $db->table('penjualan')->insert([
-            'id_cabang' => $idCabang,
-            'no_faktur' => $noFaktur,
-            'tanggal' => date('Y-m-d H:i:s'),
-            'kode_user' => $userCode,
-            'nama_kasir' => session()->get('nama_user') ?? 'Kasir Utama',
-            'kode_member' => $json['kode_member'] ?: null,
-            'total_item' => $totalItem,
-            'total_qty' => $totalQty,
-            'subtotal' => $subtotal,
-            'diskon' => $diskon,
-            'potongan_tukar_jerigen' => $potonganJerigen,
-            'kode_voucher' => $kodeVoucher,
-            'potongan_voucher' => $potonganVoucher,
-            'grand_total' => $grandTotal,
-            'bayar' => $bayar,
-            'kembalian' => $kembalian >= 0 ? $kembalian : 0,
-            'metode_bayar' => $json['metode_bayar'] ?? 'Cash',
-            'no_kartu' => $json['no_kartu'] ?? null,
-            'total_profit' => $totalProfit,
-            'catatan' => trim(($json['catatan'] ?? '') . ($clientToken ? ' [TOKEN:' . $clientToken . ']' : '')),
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        // Jika ada voucher yang digunakan, tandai terpakai
-        if (!empty($kodeVoucher)) {
-            $db->table('voucher')->where('kode_voucher', $kodeVoucher)->update([
-                'is_aktif' => 0,
-                'no_faktur_terpakai' => $noFaktur,
-                'tgl_terpakai' => date('Y-m-d H:i:s')
-            ]);
-        }
-
-        // Insert Details
-        if (!empty($detailRecords)) {
-            $db->table('penjualan_detail')->insertBatch($detailRecords);
-        }
-
-        // Insert Kartu Stok
-        if (!empty($kartuStokRecords)) {
-            $db->table('kartu_stok')->insertBatch($kartuStokRecords);
-        }
-
-        // Catat ke Arus Kas
-        $db->table('data_keuangan')->insert([
-            'id_cabang' => $idCabang,
-            'tanggal' => date('Y-m-d H:i:s'),
-            'jenis_keuangan' => 'Pemasukan',
-            'nama_keuangan' => 'Penjualan ' . $noFaktur . ' (' . ($json['metode_bayar'] ?? 'Cash') . ')',
-            'total' => $grandTotal,
-            'keterangan' => 'Kasir POS (' . (session()->get('nama_cabang') ?? 'Cabang') . ')',
-            'kode_user' => session()->get('kode_user') ?? 'KASIR1'
-        ]);
-
-        // Catat ke Audit Trail
-        \App\Models\AuditLogModel::log('TRANSAKSI_POS', 'POS', "Penjualan Faktur {$noFaktur} senilai Rp " . number_format($grandTotal, 0, ',', '.') . " (" . ($json['metode_bayar'] ?? 'Cash') . ") oleh " . (session()->get('nama_user') ?? 'Kasir'), null, ['no_faktur' => $noFaktur, 'grand_total' => $grandTotal, 'total_item' => $totalItem], $idCabang);
-
-        // Jika ada member, tambah point & total belanja dan siapkan data WA
-        $memberData = null;
-        $totalPoin = 0;
-        $waUrl = null;
-        $waText = null;
-        $profil = $db->table('profil_toko')->get()->getRowArray() ?? ['nama_toko' => 'KIOS SABUN & PARFUM'];
-
-        if (!empty($json['kode_member'])) {
-            $memberData = $db->table('member')->where('kode_member', $json['kode_member'])->get()->getRowArray();
-            $pointTambah = floor($grandTotal / 10000); // 1 point per 10rb
-            $totalPoin = ($memberData['point'] ?? 0) + $pointTambah;
-
-            $db->query("UPDATE member SET point = point + ?, total_belanja = total_belanja + ? WHERE kode_member = ?", [
-                $pointTambah, $grandTotal, $json['kode_member']
-            ]);
-
-            // Susun pesan WhatsApp yang rapi
-            $phoneRaw = $memberData['telepon'] ?? '';
-            $phoneClean = preg_replace('/[^0-9]/', '', $phoneRaw);
-            if (str_starts_with($phoneClean, '0')) {
-                $phoneClean = '62' . substr($phoneClean, 1);
-            }
-
-            $tokoNama = $profil['nama_toko'] ?? 'KIOS SABUN & PARFUM LAUNDRY';
-            $tokoAlamat = $profil['alamat'] ?? 'Metland Cileungsi';
-            $tokoTelp = $profil['telepon'] ?? '';
-
-            $msg = "*STRUK ELEKTRONIK RESMI*\n";
-            $msg .= "*" . strtoupper($tokoNama) . "*\n";
-            $msg .= $tokoAlamat . ($tokoTelp ? " | Telp/WA: " . $tokoTelp : "") . "\n";
-            $msg .= "----------------------------------------\n";
-            $msg .= "No. Nota   : *" . $noFaktur . "*\n";
-            $msg .= "Waktu      : " . date('d/m/Y H:i') . " WIB\n";
-            $msg .= "Kasir      : " . (session()->get('nama_user') ?? 'Kasir') . "\n";
-            $msg .= "Pelanggan  : *" . ($memberData['nama'] ?? 'Member') . "* (" . $json['kode_member'] . ")\n";
-            $msg .= "----------------------------------------\n";
-            $msg .= "*RINCIAN PEMBELIAN:*\n";
-            foreach ($detailRecords as $item) {
-                $msg .= "• " . $item['nama_barang'] . "\n";
-                $msg .= "   " . $item['qty'] . " x Rp " . number_format($item['harga_jual'], 0, ',', '.') . " = Rp " . number_format($item['subtotal'], 0, ',', '.') . "\n";
-            }
-            $msg .= "----------------------------------------\n";
-            $msg .= "Subtotal   : Rp " . number_format($subtotal, 0, ',', '.') . "\n";
-            if ($diskon > 0) {
-                $msg .= "Diskon     : -Rp " . number_format($diskon, 0, ',', '.') . "\n";
-            }
-            if ($potonganJerigen > 0) {
-                $msg .= "Tukar Jerigen 5L : -Rp " . number_format($potonganJerigen, 0, ',', '.') . "\n";
-            }
-            if ($potonganVoucher > 0) {
-                $msg .= "Potongan Voucher (" . $kodeVoucher . ") : -Rp " . number_format($potonganVoucher, 0, ',', '.') . "\n";
-            }
-            if ($pembulatan != 0) {
-                $msg .= "Pembulatan : " . ($pembulatan > 0 ? "+" : "") . "Rp " . number_format($pembulatan, 0, ',', '.') . "\n";
-            }
-            $msg .= "*TOTAL BAYAR : Rp " . number_format($grandTotal, 0, ',', '.') . "*\n";
-            $msg .= "Bayar (" . ($json['metode_bayar'] ?? 'Cash') . ") : Rp " . number_format($bayar, 0, ',', '.') . "\n";
-            $msg .= "Kembalian  : Rp " . number_format($kembalian > 0 ? $kembalian : 0, 0, ',', '.') . "\n";
-            $msg .= "----------------------------------------\n";
-            $msg .= "Total Poin Member: *" . number_format($totalPoin, 0, ',', '.') . " Poin* (+" . $pointTambah . ")\n";
-            $msg .= "\nTerima kasih telah berbelanja di toko kami! 🙏\n";
-            $msg .= "_Struk ini sah dan diterbitkan secara digital oleh Sistem POS Kios Sabun._";
-
-            $waText = $msg;
-            if (!empty($phoneClean) && strlen($phoneClean) >= 9) {
-                $waUrl = 'https://api.whatsapp.com/send?phone=' . $phoneClean . '&text=' . rawurlencode($msg);
+        } finally {
+            if ($isMysql) {
+                try {
+                    $db->query("SELECT RELEASE_LOCK(?)", [$lockName]);
+                } catch (\Throwable $e) {}
             }
         }
-
-        $db->transComplete();
-        if ($isMysql) {
-            $db->query("SELECT RELEASE_LOCK(?)", [$lockName]);
-        }
-
-        if ($db->transStatus() === false) {
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Gagal memproses transaksi penjualan!'
-            ]);
-        }
-
-        return $this->response->setJSON([
-            'status' => 'success',
-            'message' => 'Transaksi berhasil diproses!',
-            'no_faktur' => $noFaktur,
-            'grand_total' => $grandTotal,
-            'raw_total' => $rawGrandTotal,
-            'pembulatan' => $pembulatan,
-            'bayar' => $bayar,
-            'kembalian' => $kembalian,
-            'is_member' => !empty($json['kode_member']),
-            'member_nama' => $memberData['nama'] ?? null,
-            'member_phone' => $memberData['telepon'] ?? null,
-            'wa_url' => $waUrl,
-            'wa_text' => $waText
-        ]);
     }
 
     public function cetakStruk($noFaktur)
