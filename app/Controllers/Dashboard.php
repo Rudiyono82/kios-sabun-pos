@@ -55,6 +55,23 @@ class Dashboard extends BaseController
         return view('dashboard/index', $data);
     }
 
+    public function cekOmzet()
+    {
+        $db = \Config\Database::connect();
+        $today = date('Y-m-d');
+        $rows = $db->table('penjualan')
+            ->select('no_faktur, tanggal, grand_total, metode_bayar, id_cabang')
+            ->where("DATE(tanggal)", $today)
+            ->orderBy('no_faktur', 'ASC')
+            ->get()->getResultArray();
+        return $this->response->setJSON([
+            'today' => $today,
+            'count' => count($rows),
+            'total' => array_sum(array_column($rows, 'grand_total')),
+            'rows'  => $rows
+        ]);
+    }
+
     public function grafik()
     {
         $penjualanModel = new PenjualanModel();
