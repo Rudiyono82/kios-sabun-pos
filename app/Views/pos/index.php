@@ -1092,14 +1092,18 @@
 
                 if (data && data.length > 0) {
                     data.forEach((item, idx) => {
+                        const badgeCol = item.is_locked_unapproved 
+                            ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2" style="font-size: 0.72rem;"><i class="bi bi-lock-fill me-1"></i>Terkunci (Pending Approval)</span>`
+                            : `<span class="badge bg-primary fs-6">Rp ${new Intl.NumberFormat('id-ID').format(item.harga_jual)}</span>`;
+
                         const row = $(`
-                            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-2 barang-suggest-item" data-idx="${idx}">
+                            <a href="javascript:void(0)" class="list-group-item list-group-item-action py-2 barang-suggest-item ${item.is_locked_unapproved ? 'bg-danger-subtle bg-opacity-25' : ''}" data-idx="${idx}">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-semibold text-dark">${item.nama_barang}</div>
                                         <small class="text-muted">Kode: ${item.id_barang}</small>
                                     </div>
-                                    <span class="badge bg-primary fs-6">Rp ${new Intl.NumberFormat('id-ID').format(item.harga_jual)}</span>
+                                    ${badgeCol}
                                 </div>
                             </a>
                         `);
@@ -1187,6 +1191,22 @@
     function handleItemSelected(item) {
         if (!item) return;
 
+        // Cek jika item di-flag locked unapproved dari search
+        if (item.is_locked_unapproved) {
+            Swal.fire({
+                title: 'Barang Dikunci!',
+                html: `<div class="text-danger mb-2"><i class="bi bi-slash-circle-fill fs-1"></i></div>` +
+                      `Sisa stok lama barang <strong>${item.nama_barang}</strong> telah habis (0).<br><br>` +
+                      `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 mb-2">Status: Belum Disetujui Admin</span><br>` +
+                      `Perubahan harga restock belum disetujui Owner/Admin di menu <strong>Pending Update Stok</strong>.<br><br>` +
+                      `Sesuai SOP Toko, barang ini <strong>dikunci dan belum dapat dijual</strong> untuk transaksi berikutnya sampai disetujui Admin.`,
+                icon: 'error',
+                confirmButtonText: '<i class="bi bi-x-circle me-1"></i> Tutup',
+                confirmButtonColor: '#dc2626'
+            });
+            return;
+        }
+
         // Cek antrean pending update harga & stok barang
         $.ajax({
             url: '<?= base_url('pending-stok/check-status/') ?>' + encodeURIComponent(item.id_barang),
@@ -1227,15 +1247,17 @@
                             });
                             return;
                         } else {
-                            // Status masih "Belum Setuju" -> Muncul Warning Popup!
+                            // Status masih "Belum Setuju" dan stok lama habis -> KUNCI DARI PENJUALAN!
                             Swal.fire({
-                                title: 'Peringatan Harga Barang!',
-                                html: `Sisa stok lama barang <strong>${item.nama_barang}</strong> sudah habis.<br><br><span class="text-danger fw-bold fs-6">⚠️ Update harga baru belum disetujui oleh Admin (Status: Belum Setuju).</span><br><br>Transaksi saat ini <strong>masih menggunakan harga lama</strong> (Rp ${parseFloat(item.harga_jual).toLocaleString('id-ID')}).`,
-                                icon: 'warning',
-                                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Lanjutkan dengan Harga Lama',
-                                confirmButtonColor: '#f59e0b'
-                            }).then(() => {
-                                openModalInputQty(item);
+                                title: 'Barang Dikunci!',
+                                html: `<div class="text-danger mb-2"><i class="bi bi-slash-circle-fill fs-1"></i></div>` +
+                                      `Sisa stok lama barang <strong>${item.nama_barang}</strong> telah habis (0).<br><br>` +
+                                      `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 mb-2">Status: Belum Disetujui Admin</span><br>` +
+                                      `Perubahan harga restock belum disetujui Owner/Admin di menu <strong>Pending Update Stok</strong>.<br><br>` +
+                                      `Sesuai SOP Toko, barang ini <strong>dikunci dan belum dapat dijual</strong> untuk transaksi berikutnya sampai disetujui Admin.`,
+                                icon: 'error',
+                                confirmButtonText: '<i class="bi bi-x-circle me-1"></i> Tutup',
+                                confirmButtonColor: '#dc2626'
                             });
                             return;
                         }
@@ -1752,6 +1774,41 @@
                 }
 
                 $('#modalStruk').modal('show');
+
+                // SOP OPSI 3: Pemberitahuan alert jika ada stok lama yang habis
+                if (res.unapproved_zero_stock_alerts && res.unapproved_zero_stock_alerts.length > 0) {
+                    setTimeout(function() {
+                        let alertHtml = '<div class="text-start mt-2"><p class="text-danger fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Stok lama untuk barang berikut telah habis, dan perubahan harga restock belum disetujui Admin:</p><ul class="small mb-2">';
+                        res.unapproved_zero_stock_alerts.forEach(function(al) {
+                            alertHtml += `<li><strong>[${al.id_barang}] ${al.nama_barang}</strong></li>`;
+                        });
+                        alertHtml += '</ul><div class="alert alert-warning p-2 small mb-0"><i class="bi bi-lock-fill me-1"></i>Barang tersebut <strong>dikunci dan tidak dapat dijual</strong> untuk transaksi selanjutnya sampai Admin/Owner menyetujui di menu <strong>Pending Update Stok</strong>.</div></div>';
+
+                        Swal.fire({
+                            title: 'Pemberitahuan Kasir & Owner!',
+                            html: alertHtml,
+                            icon: 'warning',
+                            confirmButtonText: 'Saya Mengerti',
+                            confirmButtonColor: '#f59e0b'
+                        });
+                    }, 500);
+                } else if (res.promoted_items && res.promoted_items.length > 0) {
+                    setTimeout(function() {
+                        let promoHtml = '<div class="text-start mt-2"><p class="text-success fw-bold mb-1"><i class="bi bi-check-circle-fill me-1"></i>Stok lama telah habis, harga baru aktif otomatis di Master Barang:</p><ul class="small mb-0">';
+                        res.promoted_items.forEach(function(pi) {
+                            promoHtml += `<li><strong>${pi.nama_barang}</strong> &rarr; Rp ${new Intl.NumberFormat('id-ID').format(pi.harga_jual_baru)}</li>`;
+                        });
+                        promoHtml += '</ul></div>';
+
+                        Swal.fire({
+                            title: 'Harga Baru Otomatis Aktif!',
+                            html: promoHtml,
+                            icon: 'info',
+                            timer: 4000,
+                            showConfirmButton: true
+                        });
+                    }, 500);
+                }
 
                 // Reset Keranjang & Buat Token Baru untuk Transaksi Berikutnya
                 cart = [];

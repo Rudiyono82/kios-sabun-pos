@@ -117,9 +117,28 @@ class PendingStok extends BaseController
             ['status_baru' => 'Setuju', 'user_approved' => $adminUser]
         );
 
+        // SOP OPSI 3: Cek apakah stok lama sudah kosong (0)
+        $db = \Config\Database::connect();
+        $barang = $db->table('barang')->where('id_barang', $pending['id_barang'])->get()->getRowArray();
+        $stokSaatIni = (float)($barang['stok'] ?? 0);
+        $stokLama = $stokSaatIni - (float)$pending['stok_pending'];
+
+        if ($stokLama <= 0 || $stokSaatIni <= 0) {
+            // Stok lama kosong/0: Langsung update harga Master Barang sekarang juga!
+            $promoteRes = $this->pendingModel->executePromoteToMaster($pending['id_barang'], $adminUser);
+            return $this->response->setJSON([
+                'status'           => 'success',
+                'promoted'         => true,
+                'stok_lama'        => max(0, $stokLama),
+                'message'          => "Perubahan harga barang [{$pending['nama_barang']}] berhasil disetujui. Karena stok lama kosong (0), harga Master Barang langsung aktif dan diperbarui otomatis."
+            ]);
+        }
+
         return $this->response->setJSON([
-            'status'  => 'success',
-            'message' => "Perubahan harga barang [{$pending['nama_barang']}] berhasil disetujui (Status: Setuju)."
+            'status'           => 'success',
+            'promoted'         => false,
+            'stok_lama'        => $stokLama,
+            'message'          => "Perubahan harga barang [{$pending['nama_barang']}] berhasil disetujui. Sisa stok lama ({$stokLama}) masih ada, harga baru akan aktif otomatis di kasir saat stok lama habis terjual."
         ]);
     }
 
@@ -209,9 +228,28 @@ class PendingStok extends BaseController
             $updateData
         );
 
+        // SOP OPSI 3: Cek apakah stok lama sudah kosong (0)
+        $db = \Config\Database::connect();
+        $barang = $db->table('barang')->where('id_barang', $pending['id_barang'])->get()->getRowArray();
+        $stokSaatIni = (float)($barang['stok'] ?? 0);
+        $stokLama = $stokSaatIni - (float)$pending['stok_pending'];
+
+        if ($stokLama <= 0 || $stokSaatIni <= 0) {
+            // Stok lama kosong/0: Langsung update harga Master Barang sekarang juga!
+            $promoteRes = $this->pendingModel->executePromoteToMaster($pending['id_barang'], $adminUser);
+            return $this->response->setJSON([
+                'status'           => 'success',
+                'promoted'         => true,
+                'stok_lama'        => max(0, $stokLama),
+                'message'          => "Harga barang [{$pending['nama_barang']}] berhasil direvisi & disetujui. Karena stok lama kosong (0), harga Master Barang langsung aktif dan diperbarui otomatis."
+            ]);
+        }
+
         return $this->response->setJSON([
-            'status'  => 'success',
-            'message' => "Harga barang [{$pending['nama_barang']}] berhasil direvisi dan disetujui (Status: Setuju dengan Perubahan)."
+            'status'           => 'success',
+            'promoted'         => false,
+            'stok_lama'        => $stokLama,
+            'message'          => "Harga barang [{$pending['nama_barang']}] berhasil direvisi & disetujui. Sisa stok lama ({$stokLama}) masih ada, harga baru akan aktif otomatis di kasir saat stok lama habis terjual."
         ]);
     }
 
@@ -271,8 +309,13 @@ class PendingStok extends BaseController
         $isApproved = str_contains($statusPersetujuan, 'Setuju') && ($statusPersetujuan !== 'Belum Setuju');
 
         $stokToko = (float) $barang['stok'];
-        // Jika stok lama toko sudah habis (<= 0), atau pembelian pending sudah siap masuk
-        $isOldStockDepleted = ($stokToko <= 0);
+        $stokPending = (float) $activePending['stok_pending'];
+        $stokLama = $stokToko - $stokPending;
+        // Jika sisa stok lama toko sudah habis (<= 0)
+        $isOldStockDepleted = ($stokLama <= 0 || $stokToko <= 0);
+
+        // SOP OPSI 3: Jika stok lama habis tapi status belum disetujui Admin, barang DIKUNCI dari penjualan
+        $isLocked = ($isOldStockDepleted && !$isApproved);
 
         return $this->response->setJSON([
             'has_pending'           => true,
@@ -281,7 +324,8 @@ class PendingStok extends BaseController
             'id_barang'             => $idBarang,
             'nama_barang'           => $barang['nama_barang'],
             'stok_master'           => $stokToko,
-            'stok_pending'          => (float) $activePending['stok_pending'],
+            'stok_lama'             => max(0, $stokLama),
+            'stok_pending'          => $stokPending,
             'harga_beli_lama'       => (float) $activePending['harga_beli_lama'],
             'harga_beli_baru'       => (float) $activePending['harga_beli'],
             'harga_jual_lama'       => (float) $activePending['harga_jual_lama'],
@@ -289,9 +333,11 @@ class PendingStok extends BaseController
             'status_persetujuan'    => $statusPersetujuan,
             'is_approved'           => $isApproved,
             'is_old_stock_depleted' => $isOldStockDepleted,
+            'is_locked'             => $isLocked,
+            'lock_message'          => "Sisa stok lama barang {$barang['nama_barang']} telah habis (0). Perubahan harga baru belum disetujui Admin di menu Pending Update Stok. Barang ini sementara DIKUNCI dan belum dapat dijual sampai disetujui Admin.",
             // Flag peringatan jika stok lama habis tapi status masih 'Belum Setuju'
-            'show_warning'          => ($isOldStockDepleted && !$isApproved),
-            'warning_message'       => "⚠️ PERHATIAN: Sisa stok lama barang {$barang['nama_barang']} sudah habis, namun perubahan harga baru masih berstatus 'Belum Setuju' (belum disetujui Admin). Transaksi saat ini masih menggunakan harga lama."
+            'show_warning'          => $isLocked,
+            'warning_message'       => "⚠️ PERHATIAN: Sisa stok lama barang {$barang['nama_barang']} sudah habis, dan perubahan harga baru masih berstatus 'Belum Setuju'. Barang dikunci dari penjualan."
         ]);
     }
 

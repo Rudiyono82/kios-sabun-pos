@@ -134,14 +134,14 @@
                     <input type="number" id="input-qty-beli" class="form-control text-center fw-bold restock-ctrl" value="1" min="0.1" step="any" title="Tekan Enter untuk langsung menambahkan ke keranjang">
                 </div>
 
-                <!-- 3. Harga Beli Modal (Lookup Master) -->
+                <!-- 3. Harga Beli Modal -->
                 <div class="col-6 col-md-3">
                     <label class="form-label small fw-bold mb-1 text-truncate" style="height: 22px; line-height: 22px;">
-                        Harga Modal (Lookup)
+                        Harga Modal / Beli
                     </label>
                     <div class="input-group restock-ctrl">
                         <span class="input-group-text bg-light text-muted fw-bold py-0 px-2 restock-ctrl" style="font-size: 0.75rem;">Rp</span>
-                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control text-end fw-bold bg-light input-currency restock-ctrl" placeholder="0" readonly title="Harga modal terisi otomatis dari Master Data Barang (Lookup)">
+                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control text-end fw-bold input-currency restock-ctrl" placeholder="0" title="Kasir dapat mengisi/mengubah harga modal baru jika ada perubahan harga dari supplier">
                     </div>
                 </div>
 
@@ -151,6 +151,63 @@
                     <button type="button" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-sm restock-ctrl" id="btn-tambah-item" style="font-size: 0.78rem;" title="Tambah item ini ke keranjang belanja (Shortcut: Enter)">
                         <i class="bi bi-plus-lg fs-6"></i> Tambah <span class="badge bg-white bg-opacity-25 py-0 px-1" style="font-size: 0.65rem;">[Enter]</span>
                     </button>
+                </div>
+            </div>
+
+            <!-- Panel Opsi 3: Penyesuaian Harga Jual & Paket Grosir Baru (Jika Ada Perubahan) -->
+            <div class="mt-2 border rounded-3 p-2 bg-light-subtle" id="panel-penyesuaian-harga" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-bold text-primary" style="font-size: 0.75rem;">
+                        <i class="bi bi-tags-fill me-1"></i>Penyesuaian Harga Jual & Paket Grosir Baru (Jika Ada Perubahan)
+                    </span>
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle py-0 px-1" style="font-size: 0.65rem;">
+                        <i class="bi bi-shield-check me-1"></i>Opsi 3: Pending Approval Owner
+                    </span>
+                </div>
+                <div class="row g-1">
+                    <!-- Harga Jual Eceran Baru -->
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small fw-semibold mb-0" style="font-size: 0.72rem;">Harga Jual Eceran Baru</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text py-0 px-1 text-muted" style="font-size: 0.7rem;">Rp</span>
+                            <input type="text" inputmode="numeric" id="input-harga-jual" class="form-control text-end fw-bold input-currency py-0" placeholder="0">
+                        </div>
+                    </div>
+                    <!-- Paket Grosir A -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label small fw-semibold mb-0" style="font-size: 0.72rem;">Paket A (Min Qty & Hrg/Item)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="input-qty-a" class="form-control text-center py-0" placeholder="Min" min="0" style="max-width: 48px;">
+                            <span class="input-group-text py-0 px-1 text-muted" style="font-size: 0.65rem;">Rp</span>
+                            <input type="text" inputmode="numeric" id="input-hrg-a" class="form-control text-end input-currency py-0" placeholder="0">
+                        </div>
+                    </div>
+                    <!-- Paket Grosir B -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label small fw-semibold mb-0" style="font-size: 0.72rem;">Paket B (Min Qty & Hrg/Item)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="input-qty-b" class="form-control text-center py-0" placeholder="Min" min="0" style="max-width: 48px;">
+                            <span class="input-group-text py-0 px-1 text-muted" style="font-size: 0.65rem;">Rp</span>
+                            <input type="text" inputmode="numeric" id="input-hrg-b" class="form-control text-end input-currency py-0" placeholder="0">
+                        </div>
+                    </div>
+                    <!-- Paket Grosir C -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label small fw-semibold mb-0" style="font-size: 0.72rem;">Paket C (Min Qty & Hrg/Item)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="input-qty-c" class="form-control text-center py-0" placeholder="Min" min="0" style="max-width: 48px;">
+                            <span class="input-group-text py-0 px-1 text-muted" style="font-size: 0.65rem;">Rp</span>
+                            <input type="text" inputmode="numeric" id="input-hrg-c" class="form-control text-end input-currency py-0" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-muted" style="font-size: 0.68rem;">
+                        <i class="bi bi-info-circle me-1"></i>Kasir menginput harga baru dari nota/supplier. Owner akan memeriksa & menyetujui di menu Pending Stok.
+                    </small>
+                    <div id="badge-harga-berubah-status" class="small fw-semibold text-secondary" style="font-size: 0.68rem;">
+                        (Harga Sesuai Master)
+                    </div>
                 </div>
             </div>
 
@@ -328,15 +385,87 @@
         });
 
         // Saat barang dipilih dari dropdown, isi harga beli default (terkunci dari master)
-        $('#pilih-barang').on('change', function() {
-            const $opt = $(this).find(':selected');
+        function populatePriceFieldsFromSelected() {
+            const $opt = $('#pilih-barang').find(':selected');
             if ($opt.val()) {
-                const harga = parseFloat($opt.data('hargabeli')) || 0;
-                $('#input-harga-beli').val(formatRupiah(harga));
+                const hargaBeli = parseFloat($opt.data('hargabeli')) || 0;
+                const hargaJual = parseFloat($opt.data('hargajual')) || 0;
+                const qtyA = parseInt($opt.data('qtypaketa'), 10) || 0;
+                const hrgA = parseFloat($opt.data('hrgpaketa')) || 0;
+                const qtyB = parseInt($opt.data('qtypaketb'), 10) || 0;
+                const hrgB = parseFloat($opt.data('hrgpaketb')) || 0;
+                const qtyC = parseInt($opt.data('qtypaketc'), 10) || 0;
+                const hrgC = parseFloat($opt.data('hrgpaketc')) || 0;
+
+                $('#input-harga-beli').val(formatRupiah(hargaBeli));
+                $('#input-harga-jual').val(formatRupiah(hargaJual));
+                $('#input-qty-a').val(qtyA > 0 ? qtyA : '');
+                $('#input-hrg-a').val(hrgA > 0 ? formatRupiah(hrgA) : '');
+                $('#input-qty-b').val(qtyB > 0 ? qtyB : '');
+                $('#input-hrg-b').val(hrgB > 0 ? formatRupiah(hrgB) : '');
+                $('#input-qty-c').val(qtyC > 0 ? qtyC : '');
+                $('#input-hrg-c').val(hrgC > 0 ? formatRupiah(hrgC) : '');
+
+                $('#panel-penyesuaian-harga').slideDown(150);
+                checkPriceDifferenceBadge();
                 $('#input-qty-beli').focus().select();
             } else {
                 $('#input-harga-beli').val('');
+                $('#input-harga-jual').val('');
+                $('#input-qty-a').val('');
+                $('#input-hrg-a').val('');
+                $('#input-qty-b').val('');
+                $('#input-hrg-b').val('');
+                $('#input-qty-c').val('');
+                $('#input-hrg-c').val('');
+                $('#panel-penyesuaian-harga').slideUp(150);
             }
+        }
+
+        function checkPriceDifferenceBadge() {
+            const $opt = $('#pilih-barang').find(':selected');
+            if (!$opt.val()) return;
+
+            const masterBeli = parseFloat($opt.data('hargabeli')) || 0;
+            const masterJual = parseFloat($opt.data('hargajual')) || 0;
+            const masterQtyA = parseInt($opt.data('qtypaketa'), 10) || 0;
+            const masterHrgA = parseFloat($opt.data('hrgpaketa')) || 0;
+            const masterQtyB = parseInt($opt.data('qtypaketb'), 10) || 0;
+            const masterHrgB = parseFloat($opt.data('hrgpaketb')) || 0;
+            const masterQtyC = parseInt($opt.data('qtypaketc'), 10) || 0;
+            const masterHrgC = parseFloat($opt.data('hrgpaketc')) || 0;
+
+            const inputBeli = unformatRupiah($('#input-harga-beli').val()) || 0;
+            const inputJual = unformatRupiah($('#input-harga-jual').val()) || 0;
+            const inputQtyA = parseInt($('#input-qty-a').val(), 10) || 0;
+            const inputHrgA = unformatRupiah($('#input-hrg-a').val()) || 0;
+            const inputQtyB = parseInt($('#input-qty-b').val(), 10) || 0;
+            const inputHrgB = unformatRupiah($('#input-hrg-b').val()) || 0;
+            const inputQtyC = parseInt($('#input-qty-c').val(), 10) || 0;
+            const inputHrgC = unformatRupiah($('#input-hrg-c').val()) || 0;
+
+            const isDiff = (
+                Math.abs(inputBeli - masterBeli) > 0.01 ||
+                Math.abs(inputJual - masterJual) > 0.01 ||
+                Math.abs(inputHrgA - masterHrgA) > 0.01 ||
+                Math.abs(inputHrgB - masterHrgB) > 0.01 ||
+                Math.abs(inputHrgC - masterHrgC) > 0.01 ||
+                inputQtyA !== masterQtyA ||
+                inputQtyB !== masterQtyB ||
+                inputQtyC !== masterQtyC
+            );
+
+            if (isDiff) {
+                $('#badge-harga-berubah-status').html('<span class="text-warning fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Harga Berubah (Akan Masuk Pending Approval Owner)</span>');
+            } else {
+                $('#badge-harga-berubah-status').html('<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Harga Sesuai Master</span>');
+            }
+        }
+
+        $('#input-harga-beli, #input-harga-jual, #input-qty-a, #input-hrg-a, #input-qty-b, #input-hrg-b, #input-qty-c, #input-hrg-c').on('input change keyup', checkPriceDifferenceBadge);
+
+        $('#pilih-barang').on('change', function() {
+            populatePriceFieldsFromSelected();
         });
 
         // Inisialisasi awal: jika supplier belum dipilih, dropdown barang KOSONG dan DISABLED
@@ -367,12 +496,48 @@
                 return;
             }
 
+            const masterBeli = parseFloat($opt.data('hargabeli')) || 0;
+            const masterJual = parseFloat($opt.data('hargajual')) || 0;
+            const masterQtyA = parseInt($opt.data('qtypaketa'), 10) || 0;
+            const masterHrgA = parseFloat($opt.data('hrgpaketa')) || 0;
+            const masterQtyB = parseInt($opt.data('qtypaketb'), 10) || 0;
+            const masterHrgB = parseFloat($opt.data('hrgpaketb')) || 0;
+            const masterQtyC = parseInt($opt.data('qtypaketc'), 10) || 0;
+            const masterHrgC = parseFloat($opt.data('hrgpaketc')) || 0;
+
+            const inputJual = unformatRupiah($('#input-harga-jual').val()) || masterJual;
+            const inputQtyA = parseInt($('#input-qty-a').val(), 10) || 0;
+            const inputHrgA = unformatRupiah($('#input-hrg-a').val()) || 0;
+            const inputQtyB = parseInt($('#input-qty-b').val(), 10) || 0;
+            const inputHrgB = unformatRupiah($('#input-hrg-b').val()) || 0;
+            const inputQtyC = parseInt($('#input-qty-c').val(), 10) || 0;
+            const inputHrgC = unformatRupiah($('#input-hrg-c').val()) || 0;
+
+            const isPriceChanged = (
+                Math.abs(hargaBeli - masterBeli) > 0.01 ||
+                Math.abs(inputJual - masterJual) > 0.01 ||
+                Math.abs(inputHrgA - masterHrgA) > 0.01 ||
+                Math.abs(inputHrgB - masterHrgB) > 0.01 ||
+                Math.abs(inputHrgC - masterHrgC) > 0.01 ||
+                inputQtyA !== masterQtyA ||
+                inputQtyB !== masterQtyB ||
+                inputQtyC !== masterQtyC
+            );
+
             // Cek apakah item sudah ada di keranjang
             const existing = keranjangBeli.find(x => x.id_barang === idBarang);
             if (existing) {
                 existing.qty += qty;
                 existing.harga_beli = hargaBeli;
+                existing.harga_jual = inputJual;
+                existing.qty_paket_a = inputQtyA;
+                existing.harga_paket_a = inputHrgA;
+                existing.qty_paket_b = inputQtyB;
+                existing.harga_paket_b = inputHrgB;
+                existing.qty_paket_c = inputQtyC;
+                existing.harga_paket_c = inputHrgC;
                 existing.subtotal = existing.qty * hargaBeli;
+                existing.is_price_changed = isPriceChanged;
             } else {
                 keranjangBeli.push({
                     id_barang: idBarang,
@@ -380,7 +545,17 @@
                     satuan: satuan,
                     qty: qty,
                     harga_beli: hargaBeli,
-                    subtotal: qty * hargaBeli
+                    harga_beli_lama: masterBeli,
+                    harga_jual: inputJual,
+                    harga_jual_lama: masterJual,
+                    qty_paket_a: inputQtyA,
+                    harga_paket_a: inputHrgA,
+                    qty_paket_b: inputQtyB,
+                    harga_paket_b: inputHrgB,
+                    qty_paket_c: inputQtyC,
+                    harga_paket_c: inputHrgC,
+                    subtotal: qty * hargaBeli,
+                    is_price_changed: isPriceChanged
                 });
             }
 
@@ -390,6 +565,14 @@
             $('#pilih-barang').val('').trigger('change');
             $('#input-qty-beli').val(1);
             $('#input-harga-beli').val('');
+            $('#input-harga-jual').val('');
+            $('#input-qty-a').val('');
+            $('#input-hrg-a').val('');
+            $('#input-qty-b').val('');
+            $('#input-hrg-b').val('');
+            $('#input-qty-c').val('');
+            $('#input-hrg-c').val('');
+            $('#panel-penyesuaian-harga').slideUp(150);
         });
 
         // Hapus Item
@@ -425,11 +608,15 @@
                 total += item.subtotal;
                 totalQty += item.qty;
 
+                const badgePending = item.is_price_changed 
+                    ? '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1 py-0 px-1" style="font-size: 0.65rem;" title="Harga diubah kasir, menunggu approval Owner"><i class="bi bi-clock-history me-1"></i>Pending Approval</span>'
+                    : '';
+
                 $tbody.append(`
                     <tr>
                         <td class="text-center">${idx + 1}</td>
                         <td>
-                            <div class="fw-semibold text-dark">${item.nama_barang}</div>
+                            <div class="fw-semibold text-dark">${item.nama_barang} ${badgePending}</div>
                             <small class="text-muted font-monospace">${item.id_barang} &bull; ${item.satuan}</small>
                         </td>
                         <td class="text-center fw-bold">${new Intl.NumberFormat('id-ID').format(item.qty)}</td>

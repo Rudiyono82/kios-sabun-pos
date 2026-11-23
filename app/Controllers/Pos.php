@@ -58,9 +58,26 @@ class Pos extends BaseController
         $barangModel = new BarangModel();
         $items = $barangModel->cariBarangPOS($keyword, $idCabang);
 
+        $pendingModel = new \App\Models\BarangPendingStokModel();
         $isAdmin = (session()->get('role') === 'admin');
-        if (!$isAdmin) {
-            foreach ($items as &$item) {
+
+        foreach ($items as &$item) {
+            $rawStok = (float)($item['stok'] ?? 0);
+            $activePending = $pendingModel->getActivePending($item['id_barang']);
+            if ($activePending) {
+                $stokPending = (float)$activePending['stok_pending'];
+                $stokLama = $rawStok - $stokPending;
+                $statusPersetujuan = trim($activePending['status_persetujuan']);
+                $isApproved = str_contains($statusPersetujuan, 'Setuju') && ($statusPersetujuan !== 'Belum Setuju');
+                $isOldStockDepleted = ($stokLama <= 0 || $rawStok <= 0);
+
+                if ($isOldStockDepleted && !$isApproved) {
+                    $item['is_locked_unapproved'] = true;
+                    $item['lock_reason'] = "Sisa stok lama barang {$item['nama_barang']} telah habis (0). Perubahan harga baru belum disetujui Admin di menu Pending Update Stok. Barang ini dikunci dan tidak dapat dijual!";
+                }
+            }
+
+            if (!$isAdmin) {
                 // Sembunyikan stok akhir dari kasir / non-admin
                 $item['stok'] = null;
             }
@@ -369,6 +386,9 @@ class Pos extends BaseController
             $detailRecords = [];
             $kartuStokRecords = [];
             $stokCabangModel = new \App\Models\StokCabangModel();
+            $pendingModel = new \App\Models\BarangPendingStokModel();
+            $promotedItems = [];
+            $unapprovedZeroStockAlerts = [];
 
             foreach ($itemHolders as $item) {
                 $detailRecords[] = [
@@ -387,6 +407,37 @@ class Pos extends BaseController
 
                 // Update akumulasi stok di tabel master barang (untuk konsolidasi total)
                 $db->query("UPDATE barang SET stok = (SELECT COALESCE(SUM(stok), 0) FROM stok_cabang WHERE id_barang = ?) WHERE id_barang = ?", [$item['id_barang'], $item['id_barang']]);
+
+                // SOP OPSI 3: Cek apakah barang memiliki pending update harga / stok
+                $activePending = $pendingModel->getActivePending($item['id_barang']);
+                if ($activePending) {
+                    $stokPending = (float)$activePending['stok_pending'];
+                    $sisaStokLama = (float)$sisaStok - $stokPending;
+                    $statusPersetujuan = trim($activePending['status_persetujuan']);
+                    $isApproved = str_contains($statusPersetujuan, 'Setuju') && ($statusPersetujuan !== 'Belum Setuju');
+
+                    if ($sisaStokLama <= 0 || $sisaStok <= 0) {
+                        if ($isApproved) {
+                            // Status SUDAH disetujui Admin: Auto-promote harga baru ke master barang sekarang juga!
+                            $promoteRes = $pendingModel->executePromoteToMaster($item['id_barang'], 'POS_AUTO_PROMOTE');
+                            if ($promoteRes['success']) {
+                                $promotedItems[] = [
+                                    'id_barang'       => $item['id_barang'],
+                                    'nama_barang'     => $item['nama_barang'],
+                                    'harga_jual_baru' => (float)$activePending['harga_jual']
+                                ];
+                            }
+                        } else {
+                            // Status BELUM disetujui Admin:
+                            // Berikan notifikasi bahwa sisa stok lama sudah 0 dan barang dikunci untuk transaksi selanjutnya
+                            $unapprovedZeroStockAlerts[] = [
+                                'id_barang'   => $item['id_barang'],
+                                'nama_barang' => $item['nama_barang'],
+                                'message'     => "Sisa stok lama barang [{$item['id_barang']}] {$item['nama_barang']} telah habis (0). Perubahan harga baru belum disetujui Admin di menu Pending Update Stok. Barang ini dikunci dan tidak dapat dijual untuk transaksi selanjutnya sampai disetujui Admin."
+                            ];
+                        }
+                    }
+                }
 
                 // Catat ke kartu stok
                 $kartuStokRecords[] = [
@@ -551,7 +602,9 @@ class Pos extends BaseController
                 'member_nama' => $memberData['nama'] ?? null,
                 'member_phone' => $memberData['telepon'] ?? null,
                 'wa_url' => $waUrl,
-                'wa_text' => $waText
+                'wa_text' => $waText,
+                'promoted_items' => $promotedItems,
+                'unapproved_zero_stock_alerts' => $unapprovedZeroStockAlerts
             ]);
         } finally {
             if ($isMysql) {

@@ -168,11 +168,31 @@ class Pembelian extends BaseController
                 'keterangan' => 'Pembelian Nota ' . $noBeli . ' dari ' . ($json['nama_supplier'] ?? 'Supplier')
             ];
 
-            // SOP MULTI-TIER: Jika harga beli belanja berbeda dengan harga beli master saat stok lama masih ada
-            if ($hargaBeliInput > 0 && abs($hargaBeliInput - $hargaBeliMaster) > 0.01) {
-                $statusPersetujuan = ($userRole === 'admin' || $userRole === 'owner') ? 'Setuju' : 'Belum Setuju';
-                $userApproved = ($userRole === 'admin' || $userRole === 'owner') ? $userName : null;
-                $tglApproved = ($userRole === 'admin' || $userRole === 'owner') ? date('Y-m-d H:i:s') : null;
+            // SOP MULTI-TIER (OPSI 3): Cek apakah harga beli, harga jual, atau paket grosir diubah kasir
+            $inputHargaJual = isset($item['harga_jual']) && (float)$item['harga_jual'] > 0 ? (float)$item['harga_jual'] : (float)$barang['harga_jual'];
+            $inputQtyA = isset($item['qty_paket_a']) ? (int)$item['qty_paket_a'] : (int)($barang['qty_paket_a'] ?? 0);
+            $inputHrgA = isset($item['harga_paket_a']) ? (float)$item['harga_paket_a'] : (float)($barang['hrg_paket_a'] ?? 0);
+            $inputQtyB = isset($item['qty_paket_b']) ? (int)$item['qty_paket_b'] : (int)($barang['qty_paket_b'] ?? 0);
+            $inputHrgB = isset($item['harga_paket_b']) ? (float)$item['harga_paket_b'] : (float)($barang['hrg_paket_b'] ?? 0);
+            $inputQtyC = isset($item['qty_paket_c']) ? (int)$item['qty_paket_c'] : (int)($barang['qty_paket_c'] ?? 0);
+            $inputHrgC = isset($item['harga_paket_c']) ? (float)$item['harga_paket_c'] : (float)($barang['hrg_paket_c'] ?? 0);
+
+            $isPriceChanged = (
+                ($hargaBeliInput > 0 && abs($hargaBeliInput - $hargaBeliMaster) > 0.01) ||
+                abs($inputHargaJual - (float)$barang['harga_jual']) > 0.01 ||
+                abs($inputHrgA - (float)($barang['hrg_paket_a'] ?? 0)) > 0.01 ||
+                abs($inputHrgB - (float)($barang['hrg_paket_b'] ?? 0)) > 0.01 ||
+                abs($inputHrgC - (float)($barang['hrg_paket_c'] ?? 0)) > 0.01 ||
+                $inputQtyA !== (int)($barang['qty_paket_a'] ?? 0) ||
+                $inputQtyB !== (int)($barang['qty_paket_b'] ?? 0) ||
+                $inputQtyC !== (int)($barang['qty_paket_c'] ?? 0)
+            );
+
+            if ($isPriceChanged) {
+                // Semua input harga baru dari restock masuk antrean pending 'Belum Setuju' untuk diapprove owner
+                $statusPersetujuan = 'Belum Setuju';
+                $userApproved = null;
+                $tglApproved = null;
 
                 $db->table('barang_pending_stok')->insert([
                     'ref_id'             => $noBeli,
@@ -181,21 +201,21 @@ class Pembelian extends BaseController
                     'nama_barang'        => $barang['nama_barang'],
                     'stok_pending'       => $qty,
                     'harga_beli_lama'    => $hargaBeliMaster,
-                    'harga_beli'         => $hargaBeliInput,
+                    'harga_beli'         => $hargaBeliInput > 0 ? $hargaBeliInput : $hargaBeliMaster,
                     'harga_jual_lama'    => (float)$barang['harga_jual'],
-                    'harga_jual'         => isset($item['harga_jual']) && $item['harga_jual'] > 0 ? (float)$item['harga_jual'] : (float)$barang['harga_jual'],
-                    'qty_paket_a'        => (int)($barang['qty_paket_a'] ?? 0),
-                    'harga_paket_a'      => (float)($barang['hrg_paket_a'] ?? 0),
-                    'qty_paket_b'        => (int)($barang['qty_paket_b'] ?? 0),
-                    'harga_paket_b'      => (float)($barang['hrg_paket_b'] ?? 0),
-                    'qty_paket_c'        => (int)($barang['qty_paket_c'] ?? 0),
-                    'harga_paket_c'      => (float)($barang['hrg_paket_c'] ?? 0),
+                    'harga_jual'         => $inputHargaJual,
+                    'qty_paket_a'        => $inputQtyA,
+                    'harga_paket_a'      => $inputHrgA,
+                    'qty_paket_b'        => $inputQtyB,
+                    'harga_paket_b'      => $inputHrgB,
+                    'qty_paket_c'        => $inputQtyC,
+                    'harga_paket_c'      => $inputHrgC,
                     'status_persetujuan' => $statusPersetujuan,
                     'status_eksekusi'    => 1,
                     'user_input'         => $userName,
                     'user_approved'      => $userApproved,
                     'tgl_approved'       => $tglApproved,
-                    'catatan'            => 'Auto-generated dari Pembelian Nota ' . $noBeli,
+                    'catatan'            => 'Restock Pembelian Nota ' . $noBeli . ' (Menunggu Approval Owner)',
                     'created_at'         => date('Y-m-d H:i:s'),
                 ]);
             }
