@@ -107,10 +107,27 @@
 
 <!-- Tabel Daftar Pembelian -->
 <div class="card-modern p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div>
+            <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-list-check text-primary"></i> Data Riwayat Pembelian & Restock
+            </h6>
+            <span class="text-muted" style="font-size: 0.74rem;">Klik tombol <strong>+</strong> atau nomor nota beli untuk membuka / menutup rincian item barang masuk secara instan.</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" id="btn-expand-all-beli" title="Buka seluruh data grid detail item pada tabel ini">
+                <i class="bi bi-arrows-expand me-1"></i> Buka Semua Detail
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold" id="btn-collapse-all-beli" title="Tutup seluruh data grid detail item pada tabel ini">
+                <i class="bi bi-arrows-collapse me-1"></i> Tutup Semua
+            </button>
+        </div>
+    </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" id="table-pembelian">
             <thead class="table-light small text-uppercase">
                 <tr>
+                    <th style="width: 36px;" class="text-center no-sort" title="Buka/Tutup Rincian Item">#</th>
                     <th>No Nota Beli</th>
                     <th>Tanggal</th>
                     <th>Supplier Mitra</th>
@@ -124,8 +141,17 @@
             <tbody>
                 <?php if (!empty($list)): ?>
                     <?php foreach ($list as $r): ?>
-                        <tr>
-                            <td class="fw-bold font-monospace text-primary"><?= esc($r['no_beli']) ?></td>
+                        <tr data-nobeli="<?= esc($r['no_beli']) ?>">
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 btn-toggle-child-beli" data-nobeli="<?= esc($r['no_beli']) ?>" title="Klik untuk Expand / Collapse Rincian Item Restock" style="font-size: 0.72rem; border-radius: 4px;">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </td>
+                            <td class="fw-bold font-monospace text-primary">
+                                <a href="javascript:void(0)" class="text-decoration-none text-primary btn-toggle-child-beli-link d-inline-flex align-items-center gap-1" data-nobeli="<?= esc($r['no_beli']) ?>" title="Klik untuk Expand / Collapse Rincian Restock">
+                                    <i class="bi bi-receipt"></i><span><?= esc($r['no_beli']) ?></span>
+                                </a>
+                            </td>
                             <td class="small"><?= date('d/m/Y H:i', strtotime($r['tanggal'])) ?></td>
                             <td>
                                 <div class="fw-semibold text-dark"><?= esc($r['nama_supplier'] ?: 'Supplier Umum') ?></div>
@@ -153,8 +179,8 @@
                             <td class="small text-muted"><?= esc($r['catatan'] ?: '-') ?></td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-primary btn-detail-pembelian" data-nobeli="<?= esc($r['no_beli']) ?>" title="Lihat Detail Item">
-                                        <i class="bi bi-eye-fill"></i> Detail
+                                    <button type="button" class="btn btn-outline-primary btn-detail-pembelian" data-nobeli="<?= esc($r['no_beli']) ?>" title="Lihat Detail Item (Popup Modal)">
+                                        <i class="bi bi-eye-fill"></i>
                                     </button>
                                     <button type="button" class="btn btn-outline-danger btn-hapus-pembelian" data-nobeli="<?= esc($r['no_beli']) ?>" title="Hapus (Wajib Password Super Admin)">
                                         <i class="bi bi-trash3-fill"></i>
@@ -239,9 +265,132 @@
 
 <?= $this->section('scripts') ?>
 <script>
+    let dtPembelian = null;
+    const cacheDetailPembelian = {};
+
+    /**
+     * Render HTML Child Row Data Grid untuk Rincian Nota Pembelian
+     */
+    function formatChildRowPembelian(noBeli, data) {
+        const p = data.pembelian;
+        const items = data.items || [];
+
+        let rowsHtml = '';
+        items.forEach((it, idx) => {
+            rowsHtml += `
+                <tr>
+                    <td class="text-center text-muted" style="font-size: 0.75rem;">${idx + 1}</td>
+                    <td class="font-monospace text-muted" style="font-size: 0.75rem;">${it.id_barang}</td>
+                    <td class="fw-semibold text-dark" style="font-size: 0.8rem;">${it.nama_barang}</td>
+                    <td class="text-center fw-bold text-primary" style="font-size: 0.8rem;">${new Intl.NumberFormat('id-ID').format(it.qty)}</td>
+                    <td class="text-end text-nowrap" style="font-size: 0.8rem;">Rp&nbsp;${new Intl.NumberFormat('id-ID').format(it.harga_beli)}</td>
+                    <td class="text-end text-nowrap fw-bold text-dark" style="font-size: 0.8rem;">Rp&nbsp;${new Intl.NumberFormat('id-ID').format(it.subtotal)}</td>
+                </tr>
+            `;
+        });
+
+        let statusBadge = '';
+        if (p.status_bayar === 'Lunas (Transfer)') {
+            statusBadge = '<span class="badge bg-info text-dark rounded-pill"><i class="bi bi-bank me-1"></i>Lunas (Transfer)</span>';
+        } else if (p.status_bayar === 'Lunas (Tidak Potong Kas)') {
+            statusBadge = '<span class="badge bg-info text-dark rounded-pill"><i class="bi bi-wallet2 me-1"></i>Lunas (Tidak Potong Kas)</span>';
+        } else if (p.status_bayar === 'Lunas' || p.status_bayar === 'Lunas (Tunai)') {
+            statusBadge = '<span class="badge bg-success rounded-pill"><i class="bi bi-cash-stack me-1"></i>Lunas (Tunai)</span>';
+        } else {
+            statusBadge = '<span class="badge bg-warning text-dark rounded-pill"><i class="bi bi-clock-history me-1"></i>' + (p.status_bayar || 'Hutang / Tempo') + '</span>';
+        }
+
+        return `
+            <div class="child-detail-wrapper p-3 my-1 rounded-3 shadow-sm" style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-left: 5px solid #059669 !important;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 pb-2 border-bottom gap-2">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <span class="badge bg-success px-2 py-1"><i class="bi bi-truck me-1"></i> Data Grid Restock: ${noBeli}</span>
+                        <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i>${p.tanggal}</span>
+                        <span class="small text-muted"><i class="bi bi-person me-1"></i>Petugas: <strong>${p.kode_user || '-'}</strong></span>
+                        <span class="small text-dark fw-bold"><i class="bi bi-buildings me-1 text-primary"></i>${p.nama_supplier || 'Supplier Umum'}</span>
+                        ${statusBadge}
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <span class="small text-muted">${p.catatan ? 'Catatan: ' + p.catatan : ''}</span>
+                        <span class="badge bg-primary font-monospace px-2 py-1" style="font-size: 0.85rem;">Total Biaya: Rp&nbsp;${new Intl.NumberFormat('id-ID').format(p.total_biaya)}</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 btn-detail-pembelian" data-nobeli="${noBeli}" title="Buka Detail di Popup Modal">
+                            <i class="bi bi-arrows-angle-expand me-1"></i> Modal Detail
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive rounded border bg-white shadow-sm">
+                    <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase" style="font-size: 0.72rem;">
+                            <tr>
+                                <th style="width: 35px;" class="text-center">No</th>
+                                <th style="width: 120px;">ID Barang</th>
+                                <th>Nama Barang Masuk / Bahan Baku</th>
+                                <th class="text-center" style="width: 80px;">Qty Beli</th>
+                                <th class="text-end" style="width: 140px;">Harga Beli Satuan</th>
+                                <th class="text-end" style="width: 150px;">Subtotal (Rp)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml || '<tr><td colspan="6" class="text-center text-muted py-2 small">Tidak ada data item pembelian.</td></tr>'}
+                        </tbody>
+                        <tfoot class="table-light small">
+                            <tr>
+                                <td colspan="3" class="text-muted fw-semibold">Total: ${items.length} Item Bahan / Produk</td>
+                                <td colspan="2" class="text-end text-muted fw-bold">TOTAL KESELURUHAN:</td>
+                                <td class="text-end fw-bold text-success font-monospace">Rp&nbsp;${new Intl.NumberFormat('id-ID').format(p.total_biaya)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Handler Toggle Child Row Pembelian (Expand / Collapse)
+     */
+    function toggleRowChildPembelian(tr, noBeli, btn) {
+        if (!dtPembelian) return;
+        const row = dtPembelian.row(tr);
+        const $icon = btn.find('i');
+
+        if (row.child.isShown()) {
+            row.child.hide();
+            tr.removeClass('shown table-active');
+            $icon.removeClass('bi-chevron-down').addClass('bi-chevron-right');
+            btn.removeClass('btn-primary text-white').addClass('btn-outline-primary');
+        } else {
+            const loadingHtml = `
+                <div class="p-3 text-center text-muted bg-light rounded border my-1">
+                    <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                    <span class="small font-monospace">Memuat data grid rincian restock <strong>${noBeli}</strong>...</span>
+                </div>
+            `;
+            row.child(loadingHtml).show();
+            tr.addClass('shown table-active');
+            $icon.removeClass('bi-chevron-right').addClass('bi-chevron-down');
+            btn.removeClass('btn-outline-primary').addClass('btn-primary text-white');
+
+            if (cacheDetailPembelian[noBeli]) {
+                row.child(formatChildRowPembelian(noBeli, cacheDetailPembelian[noBeli])).show();
+            } else {
+                $.get('<?= base_url('pembelian/detail') ?>/' + encodeURIComponent(noBeli), function(res) {
+                    if (res.status === 'success') {
+                        cacheDetailPembelian[noBeli] = res;
+                        row.child(formatChildRowPembelian(noBeli, res)).show();
+                    } else {
+                        row.child('<div class="p-2 text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>Gagal memuat rincian pembelian: ' + (res.message || 'Error') + '</div>').show();
+                    }
+                }).fail(function() {
+                    row.child('<div class="p-2 text-danger small"><i class="bi bi-x-circle me-1"></i>Koneksi terputus saat mengambil rincian pembelian.</div>').show();
+                });
+            }
+        }
+    }
+
     $(document).ready(function() {
         if ($.fn.DataTable) {
-            $('#table-pembelian').DataTable({
+            dtPembelian = $('#table-pembelian').DataTable({
                 language: {
                     search: "Cari Nota:",
                     lengthMenu: "Tampilkan _MENU_ data",
@@ -249,11 +398,59 @@
                     paginate: { next: "Berikutnya", previous: "Sebelumnya" },
                     emptyTable: "Belum ada transaksi pembelian pada periode ini."
                 },
-                order: [[1, 'desc']]
+                order: [[2, 'desc']],
+                columnDefs: [
+                    { orderable: false, targets: [0, 8] }
+                ]
             });
         }
 
-        // 1. Klik Lihat Detail Pembelian
+        // Event Klik Tombol Chevron Toggle Child Row Pembelian
+        $(document).on('click', '.btn-toggle-child-beli', function(e) {
+            e.stopPropagation();
+            const tr = $(this).closest('tr');
+            const noBeli = $(this).data('nobeli');
+            toggleRowChildPembelian(tr, noBeli, $(this));
+        });
+
+        // Event Klik Link Nomor Nota untuk Expand / Collapse
+        $(document).on('click', '.btn-toggle-child-beli-link', function(e) {
+            e.preventDefault();
+            const tr = $(this).closest('tr');
+            const noBeli = $(this).data('nobeli');
+            const btn = tr.find('.btn-toggle-child-beli');
+            toggleRowChildPembelian(tr, noBeli, btn);
+        });
+
+        // Event Buka Semua Detail Pembelian
+        $('#btn-expand-all-beli').on('click', function() {
+            if (!dtPembelian) return;
+            $('#table-pembelian tbody tr[data-nobeli]').each(function() {
+                const tr = $(this);
+                const noBeli = tr.data('nobeli');
+                const btn = tr.find('.btn-toggle-child-beli');
+                const row = dtPembelian.row(tr);
+                if (!row.child.isShown()) {
+                    toggleRowChildPembelian(tr, noBeli, btn);
+                }
+            });
+        });
+
+        // Event Tutup Semua Detail Pembelian
+        $('#btn-collapse-all-beli').on('click', function() {
+            if (!dtPembelian) return;
+            $('#table-pembelian tbody tr[data-nobeli]').each(function() {
+                const tr = $(this);
+                const noBeli = tr.data('nobeli');
+                const btn = tr.find('.btn-toggle-child-beli');
+                const row = dtPembelian.row(tr);
+                if (row.child.isShown()) {
+                    toggleRowChildPembelian(tr, noBeli, btn);
+                }
+            });
+        });
+
+        // 1. Klik Lihat Detail Pembelian (Popup Modal)
         $(document).on('click', '.btn-detail-pembelian', function() {
             const noBeli = $(this).data('nobeli');
             

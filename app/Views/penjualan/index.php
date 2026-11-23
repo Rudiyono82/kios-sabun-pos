@@ -139,10 +139,27 @@
 
 <!-- Tabel Daftar Faktur Penjualan -->
 <div class="card-modern p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div>
+            <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-list-check text-primary"></i> Data Transaksi Faktur Penjualan
+            </h6>
+            <span class="text-muted" style="font-size: 0.74rem;">Klik tombol <strong>+</strong> atau nomor faktur untuk membuka / menutup rincian item produk terjual secara instan.</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" id="btn-expand-all" title="Buka seluruh data grid detail item pada tabel ini">
+                <i class="bi bi-arrows-expand me-1"></i> Buka Semua Detail
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold" id="btn-collapse-all" title="Tutup seluruh data grid detail item pada tabel ini">
+                <i class="bi bi-arrows-collapse me-1"></i> Tutup Semua
+            </button>
+        </div>
+    </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" id="table-penjualan">
             <thead class="table-light small text-uppercase">
                 <tr>
+                    <th style="width: 36px;" class="text-center no-sort" title="Buka/Tutup Rincian Item">#</th>
                     <th>No Faktur</th>
                     <th>Waktu Transaksi</th>
                     <th>Kasir</th>
@@ -157,8 +174,17 @@
             <tbody>
                 <?php if (!empty($list)): ?>
                     <?php foreach ($list as $p): ?>
-                        <tr>
-                            <td class="fw-bold font-monospace text-primary"><?= esc($p['no_faktur']) ?></td>
+                        <tr data-nofaktur="<?= esc($p['no_faktur']) ?>">
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 btn-toggle-child" data-nofaktur="<?= esc($p['no_faktur']) ?>" title="Klik untuk Expand / Collapse Rincian Item" style="font-size: 0.72rem; border-radius: 4px;">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </td>
+                            <td class="fw-bold font-monospace text-primary">
+                                <a href="javascript:void(0)" class="text-decoration-none text-primary btn-toggle-child-link d-inline-flex align-items-center gap-1" data-nofaktur="<?= esc($p['no_faktur']) ?>" title="Klik untuk Expand / Collapse Rincian Item">
+                                    <i class="bi bi-receipt"></i><span><?= esc($p['no_faktur']) ?></span>
+                                </a>
+                            </td>
                             <td class="small" data-order="<?= strtotime($p['tanggal']) * 1000000 + ($p['id'] % 1000000) ?>"><?= date('d/m/Y H:i', strtotime($p['tanggal'])) ?></td>
                             <td><span class="badge bg-secondary-subtle text-secondary"><?= esc($p['kode_user']) ?></span></td>
                             <td>
@@ -193,7 +219,7 @@
                             </td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-primary btn-detail-faktur" data-nofaktur="<?= esc($p['no_faktur']) ?>" title="Lihat Rincian Item">
+                                    <button type="button" class="btn btn-outline-primary btn-detail-faktur" data-nofaktur="<?= esc($p['no_faktur']) ?>" title="Lihat Rincian Item (Popup Modal)">
                                         <i class="bi bi-eye-fill"></i>
                                     </button>
                                     <button type="button" class="btn btn-outline-success btn-cetak-struk-ulang" data-nofaktur="<?= esc($p['no_faktur']) ?>" title="Cetak Ulang Struk Thermal">
@@ -297,10 +323,153 @@
 <?= $this->section('scripts') ?>
 <script>
     let activeFaktur = '';
+    let dtPenjualan = null;
+    const cacheDetailPenjualan = {};
+    const isAdminUser = <?= (session()->get('role') === 'admin') ? 'true' : 'false' ?>;
+
+    /**
+     * Render HTML Child Row Data Grid untuk Rincian Faktur Penjualan
+     */
+    function formatChildRowPenjualan(noFaktur, data) {
+        const p = data.penjualan;
+        const m = data.member;
+        const items = data.items || [];
+
+        let rowsHtml = '';
+        items.forEach((it, idx) => {
+            let colProfit = '';
+            if (isAdminUser && typeof it.profit !== 'undefined') {
+                colProfit = `<td class="text-end text-success font-monospace" style="font-size: 0.78rem;">Rp&nbsp;${new Intl.NumberFormat('id-ID').format(it.profit)}</td>`;
+            }
+
+            rowsHtml += `
+                <tr>
+                    <td class="text-center text-muted" style="font-size: 0.75rem;">${idx + 1}</td>
+                    <td class="font-monospace text-muted" style="font-size: 0.75rem;">${it.id_barang}</td>
+                    <td class="fw-semibold text-dark" style="font-size: 0.8rem;">
+                        ${it.nama_barang}
+                        ${it.satuan ? `<span class="badge bg-light text-secondary border ms-1" style="font-size: 0.65rem;">${it.satuan}</span>` : ''}
+                    </td>
+                    <td class="text-center fw-bold text-primary" style="font-size: 0.8rem;">${new Intl.NumberFormat('id-ID').format(it.qty)}</td>
+                    <td class="text-end text-nowrap" style="font-size: 0.8rem;">Rp&nbsp;${new Intl.NumberFormat('id-ID').format(it.harga_jual)}</td>
+                    <td class="text-end text-nowrap fw-bold text-dark" style="font-size: 0.8rem;">Rp&nbsp;${new Intl.NumberFormat('id-ID').format(it.subtotal)}</td>
+                    ${colProfit}
+                </tr>
+            `;
+        });
+
+        const headerProfit = isAdminUser ? `<th class="text-end" style="width: 120px;">Est. Margin</th>` : '';
+
+        const badgeList = [];
+        if (parseFloat(p.potongan_voucher) > 0) {
+            badgeList.push(`<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-tag-fill me-1"></i>Voucher: -Rp&nbsp;${new Intl.NumberFormat('id-ID').format(p.potongan_voucher)}</span>`);
+        }
+        if (parseFloat(p.potongan_tukar_jerigen) > 0) {
+            badgeList.push(`<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-recycle me-1"></i>Tukar Jerigen: -Rp&nbsp;${new Intl.NumberFormat('id-ID').format(p.potongan_tukar_jerigen)}</span>`);
+        }
+        if (parseFloat(p.diskon) > 0) {
+            badgeList.push(`<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-percent me-1"></i>Diskon: -Rp&nbsp;${new Intl.NumberFormat('id-ID').format(p.diskon)}</span>`);
+        }
+
+        return `
+            <div class="child-detail-wrapper p-3 my-1 rounded-3 shadow-sm" style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-left: 5px solid #0284c7 !important;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 pb-2 border-bottom gap-2">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <span class="badge bg-primary px-2 py-1"><i class="bi bi-grid-3x3-gap-fill me-1"></i> Data Grid Rincian Faktur: ${noFaktur}</span>
+                        <span class="small text-muted"><i class="bi bi-clock me-1"></i>${p.tanggal}</span>
+                        <span class="small text-muted"><i class="bi bi-person me-1"></i>Kasir: <strong>${p.kode_user || '-'}</strong></span>
+                        ${m ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-star-fill me-1"></i>Member: ${m.nama} (${m.kode_member})</span>` : ''}
+                        <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-wallet2 me-1"></i>${p.metode_bayar || 'Tunai'}</span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        ${badgeList.join(' ')}
+                        <span class="small fw-semibold text-muted">Subtotal: Rp&nbsp;${new Intl.NumberFormat('id-ID').format(p.subtotal)}</span>
+                        <span class="badge bg-success font-monospace px-2 py-1" style="font-size: 0.85rem;">Grand Total: Rp&nbsp;${new Intl.NumberFormat('id-ID').format(p.grand_total)}</span>
+                        <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 btn-cetak-struk-ulang" data-nofaktur="${noFaktur}" title="Cetak Ulang Struk Thermal">
+                            <i class="bi bi-printer-fill me-1"></i> Cetak Struk
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 btn-detail-faktur" data-nofaktur="${noFaktur}" title="Buka Detail di Popup Modal">
+                            <i class="bi bi-arrows-angle-expand me-1"></i> Modal
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive rounded border bg-white shadow-sm">
+                    <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase" style="font-size: 0.72rem;">
+                            <tr>
+                                <th style="width: 35px;" class="text-center">No</th>
+                                <th style="width: 120px;">ID Barang</th>
+                                <th>Nama Produk Sabun & Parfum</th>
+                                <th class="text-center" style="width: 80px;">Qty</th>
+                                <th class="text-end" style="width: 130px;">Harga Satuan</th>
+                                <th class="text-end" style="width: 140px;">Subtotal</th>
+                                ${headerProfit}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml || '<tr><td colspan="7" class="text-center text-muted py-2 small">Tidak ada data item produk.</td></tr>'}
+                        </tbody>
+                        <tfoot class="table-light small">
+                            <tr>
+                                <td colspan="3" class="text-muted fw-semibold">Total: ${items.length} Macam Barang</td>
+                                <td class="text-center fw-bold text-primary font-monospace">${new Intl.NumberFormat('id-ID').format(p.total_qty || 0)}</td>
+                                <td class="text-end text-muted fw-bold">TOTAL AKHIR:</td>
+                                <td class="text-end fw-bold text-success font-monospace">Rp&nbsp;${new Intl.NumberFormat('id-ID').format(p.grand_total)}</td>
+                                ${isAdminUser ? '<td></td>' : ''}
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Handler Toggle Child Row (Expand / Collapse)
+     */
+    function toggleRowChildPenjualan(tr, noFaktur, btn) {
+        if (!dtPenjualan) return;
+        const row = dtPenjualan.row(tr);
+        const $icon = btn.find('i');
+
+        if (row.child.isShown()) {
+            row.child.hide();
+            tr.removeClass('shown table-active');
+            $icon.removeClass('bi-chevron-down').addClass('bi-chevron-right');
+            btn.removeClass('btn-primary text-white').addClass('btn-outline-primary');
+        } else {
+            // Placeholder saat memuat data via AJAX
+            const loadingHtml = `
+                <div class="p-3 text-center text-muted bg-light rounded border my-1">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    <span class="small font-monospace">Memuat data grid rincian faktur <strong>${noFaktur}</strong>...</span>
+                </div>
+            `;
+            row.child(loadingHtml).show();
+            tr.addClass('shown table-active');
+            $icon.removeClass('bi-chevron-right').addClass('bi-chevron-down');
+            btn.removeClass('btn-outline-primary').addClass('btn-primary text-white');
+
+            if (cacheDetailPenjualan[noFaktur]) {
+                row.child(formatChildRowPenjualan(noFaktur, cacheDetailPenjualan[noFaktur])).show();
+            } else {
+                $.get('<?= base_url('penjualan/detail') ?>/' + encodeURIComponent(noFaktur), function(res) {
+                    if (res.status === 'success') {
+                        cacheDetailPenjualan[noFaktur] = res;
+                        row.child(formatChildRowPenjualan(noFaktur, res)).show();
+                    } else {
+                        row.child('<div class="p-2 text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>Gagal memuat rincian: ' + (res.message || 'Error') + '</div>').show();
+                    }
+                }).fail(function() {
+                    row.child('<div class="p-2 text-danger small"><i class="bi bi-x-circle me-1"></i>Koneksi terputus saat mengambil rincian faktur.</div>').show();
+                });
+            }
+        }
+    }
 
     $(document).ready(function() {
         if ($.fn.DataTable) {
-            $('#table-penjualan').DataTable({
+            dtPenjualan = $('#table-penjualan').DataTable({
                 language: {
                     search: "Cari Faktur / Kasir:",
                     lengthMenu: "Tampilkan _MENU_ data",
@@ -308,11 +477,59 @@
                     paginate: { next: "Berikutnya", previous: "Sebelumnya" },
                     emptyTable: "Belum ada transaksi penjualan pada periode ini."
                 },
-                order: [[1, 'desc']]
+                order: [[2, 'desc']],
+                columnDefs: [
+                    { orderable: false, targets: [0, 9] }
+                ]
             });
         }
 
-        // 1. Lihat Detail Faktur Penjualan
+        // Event Klik Tombol Chevron Toggle Child Row
+        $(document).on('click', '.btn-toggle-child', function(e) {
+            e.stopPropagation();
+            const tr = $(this).closest('tr');
+            const noFaktur = $(this).data('nofaktur');
+            toggleRowChildPenjualan(tr, noFaktur, $(this));
+        });
+
+        // Event Klik Link Nomor Faktur untuk Expand / Collapse
+        $(document).on('click', '.btn-toggle-child-link', function(e) {
+            e.preventDefault();
+            const tr = $(this).closest('tr');
+            const noFaktur = $(this).data('nofaktur');
+            const btn = tr.find('.btn-toggle-child');
+            toggleRowChildPenjualan(tr, noFaktur, btn);
+        });
+
+        // Event Buka Semua Detail
+        $('#btn-expand-all').on('click', function() {
+            if (!dtPenjualan) return;
+            $('#table-penjualan tbody tr[data-nofaktur]').each(function() {
+                const tr = $(this);
+                const noFaktur = tr.data('nofaktur');
+                const btn = tr.find('.btn-toggle-child');
+                const row = dtPenjualan.row(tr);
+                if (!row.child.isShown()) {
+                    toggleRowChildPenjualan(tr, noFaktur, btn);
+                }
+            });
+        });
+
+        // Event Tutup Semua Detail
+        $('#btn-collapse-all').on('click', function() {
+            if (!dtPenjualan) return;
+            $('#table-penjualan tbody tr[data-nofaktur]').each(function() {
+                const tr = $(this);
+                const noFaktur = tr.data('nofaktur');
+                const btn = tr.find('.btn-toggle-child');
+                const row = dtPenjualan.row(tr);
+                if (row.child.isShown()) {
+                    toggleRowChildPenjualan(tr, noFaktur, btn);
+                }
+            });
+        });
+
+        // 1. Lihat Detail Faktur Penjualan (Popup Modal)
         $(document).on('click', '.btn-detail-faktur', function() {
             const noFaktur = $(this).data('nofaktur');
             activeFaktur = noFaktur;
