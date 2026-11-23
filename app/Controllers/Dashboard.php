@@ -117,11 +117,18 @@ class Dashboard extends BaseController
             $totalTransaksiHariIni += $trxCount;
             $totalOmsetHariIni += $omset;
 
-            // 2. Data Kas Awal Laci Hari Ini
+            // 2. Data Kas Awal Laci Hari Ini (Mencakup input kasir langsung maupun sinkronisasi sistem)
             $kasAwalRow = $db->table('data_keuangan')
-                ->where('kode_user', $kodeUser)
                 ->where("DATE(tanggal) =", $today)
-                ->like('nama_keuangan', 'Kas Awal')
+                ->groupStart()
+                    ->where('kode_user', $kodeUser)
+                    ->orWhere('kode_user', 'SYSTEM')
+                    ->orWhere('kode_user', 'KASIR')
+                ->groupEnd()
+                ->groupStart()
+                    ->where('jenis_keuangan', 'Kas Awal')
+                    ->orLike('nama_keuangan', 'Kas Awal')
+                ->groupEnd()
                 ->select("COALESCE(SUM(total), 0) as total_kas_awal")
                 ->get()->getRowArray();
             $kasAwal = (float)($kasAwalRow['total_kas_awal'] ?? 0);

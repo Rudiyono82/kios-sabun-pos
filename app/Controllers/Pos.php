@@ -27,6 +27,7 @@ class Pos extends BaseController
                 ->groupEnd()
             ->groupEnd()
             ->where('total >', 0)
+            ->orderBy('id', 'DESC')
             ->get()->getRowArray();
     }
 
