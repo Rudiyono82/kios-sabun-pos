@@ -88,6 +88,7 @@
                     <option value="semua">-- Semua Status --</option>
                     <option value="Lunas" <?= ($status_bayar === 'Lunas' || $status_bayar === 'Lunas (Tunai)') ? 'selected' : '' ?>>Lunas (Tunai - Kas Toko)</option>
                     <option value="Lunas (Transfer)" <?= $status_bayar === 'Lunas (Transfer)' ? 'selected' : '' ?>>Lunas (Transfer - Non-Kas)</option>
+                    <option value="Lunas (Tidak Potong Kas)" <?= $status_bayar === 'Lunas (Tidak Potong Kas)' ? 'selected' : '' ?>>Lunas (Tidak Potong Kas)</option>
                     <option value="Hutang" <?= ($status_bayar === 'Hutang' || $status_bayar === 'Tempo' || $status_bayar === 'Hutang / Tempo') ? 'selected' : '' ?>>Hutang / Tempo</option>
                 </select>
             </div>
@@ -288,9 +289,9 @@
                             <td class="text-center">
                                 <?php 
                                     $sb = $b['status_bayar'] ?? '';
-                                    if ($sb === 'Lunas (Transfer)'): 
+                                    if ($sb === 'Lunas (Transfer)' || $sb === 'Lunas (Tidak Potong Kas)'): 
                                 ?>
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle fw-bold"><i class="bi bi-bank me-1"></i>Lunas (Transfer)</span>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle fw-bold"><i class="bi bi-bank me-1"></i><?= esc($sb) ?></span>
                                 <?php elseif ($sb === 'Lunas' || $sb === 'Lunas (Tunai)'): ?>
                                     <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold"><i class="bi bi-cash me-1"></i>Lunas (Tunai)</span>
                                 <?php else: ?>

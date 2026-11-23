@@ -374,6 +374,19 @@ try {
                 } else {
                     echo "[MIGRATION] `pembelian` is up to date ($mysqlRows rows). Skipped.\n";
                 }
+
+                // Sync status_bayar dari SQLite ke MySQL untuk nota pembelian terbaru
+                try {
+                    $updStmt = $pdo->prepare("UPDATE `pembelian` SET `status_bayar` = :status WHERE `no_beli` = :no_beli");
+                    $recentBeli = $sqlite->query("SELECT no_beli, status_bayar FROM `pembelian` ORDER BY id DESC LIMIT 50");
+                    while ($rb = $recentBeli->fetchArray(SQLITE3_ASSOC)) {
+                        $updStmt->execute([':status' => $rb['status_bayar'], ':no_beli' => $rb['no_beli']]);
+                    }
+                    $pdo->exec("DELETE FROM `data_keuangan` WHERE `nama_keuangan` IN (SELECT CONCAT('Belanja Restock ', no_beli) FROM `pembelian` WHERE `status_bayar` IN ('Lunas (Transfer)', 'Lunas (Tidak Potong Kas)', 'Hutang / Tempo'))");
+                    echo "[MIGRATION] Synchronized status_bayar for recent `pembelian` in MySQL.\n";
+                } catch (Exception $eBeli) {
+                    // Silently ignore if table format differs
+                }
                 continue;
             }
 

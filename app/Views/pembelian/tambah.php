@@ -58,8 +58,9 @@
             <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">Status Pembayaran</label>
                 <select id="beli-status-bayar" class="form-select form-select-sm fw-semibold">
-                    <option value="Lunas">Lunas (Tunai - Potong Kas Toko)</option>
-                    <option value="Lunas (Transfer)">Lunas (Transfer - Tidak Potong Kas)</option>
+                    <option value="Lunas">Lunas (Tunai - Potong Kas Toko Hari Ini)</option>
+                    <option value="Lunas (Transfer)">Lunas (Transfer - Tidak Potong Kas Hari Ini)</option>
+                    <option value="Lunas (Tidak Potong Kas)">Lunas (Non-Kas / Tidak Potong Kas Hari Ini)</option>
                     <option value="Hutang / Tempo">Hutang / Tempo (Kredit)</option>
                 </select>
                 <div id="status-bayar-keterangan" class="form-text small mt-1" style="font-size: 0.72rem;">

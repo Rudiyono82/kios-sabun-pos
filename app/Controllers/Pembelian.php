@@ -15,6 +15,7 @@ class Pembelian extends BaseController
         $tglMulai = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
         $tglSelesai = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
         $kodeSupplier = $this->request->getGet('kode_supplier') ?: '';
+        $statusBayar = $this->request->getGet('status_bayar') ?: '';
 
         $builder = $db->table('pembelian')
             ->where("DATE(tanggal) >=", $tglMulai)
@@ -22,6 +23,23 @@ class Pembelian extends BaseController
 
         if (!empty($kodeSupplier)) {
             $builder->where('kode_supplier', $kodeSupplier);
+        }
+
+        if (!empty($statusBayar) && $statusBayar !== 'semua') {
+            if ($statusBayar === 'Lunas') {
+                $builder->groupStart()
+                    ->where('status_bayar', 'Lunas')
+                    ->orWhere('status_bayar', 'Lunas (Tunai)')
+                    ->groupEnd();
+            } elseif ($statusBayar === 'Hutang') {
+                $builder->groupStart()
+                    ->where('status_bayar', 'Hutang')
+                    ->orWhere('status_bayar', 'Tempo')
+                    ->orWhere('status_bayar', 'Hutang / Tempo')
+                    ->groupEnd();
+            } else {
+                $builder->where('status_bayar', $statusBayar);
+            }
         }
 
         $list = $builder->orderBy('id', 'DESC')->get()->getResultArray();
@@ -41,6 +59,7 @@ class Pembelian extends BaseController
             'tgl_mulai' => $tglMulai,
             'tgl_selesai' => $tglSelesai,
             'kode_supplier_selected' => $kodeSupplier,
+            'status_bayar_selected' => $statusBayar,
             'total_biaya' => $totalBiaya,
             'total_nota' => count($list),
         ];
@@ -470,6 +489,71 @@ class Pembelian extends BaseController
                 'hrg_paket_c' => $updateData['hrg_paket_c'] ?? (float)$barang['hrg_paket_c'],
                 'approver' => $approverUser
             ]
+        ]);
+    }
+
+    // 7. Update Status Bayar Transaksi Pembelian (Misal: Ubah ke Lunas Transfer agar Tidak Potong Kas)
+    public function updateStatusBayar()
+    {
+        $db = \Config\Database::connect();
+        $noBeli = trim($this->request->getPost('no_beli') ?? '');
+        $statusBaru = trim($this->request->getPost('status_bayar') ?? '');
+
+        if (empty($noBeli) || empty($statusBaru)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Parameter no_beli dan status_bayar wajib diisi!'
+            ]);
+        }
+
+        $pembelian = $db->table('pembelian')->where('no_beli', $noBeli)->get()->getRowArray();
+        if (!$pembelian) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => "Transaksi pembelian {$noBeli} tidak ditemukan!"
+            ]);
+        }
+
+        $db->transStart();
+
+        // Update status_bayar di master pembelian
+        $db->table('pembelian')->where('no_beli', $noBeli)->update([
+            'status_bayar' => $statusBaru
+        ]);
+
+        // Cek penyesuaian kas di data_keuangan
+        if ($statusBaru === 'Lunas' || $statusBaru === 'Lunas (Tunai)') {
+            // Pastikan ada catatan pengeluaran di buku kas
+            $existingKeu = $db->table('data_keuangan')->like('nama_keuangan', $noBeli)->get()->getRowArray();
+            if (!$existingKeu) {
+                $db->table('data_keuangan')->insert([
+                    'tanggal' => date('Y-m-d H:i:s'),
+                    'jenis_keuangan' => 'Pengeluaran',
+                    'nama_keuangan' => 'Belanja Restock ' . $noBeli,
+                    'total' => (float)$pembelian['total_biaya'],
+                    'keterangan' => 'Supplier: ' . ($pembelian['nama_supplier'] ?: '-') . ' (Tunai Kas Laci)',
+                    'kode_user' => session()->get('kode_user') ?: 'ADMIN'
+                ]);
+            }
+        } else {
+            // Jika Lunas (Transfer), Lunas (Tidak Potong Kas), atau Hutang / Tempo -> HAPUS dari buku kas agar tidak memotong kas fisik laci
+            $db->table('data_keuangan')->like('nama_keuangan', $noBeli)->delete();
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal memperbarui status pembayaran pembelian!'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => "Status pembayaran pembelian {$noBeli} berhasil diubah menjadi '{$statusBaru}'!",
+            'no_beli' => $noBeli,
+            'status_bayar' => $statusBaru
         ]);
     }
 

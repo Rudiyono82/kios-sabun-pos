@@ -100,6 +100,7 @@ $routes->group('pembelian', ['filter' => 'auth'], function($routes) {
     $routes->get('tambah', 'Pembelian::tambah');
     $routes->get('detail/(:segment)', 'Pembelian::detail/$1');
     $routes->post('simpan', 'Pembelian::simpan');
+    $routes->post('update-status-bayar', 'Pembelian::updateStatusBayar');
     $routes->post('update-harga-barang', 'Pembelian::updateHargaBarang');
     $routes->post('hapus/(:segment)', 'Pembelian::hapus/$1', ['filter' => 'admin']);
 });

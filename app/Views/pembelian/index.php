@@ -65,15 +65,15 @@
 <!-- Filter Pembelian -->
 <div class="card-modern p-3 mb-4">
     <form action="<?= base_url('pembelian') ?>" method="GET" class="row g-2 align-items-end">
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <label class="form-label small fw-bold mb-1">Dari Tanggal:</label>
             <input type="date" name="tgl_mulai" class="form-control form-control-sm" value="<?= esc($tgl_mulai) ?>">
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <label class="form-label small fw-bold mb-1">Sampai Tanggal:</label>
             <input type="date" name="tgl_selesai" class="form-control form-control-sm" value="<?= esc($tgl_selesai) ?>">
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
             <label class="form-label small fw-bold mb-1">Filter Supplier:</label>
             <select name="kode_supplier" class="form-select form-select-sm">
                 <option value="">-- Semua Supplier Mitra --</option>
@@ -82,6 +82,16 @@
                         <?= esc($s['nama_supplier']) ?> (<?= esc($s['kode_supplier']) ?>)
                     </option>
                 <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label small fw-bold mb-1">Status Pembayaran:</label>
+            <select name="status_bayar" class="form-select form-select-sm">
+                <option value="">-- Semua Status --</option>
+                <option value="Lunas" <?= ($status_bayar_selected ?? '') === 'Lunas' ? 'selected' : '' ?>>Lunas (Tunai - Potong Kas)</option>
+                <option value="Lunas (Transfer)" <?= ($status_bayar_selected ?? '') === 'Lunas (Transfer)' ? 'selected' : '' ?>>Lunas (Transfer - Tidak Potong Kas)</option>
+                <option value="Lunas (Tidak Potong Kas)" <?= ($status_bayar_selected ?? '') === 'Lunas (Tidak Potong Kas)' ? 'selected' : '' ?>>Lunas (Non-Kas / Tidak Potong Kas)</option>
+                <option value="Hutang" <?= ($status_bayar_selected ?? '') === 'Hutang' ? 'selected' : '' ?>>Hutang / Tempo</option>
             </select>
         </div>
         <div class="col-12 col-md-2 d-flex gap-2">
@@ -123,9 +133,9 @@
                             </td>
                             <td><span class="badge bg-secondary-subtle text-secondary"><?= esc($r['kode_user']) ?></span></td>
                             <td>
-                                <?php if ($r['status_bayar'] === 'Lunas (Transfer)'): ?>
+                                <?php if ($r['status_bayar'] === 'Lunas (Transfer)' || $r['status_bayar'] === 'Lunas (Tidak Potong Kas)'): ?>
                                     <span class="badge bg-info text-dark rounded-pill">
-                                        <i class="bi bi-bank me-1"></i>Lunas (Transfer)
+                                        <i class="bi bi-bank me-1"></i><?= esc($r['status_bayar']) ?>
                                     </span>
                                 <?php elseif ($r['status_bayar'] === 'Lunas' || $r['status_bayar'] === 'Lunas (Tunai)'): ?>
                                     <span class="badge bg-success rounded-pill">
@@ -180,7 +190,12 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <span class="small text-muted d-block">Status Bayar:</span>
-                        <strong class="text-success small" id="detail-status"></strong>
+                        <div class="d-flex align-items-center gap-1 mt-1">
+                            <strong class="text-success small" id="detail-status"></strong>
+                            <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold" id="btn-edit-status-bayar" title="Klik untuk mengubah status pembayaran nota ini" style="font-size: 0.68rem; height: 22px;">
+                                <i class="bi bi-pencil-square me-1"></i>Ubah
+                            </button>
+                        </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <span class="small text-muted d-block">Petugas Kasir:</span>
@@ -250,11 +265,14 @@
                     $('#detail-supplier').text(p.nama_supplier || 'Supplier Umum');
                     if (p.status_bayar === 'Lunas (Transfer)') {
                         $('#detail-status').attr('class', 'text-info small fw-bold').html('<i class="bi bi-bank me-1"></i>Lunas (Transfer)');
+                    } else if (p.status_bayar === 'Lunas (Tidak Potong Kas)') {
+                        $('#detail-status').attr('class', 'text-info small fw-bold').html('<i class="bi bi-wallet2 me-1"></i>Lunas (Tidak Potong Kas)');
                     } else if (p.status_bayar === 'Lunas' || p.status_bayar === 'Lunas (Tunai)') {
                         $('#detail-status').attr('class', 'text-success small fw-bold').html('<i class="bi bi-cash-stack me-1"></i>Lunas (Tunai)');
                     } else {
                         $('#detail-status').attr('class', 'text-warning text-dark small fw-bold').html('<i class="bi bi-clock-history me-1"></i>' + (p.status_bayar || 'Hutang / Tempo'));
                     }
+                    $('#btn-edit-status-bayar').data('nobeli', p.no_beli).data('status', p.status_bayar);
                     $('#detail-petugas').text(p.kode_user);
                     $('#detail-catatan').text(p.catatan || 'Tidak ada catatan.');
                     $('#detail-total-biaya').text('Rp ' + new Intl.NumberFormat('id-ID').format(p.total_biaya));
@@ -286,7 +304,61 @@
             });
         });
 
-        // 2. Klik Hapus Pembelian
+        // 2. Klik Ubah Status Pembayaran
+        $(document).on('click', '#btn-edit-status-bayar', function() {
+            const noBeli = $(this).data('nobeli');
+            const currentStatus = $(this).data('status') || 'Lunas';
+
+            Swal.fire({
+                title: 'Ubah Status Pembayaran',
+                html: `
+                    <div class="text-start small text-muted mb-2">
+                        Pilih status pembayaran baru untuk nota pembelian <strong>${noBeli}</strong>:
+                    </div>
+                    <select id="swal-select-status" class="form-select form-select-sm fw-bold">
+                        <option value="Lunas" ${currentStatus === 'Lunas' || currentStatus === 'Lunas (Tunai)' ? 'selected' : ''}>Lunas (Tunai - Potong Kas Toko)</option>
+                        <option value="Lunas (Transfer)" ${currentStatus === 'Lunas (Transfer)' ? 'selected' : ''}>Lunas (Transfer - TIDAK Potong Kas Toko)</option>
+                        <option value="Lunas (Tidak Potong Kas)" ${currentStatus === 'Lunas (Tidak Potong Kas)' ? 'selected' : ''}>Lunas (Non-Kas / TIDAK Potong Kas)</option>
+                        <option value="Hutang / Tempo" ${currentStatus.indexOf('Hutang') !== -1 || currentStatus.indexOf('Tempo') !== -1 ? 'selected' : ''}>Hutang / Tempo (Kredit)</option>
+                    </select>
+                    <div class="text-start small mt-2 text-danger">
+                        <i class="bi bi-info-circle me-1"></i>Jika diubah ke <strong>Transfer / Tidak Potong Kas</strong>, sistem otomatis membatalkan pemotongan buku kas fisik laci hari ini.
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-check-circle me-1"></i>Simpan Perubahan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#2563eb',
+                preConfirm: () => {
+                    const selected = $('#swal-select-status').val();
+                    if (!selected) {
+                        Swal.showValidationMessage('Silakan pilih status pembayaran!');
+                    }
+                    return selected;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const newStatus = result.value;
+                    $.post('<?= base_url('pembelian/update-status-bayar') ?>', {
+                        no_beli: noBeli,
+                        status_bayar: newStatus
+                    }, function(resp) {
+                        if (resp.status === 'success') {
+                            Swal.fire('Berhasil Diperbarui!', resp.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Gagal!', resp.message || 'Terjadi kesalahan.', 'error');
+                        }
+                    }).fail(function(xhr) {
+                        const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal mengubah status bayar.';
+                        Swal.fire('Error!', err, 'error');
+                    });
+                }
+            });
+        });
+
+        // 3. Klik Hapus Pembelian
         const currentUserRole = '<?= session()->get('role') ?>';
 
         $(document).on('click', '.btn-hapus-pembelian', function() {
