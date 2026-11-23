@@ -107,7 +107,21 @@
                                     <span class="badge bg-light text-muted border">Umum</span>
                                 <?php endif; ?>
                             </td>
-                            <td><span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"><?= esc($p['metode_bayar']) ?></span></td>
+                            <td>
+                                <?php
+                                    $mRaw = trim($p['metode_bayar'] ?? 'Cash');
+                                    $mLower = strtolower($mRaw);
+                                    if (str_contains($mLower, 'qris')) {
+                                        echo '<span class="badge" style="background-color: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; font-weight: 600;"><i class="bi bi-qr-code-scan me-1"></i>QRIS</span>';
+                                    } elseif (str_contains($mLower, 'trf') || str_contains($mLower, 'transfer')) {
+                                        echo '<span class="badge" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 600;"><i class="bi bi-bank me-1"></i>Transfer</span>';
+                                    } elseif (str_contains($mLower, 'debit') || str_contains($mLower, 'edc') || str_contains($mLower, 'kartu')) {
+                                        echo '<span class="badge" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; font-weight: 600;"><i class="bi bi-credit-card me-1"></i>' . esc($mRaw) . '</span>';
+                                    } else {
+                                        echo '<span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 600;"><i class="bi bi-cash-stack me-1"></i>' . esc($mRaw ?: 'Cash') . '</span>';
+                                    }
+                                ?>
+                            </td>
                             <td class="text-center fw-semibold"><?= number_format($p['total_item'], 0, ',', '.') ?></td>
                             <td class="text-end text-success"><?= $p['potongan_tukar_jerigen'] > 0 ? '-Rp ' . number_format($p['potongan_tukar_jerigen'], 0, ',', '.') : '-' ?></td>
                             <td class="text-end fw-bold text-dark">Rp <?= number_format($p['grand_total'], 0, ',', '.') ?></td>

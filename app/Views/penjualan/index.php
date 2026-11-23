@@ -197,9 +197,19 @@
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                    <?= esc($p['metode_bayar'] ?: 'Tunai') ?>
-                                </span>
+                                <?php
+                                    $mRaw = trim($p['metode_bayar'] ?? 'Cash');
+                                    $mLower = strtolower($mRaw);
+                                    if (str_contains($mLower, 'qris')) {
+                                        echo '<span class="badge" style="background-color: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; font-weight: 600;"><i class="bi bi-qr-code-scan me-1"></i>QRIS</span>';
+                                    } elseif (str_contains($mLower, 'trf') || str_contains($mLower, 'transfer')) {
+                                        echo '<span class="badge" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 600;"><i class="bi bi-bank me-1"></i>Transfer</span>';
+                                    } elseif (str_contains($mLower, 'debit') || str_contains($mLower, 'edc') || str_contains($mLower, 'kartu')) {
+                                        echo '<span class="badge" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; font-weight: 600;"><i class="bi bi-credit-card me-1"></i>' . esc($mRaw) . '</span>';
+                                    } else {
+                                        echo '<span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 600;"><i class="bi bi-cash-stack me-1"></i>' . esc($mRaw ?: 'Cash') . '</span>';
+                                    }
+                                ?>
                             </td>
                             <td class="text-center fw-semibold">
                                 <?= number_format($p['total_item'], 0, ',', '.') ?> macam (<?= number_format($p['total_qty'], 0, ',', '.') ?>)
@@ -262,7 +272,7 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <span class="small text-muted d-block">Metode Bayar:</span>
-                        <strong class="text-info small" id="dtl-faktur-metode"></strong>
+                        <span id="dtl-faktur-metode"></span>
                     </div>
                 </div>
 
@@ -328,6 +338,23 @@
     const isAdminUser = <?= (session()->get('role') === 'admin') ? 'true' : 'false' ?>;
 
     /**
+     * Badge visual pembeda metode bayar (QRIS, Cash, Transfer, dsb)
+     */
+    function getMetodeBadge(metode) {
+        const m = (metode || 'Cash').trim();
+        const ml = m.toLowerCase();
+        if (ml.includes('qris')) {
+            return `<span class="badge" style="background-color: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; font-weight: 600;"><i class="bi bi-qr-code-scan me-1"></i>QRIS</span>`;
+        } else if (ml.includes('transfer') || ml.includes('trf')) {
+            return `<span class="badge" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 600;"><i class="bi bi-bank me-1"></i>Transfer</span>`;
+        } else if (ml.includes('debit') || ml.includes('edc') || ml.includes('kartu')) {
+            return `<span class="badge" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; font-weight: 600;"><i class="bi bi-credit-card me-1"></i>${m}</span>`;
+        } else {
+            return `<span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 600;"><i class="bi bi-cash-stack me-1"></i>${m || 'Cash'}</span>`;
+        }
+    }
+
+    /**
      * Render HTML Child Row Data Grid untuk Rincian Faktur Penjualan
      */
     function formatChildRowPenjualan(noFaktur, data) {
@@ -379,7 +406,7 @@
                         <span class="small text-muted"><i class="bi bi-clock me-1"></i>${p.tanggal}</span>
                         <span class="small text-muted"><i class="bi bi-person me-1"></i>Kasir: <strong>${p.kode_user || '-'}</strong></span>
                         ${m ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-star-fill me-1"></i>Member: ${m.nama} (${m.kode_member})</span>` : ''}
-                        <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-wallet2 me-1"></i>${p.metode_bayar || 'Tunai'}</span>
+                        ${getMetodeBadge(p.metode_bayar)}
                     </div>
                     <div class="d-flex align-items-center flex-wrap gap-2">
                         ${badgeList.join(' ')}
@@ -542,7 +569,7 @@
                     $('#dtl-faktur-nofaktur').text(p.no_faktur);
                     $('#dtl-faktur-tgl').text(p.tanggal);
                     $('#dtl-faktur-kasir').text(p.kode_user || '-');
-                    $('#dtl-faktur-metode').text(p.metode_bayar || 'Tunai');
+                    $('#dtl-faktur-metode').html(getMetodeBadge(p.metode_bayar));
 
                     if (m) {
                         $('#dtl-faktur-pembeli').html(`<strong class="text-warning-emphasis">${m.nama}</strong> <small class="text-muted font-monospace d-block">${m.kode_member}</small>`);

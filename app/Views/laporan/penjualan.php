@@ -357,13 +357,16 @@
                             </td>
                             <td class="text-center">
                                 <?php
-                                    $m = strtolower(trim($p['metode_bayar'] ?? 'cash'));
-                                    if (str_contains($m, 'qris')) {
-                                        echo '<span class="badge bg-info text-dark fw-bold">QRIS</span>';
-                                    } elseif (str_contains($m, 'trf') || str_contains($m, 'transfer')) {
-                                        echo '<span class="badge bg-primary fw-bold">Transfer</span>';
+                                    $mRaw = trim($p['metode_bayar'] ?? 'Cash');
+                                    $mLower = strtolower($mRaw);
+                                    if (str_contains($mLower, 'qris')) {
+                                        echo '<span class="badge" style="background-color: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; font-weight: 600;"><i class="bi bi-qr-code-scan me-1"></i>QRIS</span>';
+                                    } elseif (str_contains($mLower, 'trf') || str_contains($mLower, 'transfer')) {
+                                        echo '<span class="badge" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 600;"><i class="bi bi-bank me-1"></i>Transfer</span>';
+                                    } elseif (str_contains($mLower, 'debit') || str_contains($mLower, 'edc') || str_contains($mLower, 'kartu')) {
+                                        echo '<span class="badge" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; font-weight: 600;"><i class="bi bi-credit-card me-1"></i>' . esc($mRaw) . '</span>';
                                     } else {
-                                        echo '<span class="badge bg-success fw-bold">Tunai</span>';
+                                        echo '<span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 600;"><i class="bi bi-cash-stack me-1"></i>' . esc($mRaw ?: 'Cash') . '</span>';
                                     }
                                 ?>
                             </td>
