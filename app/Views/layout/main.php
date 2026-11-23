@@ -924,6 +924,130 @@
         .modal-header-draggable:active {
             cursor: grabbing !important;
         }
+
+        /* ============================================================ */
+        /* HIGH-DENSITY COMPACT UI MODE (INFO LEBIH BANYAK TANPA SCROLL)*/
+        /* ============================================================ */
+        html {
+            font-size: 13.5px;
+        }
+        body {
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        .main-content {
+            padding: 12px 18px !important;
+        }
+        .top-navbar {
+            padding: 5px 18px !important;
+            min-height: 48px !important;
+        }
+        .top-navbar-title {
+            font-size: 1.05rem !important;
+        }
+        .card-modern {
+            padding: 14px 18px;
+            border-radius: 12px !important;
+            margin-bottom: 0.85rem !important;
+        }
+        .card-modern.p-4 {
+            padding: 12px 16px !important;
+        }
+        .card-modern.p-3 {
+            padding: 10px 14px !important;
+        }
+        .card-modern h6,
+        .card-header h6 {
+            font-size: 0.88rem !important;
+            margin-bottom: 0.65rem !important;
+        }
+        h4, .h4 {
+            font-size: 1.15rem !important;
+        }
+        h5, .h5 {
+            font-size: 1.02rem !important;
+        }
+        h6, .h6 {
+            font-size: 0.88rem !important;
+        }
+        .form-label,
+        label:not(.form-check-label):not(.btn) {
+            font-size: 0.77rem !important;
+            margin-bottom: 0.2rem !important;
+        }
+        .form-control,
+        .form-select,
+        .input-group-text {
+            font-size: 0.81rem !important;
+            padding: 0.28rem 0.55rem !important;
+            min-height: 31px !important;
+            border-radius: 6px !important;
+        }
+        .input-group-lg > .form-control,
+        .input-group-lg > .input-group-text {
+            padding: 0.38rem 0.75rem !important;
+            font-size: 1.15rem !important;
+            min-height: 40px !important;
+        }
+        .btn {
+            font-size: 0.79rem !important;
+            padding: 0.28rem 0.70rem !important;
+            border-radius: 6px !important;
+        }
+        .btn-sm {
+            font-size: 0.72rem !important;
+            padding: 0.16rem 0.45rem !important;
+        }
+        .btn-lg {
+            font-size: 0.88rem !important;
+            padding: 0.40rem 0.95rem !important;
+        }
+        .table thead th,
+        table.dataTable thead th {
+            padding: 6px 10px !important;
+            font-size: 0.73rem !important;
+            letter-spacing: 0.35px !important;
+        }
+        .table tbody td,
+        table.dataTable tbody td {
+            padding: 5px 10px !important;
+            font-size: 0.79rem !important;
+        }
+        .select2-container .select2-selection--single {
+            height: 31px !important;
+            padding: 1px 4px !important;
+            font-size: 0.81rem !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            line-height: 27px !important;
+            font-size: 0.81rem !important;
+        }
+        #sidebar {
+            width: 245px !important;
+        }
+        #sidebar .nav-link {
+            padding: 5px 12px !important;
+            font-size: 0.80rem !important;
+        }
+        #sidebar .brand {
+            padding: 12px 14px !important;
+        }
+        #sidebar .brand-badge {
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+        }
+        #sidebar .brand-title {
+            font-size: 0.88rem !important;
+        }
+        #sidebar .menu-header {
+            padding: 6px 12px 2px 12px !important;
+            font-size: 0.68rem !important;
+        }
+        .badge {
+            font-size: 0.72rem !important;
+            padding: 0.22em 0.55em !important;
+        }
     </style>
 </head>
 <body>

@@ -1,48 +1,50 @@
 <?= $this->extend('layout/main') ?>
 
 <?= $this->section('content') ?>
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
     <div>
-        <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-cart-plus-fill text-primary me-2"></i>Input Pembelian Supplier Baru</h4>
-        <p class="text-muted small mb-0">Catat transaksi pembelian bahan baku kimia / kemasan / barang jadi dari supplier dengan pembaruan stok otomatis.</p>
+        <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+            <i class="bi bi-cart-plus-fill text-primary"></i>Input Pembelian Supplier Baru
+        </h5>
+        <span class="text-muted" style="font-size: 0.74rem;">Catat transaksi pembelian bahan baku kimia / kemasan / barang jadi dengan pembaruan stok otomatis.</span>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="$('#btn-simpan-pembelian').click()" title="Simpan transaksi pembelian ini">
-            <i class="bi bi-check-circle-fill"></i> Simpan Transaksi
+        <!-- BOX TOTAL BIAYA PEMBELIAN (Pojok Kanan Atas Sesuai Gambar Petunjuk) -->
+        <div class="card border-0 shadow-sm px-3 py-1 text-end" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac !important; border-radius: 10px; min-width: 250px;">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.68rem; letter-spacing: 0.5px;">TOTAL PEMBELIAN:</span>
+                <span class="badge bg-white text-success border border-success-subtle font-monospace py-0 px-2" id="display-total-item" style="font-size: 0.70rem;">0 Item Masuk</span>
+            </div>
+            <div class="d-flex align-items-baseline justify-content-end gap-1 mt-0">
+                <h3 class="fw-bold text-success mb-0 font-monospace" id="display-total-biaya" style="font-size: 1.55rem; line-height: 1.1;">Rp 0</h3>
+            </div>
+            <div id="beli-pembulatan-info" class="small text-muted d-none font-monospace mt-0" style="font-size: 0.65rem;"></div>
+        </div>
+
+        <!-- Tombol Simpan Transaksi & Kembali -->
+        <button type="button" class="btn btn-success rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-1" id="btn-simpan-pembelian" title="Simpan transaksi pembelian (Shortcut: F9 atau Ctrl+S)">
+            <i class="bi bi-check-circle-fill"></i> Simpan Transaksi <span class="badge bg-white bg-opacity-25 ms-1" style="font-size: 0.68rem;">[F9]</span>
         </button>
-        <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Pembelian
+        <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold" style="font-size: 0.8rem;">
+            <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>
 </div>
 
-<div class="row g-4">
-    <!-- FORM HEADER PEMBELIAN -->
+<div class="row g-2">
+    <!-- FORM INFORMASI FAKTUR SUPPLIER (Kolom Kiri Padat & Ringkas) -->
     <div class="col-12 col-lg-4">
-        <!-- 1. Ringkasan Total Tagihan & Tombol Simpan (Ditaruh di PALING ATAS agar Langsung Kelihatan) -->
-        <div class="card-modern p-4 mb-3 text-center" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #86efac; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15); position: sticky; top: 80px; z-index: 10;">
-            <span class="text-uppercase small fw-bold text-muted" style="letter-spacing: 0.5px;">TOTAL BIAYA PEMBELIAN</span>
-            <h2 class="display-6 fw-bold text-success my-2" id="display-total-biaya">Rp 0</h2>
-            <div id="beli-pembulatan-info" class="small text-muted mb-2 d-none font-monospace"></div>
-            <span class="badge bg-white text-success border border-success-subtle px-3 py-1 font-monospace" id="display-total-item">0 Item Barang Masuk</span>
-            
-            <button type="button" class="btn btn-success btn-lg w-100 rounded-pill py-2 mt-3 fw-bold shadow d-flex align-items-center justify-content-center gap-2" id="btn-simpan-pembelian">
-                <i class="bi bi-check-circle-fill fs-5"></i> Simpan Transaksi Pembelian
-            </button>
-        </div>
-
-        <!-- 2. Informasi Faktur Supplier -->
-        <div class="card-modern p-4 mb-4">
-            <h6 class="fw-bold mb-3 text-dark border-bottom pb-2"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Informasi Faktur Supplier</h6>
-            <div class="mb-3">
+        <div class="card-modern p-3 mb-2">
+            <h6 class="fw-bold mb-2 text-dark border-bottom pb-1" style="font-size: 0.85rem;"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Informasi Faktur Supplier</h6>
+            <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">Nomor Nota Beli</label>
                 <input type="text" id="beli-no-beli" class="form-control form-control-sm font-monospace fw-bold text-primary bg-light" value="<?= esc($no_beli) ?>" readonly>
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">Tanggal Pembelian</label>
                 <input type="date" id="beli-tanggal" class="form-control form-control-sm" value="<?= date('Y-m-d') ?>">
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">Pilih Mitra Supplier <span class="text-danger">*</span></label>
                 <select id="beli-supplier" class="form-select form-select-sm" required>
                     <option value="">-- Pilih Supplier --</option>
@@ -53,7 +55,7 @@
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">Status Pembayaran</label>
                 <select id="beli-status-bayar" class="form-select form-select-sm">
                     <option value="Lunas">Lunas (Potong Kas)</option>
@@ -65,67 +67,78 @@
                 <textarea id="beli-catatan" class="form-control form-control-sm" rows="2" placeholder="No. invoice supplier / ekspedisi / catatan..."></textarea>
             </div>
         </div>
+
+        <div class="card border-0 bg-light p-2 text-muted" style="border-radius: 10px; font-size: 0.72rem;">
+            <div class="d-flex align-items-center gap-1 mb-1 fw-bold text-dark">
+                <i class="bi bi-keyboard-fill text-primary"></i> Shortcut Keyboard Cepat:
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <span><kbd class="bg-secondary">F2</kbd> LookUp Barang</span>
+                <span><kbd class="bg-secondary">Enter</kbd> Tambah Item</span>
+                <span><kbd class="bg-success">F9</kbd> Simpan Transaksi</span>
+            </div>
+        </div>
     </div>
 
     <!-- DAFTAR ITEM BELANJA & INPUT BARANG -->
     <div class="col-12 col-lg-8">
-        <div class="card-modern p-4 mb-4">
-            <h6 class="fw-bold mb-3 text-dark border-bottom pb-2"><i class="bi bi-plus-circle me-2 text-primary"></i>Pilih Barang Masuk / Restock</h6>
+        <div class="card-modern p-3 mb-2">
+            <h6 class="fw-bold mb-2 text-dark border-bottom pb-1" style="font-size: 0.85rem;"><i class="bi bi-plus-circle me-2 text-primary"></i>Pilih Barang Masuk / Restock</h6>
             
             <!-- Baris Kontrol Input Restock (Sejajar Sempurna) -->
             <div class="row g-2 align-items-start">
                 <!-- 1. Cari Produk -->
                 <div class="col-12 col-md-5">
-                    <div class="d-flex justify-content-between align-items-center mb-1" style="height: 22px; line-height: 22px;">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="height: 20px; line-height: 20px;">
                         <label class="form-label small fw-bold mb-0 text-truncate">
                             Cari Produk / Bahan Baku <span class="text-danger">*</span>
                         </label>
-                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold d-flex align-items-center gap-1 shadow-sm" id="btn-open-lookup-beli" style="font-size: 0.75rem; height: 22px;" title="Buka LookUp List of Stock Modal Popup">
-                            <i class="bi bi-card-checklist"></i> LookUp Barang
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold d-flex align-items-center gap-1 shadow-sm" id="btn-open-lookup-beli" style="font-size: 0.72rem; height: 20px;" title="Buka LookUp List of Stock Modal Popup (Shortcut: F2)">
+                            <i class="bi bi-card-checklist"></i> LookUp Barang <span class="badge bg-primary-subtle text-primary py-0 px-1" style="font-size: 0.65rem;">[F2]</span>
                         </button>
                     </div>
-                    <select id="pilih-barang" class="form-select" style="height: 38px;" disabled>
+                    <select id="pilih-barang" class="form-select" style="height: 34px;" disabled>
                         <option value="">-- Wajib Pilih Mitra Supplier Dahulu --</option>
                     </select>
                 </div>
 
                 <!-- 2. Qty Beli -->
                 <div class="col-6 col-md-2">
-                    <label class="form-label small fw-bold mb-1 text-truncate d-block" style="height: 22px; line-height: 22px;">
+                    <label class="form-label small fw-bold mb-1 text-truncate d-block" style="height: 20px; line-height: 20px;">
                         Qty Beli <span class="text-danger">*</span>
                     </label>
-                    <input type="number" id="input-qty-beli" class="form-control text-center fw-bold" style="height: 38px;" value="1" min="0.1" step="any">
+                    <input type="number" id="input-qty-beli" class="form-control text-center fw-bold" style="height: 34px;" value="1" min="0.1" step="any" title="Tekan Enter untuk langsung menambahkan ke keranjang">
                 </div>
 
                 <!-- 3. Harga Beli Modal (Lookup Master) -->
                 <div class="col-6 col-md-3">
-                    <label class="form-label small fw-bold mb-1 text-truncate">
-                        Harga Beli Modal (Lookup)
+                    <label class="form-label small fw-bold mb-1 text-truncate" style="height: 20px; line-height: 20px;">
+                        Harga Modal (Lookup)
                     </label>
-                    <div class="input-group" style="height: 38px;">
-                        <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
-                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control text-end fw-bold bg-light input-currency" style="height: 38px;" placeholder="0" readonly title="Harga modal terisi otomatis dari Master Data Barang (Lookup)">
+                    <div class="input-group" style="height: 34px;">
+                        <span class="input-group-text bg-light text-muted fw-bold py-0 px-2" style="font-size: 0.75rem;">Rp</span>
+                        <input type="text" inputmode="numeric" id="input-harga-beli" class="form-control text-end fw-bold bg-light input-currency" style="height: 34px;" placeholder="0" readonly title="Harga modal terisi otomatis dari Master Data Barang (Lookup)">
                     </div>
                 </div>
 
                 <!-- 4. Tombol Tambah -->
                 <div class="col-12 col-md-2">
-                    <label class="form-label small fw-bold mb-1 d-none d-md-block" style="height: 22px; line-height: 22px; visibility: hidden;">Aksi</label>
-                    <button type="button" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-sm" id="btn-tambah-item" style="height: 38px;">
-                        <i class="bi bi-plus-lg fs-6"></i> Tambah
+                    <label class="form-label small fw-bold mb-1 d-none d-md-block" style="height: 20px; line-height: 20px; visibility: hidden;">Aksi</label>
+                    <button type="button" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-sm" id="btn-tambah-item" style="height: 34px; font-size: 0.78rem;" title="Tambah item ini ke keranjang belanja (Shortcut: Enter)">
+                        <i class="bi bi-plus-lg fs-6"></i> Tambah <span class="badge bg-white bg-opacity-25 py-0 px-1" style="font-size: 0.65rem;">[Enter]</span>
                     </button>
                 </div>
             </div>
 
             <!-- Baris Keterangan & Status (Di Bawah Input agar Seluruh Box Sejajar) -->
-            <div class="row mt-2 g-1 align-items-center">
+            <div class="row mt-1 g-1 align-items-center">
                 <div class="col-12 col-md-8">
-                    <div id="filter-supplier-badge" class="small text-danger fw-semibold" style="font-size: 0.73rem;">
+                    <div id="filter-supplier-badge" class="small text-danger fw-semibold" style="font-size: 0.72rem;">
                         <i class="bi bi-exclamation-circle-fill me-1"></i>Pilih Mitra Supplier di sebelah kiri terlebih dahulu agar daftar produk muncul.
                     </div>
                 </div>
                 <div class="col-12 col-md-4 text-md-end">
-                    <small class="text-muted" style="font-size: 0.70rem;">
+                    <small class="text-muted" style="font-size: 0.68rem;">
                         <i class="bi bi-info-circle-fill text-primary me-1"></i>Harga beli otomatis dari Master Barang (Lookup)
                     </small>
                 </div>
@@ -133,24 +146,24 @@
         </div>
 
         <!-- Tabel Item Pembelian Masuk -->
-        <div class="card-modern p-4">
-            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-basket3 me-2 text-primary"></i>Daftar Barang Masuk (Keranjang Restock)</h6>
-            <div class="table-responsive">
+        <div class="card-modern p-3">
+            <h6 class="fw-bold mb-2 text-dark" style="font-size: 0.85rem;"><i class="bi bi-basket3 me-2 text-primary"></i>Daftar Barang Masuk (Keranjang Restock)</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                 <table class="table table-hover align-middle mb-0" id="table-keranjang-beli">
-                    <thead class="table-light small text-uppercase">
+                    <thead class="table-light small text-uppercase" style="position: sticky; top: 0; z-index: 5;">
                         <tr>
-                            <th style="width: 40px;" class="text-center">No</th>
+                            <th style="width: 35px;" class="text-center">No</th>
                             <th>Barang</th>
-                            <th class="text-center" style="width: 90px;">Qty</th>
-                            <th class="text-end" style="width: 140px;">Harga Beli (Rp)</th>
-                            <th class="text-end" style="width: 150px;">Subtotal (Rp)</th>
-                            <th class="text-center" style="width: 50px;">Aksi</th>
+                            <th class="text-center" style="width: 80px;">Qty</th>
+                            <th class="text-end" style="width: 130px;">Harga Beli (Rp)</th>
+                            <th class="text-end" style="width: 140px;">Subtotal (Rp)</th>
+                            <th class="text-center" style="width: 45px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="keranjang-beli-tbody">
                         <tr id="empty-row-beli">
-                            <td colspan="6" class="text-center text-muted py-5 small">
-                                <i class="bi bi-box-seam fs-1 opacity-25 d-block mb-2"></i>
+                            <td colspan="6" class="text-center text-muted py-4 small">
+                                <i class="bi bi-box-seam fs-2 opacity-25 d-block mb-1"></i>
                                 Keranjang pembelian masih kosong. Silakan pilih produk di atas dan tentukan jumlah serta harga belinya.
                             </td>
                         </tr>
@@ -544,6 +557,37 @@
                     setTimeout(() => $('#input-qty-beli').focus().select(), 250);
                 }
             });
+        });
+
+        // ============================================================
+        // KEYBOARD SHORTCUT TRANSAKSI PEMBELIAN
+        // ============================================================
+        // 1. Enter pada input Qty Beli: langsung klik Tambah Item
+        $('#input-qty-beli').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                $('#btn-tambah-item').trigger('click');
+            }
+        });
+
+        // 2. Global Shortcut: F2 (LookUp Barang), F9 / Ctrl+S (Simpan Transaksi)
+        $(document).on('keydown', function(e) {
+            // Abaikan jika modal SweetAlert sedang terbuka
+            if (Swal.isVisible()) return;
+
+            // F2: Buka LookUp Barang
+            if (e.key === 'F2') {
+                e.preventDefault();
+                $('#btn-open-lookup-beli').trigger('click');
+                return false;
+            }
+
+            // F9 atau Ctrl+S: Simpan Transaksi Pembelian
+            if (e.key === 'F9' || (e.ctrlKey && (e.key === 's' || e.key === 'S'))) {
+                e.preventDefault();
+                $('#btn-simpan-pembelian').trigger('click');
+                return false;
+            }
         });
     });
 </script>
