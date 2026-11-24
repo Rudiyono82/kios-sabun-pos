@@ -197,19 +197,24 @@
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php
-                                    $mRaw = trim($p['metode_bayar'] ?? 'Cash');
-                                    $mLower = strtolower($mRaw);
-                                    if (str_contains($mLower, 'qris')) {
-                                        echo '<span class="badge" style="background-color: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; font-weight: 600;"><i class="bi bi-qr-code-scan me-1"></i>QRIS</span>';
-                                    } elseif (str_contains($mLower, 'trf') || str_contains($mLower, 'transfer')) {
-                                        echo '<span class="badge" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 600;"><i class="bi bi-bank me-1"></i>Transfer</span>';
-                                    } elseif (str_contains($mLower, 'debit') || str_contains($mLower, 'edc') || str_contains($mLower, 'kartu')) {
-                                        echo '<span class="badge" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; font-weight: 600;"><i class="bi bi-credit-card me-1"></i>' . esc($mRaw) . '</span>';
-                                    } else {
-                                        echo '<span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 600;"><i class="bi bi-cash-stack me-1"></i>' . esc($mRaw ?: 'Cash') . '</span>';
-                                    }
-                                ?>
+                                <div class="d-flex align-items-center gap-1">
+                                    <?php
+                                        $mRaw = trim($p['metode_bayar'] ?? 'Cash');
+                                        $mLower = strtolower($mRaw);
+                                        if (str_contains($mLower, 'qris')) {
+                                            echo '<span class="badge" style="background-color: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; font-weight: 600;"><i class="bi bi-qr-code-scan me-1"></i>QRIS</span>';
+                                        } elseif (str_contains($mLower, 'trf') || str_contains($mLower, 'transfer')) {
+                                            echo '<span class="badge" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 600;"><i class="bi bi-bank me-1"></i>Transfer</span>';
+                                        } elseif (str_contains($mLower, 'debit') || str_contains($mLower, 'edc') || str_contains($mLower, 'kartu')) {
+                                            echo '<span class="badge" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; font-weight: 600;"><i class="bi bi-credit-card me-1"></i>' . esc($mRaw) . '</span>';
+                                        } else {
+                                            echo '<span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 600;"><i class="bi bi-cash-stack me-1"></i>' . esc($mRaw ?: 'Cash') . '</span>';
+                                        }
+                                    ?>
+                                    <button type="button" class="btn btn-xs btn-outline-primary py-0 px-1 border-0 btn-trigger-edit-metode" data-nofaktur="<?= esc($p['no_faktur']) ?>" data-metode="<?= esc($p['metode_bayar']) ?>" data-tanggal="<?= esc($p['tanggal']) ?>" title="Ubah Metode Pembayaran" style="font-size: 0.68rem; height: 20px;">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                </div>
                             </td>
                             <td class="text-center fw-semibold">
                                 <?= number_format($p['total_item'], 0, ',', '.') ?> macam (<?= number_format($p['total_qty'], 0, ',', '.') ?>)
@@ -411,7 +416,12 @@
                         <span class="small text-muted"><i class="bi bi-clock me-1"></i>${p.tanggal}</span>
                         <span class="small text-muted"><i class="bi bi-person me-1"></i>Kasir: <strong>${p.kode_user || '-'}</strong></span>
                         ${m ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-star-fill me-1"></i>Member: ${m.nama} (${m.kode_member})</span>` : ''}
-                        ${getMetodeBadge(p.metode_bayar)}
+                        <div class="d-inline-flex align-items-center gap-1">
+                            ${getMetodeBadge(p.metode_bayar)}
+                            <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold btn-trigger-edit-metode" data-nofaktur="${noFaktur}" data-metode="${p.metode_bayar}" data-tanggal="${p.tanggal}" title="Ubah Metode Pembayaran" style="font-size: 0.68rem; height: 22px;">
+                                <i class="bi bi-pencil-square me-1"></i>Ubah
+                            </button>
+                        </div>
                     </div>
                     <div class="d-flex align-items-center flex-wrap gap-2">
                         ${badgeList.join(' ')}
@@ -827,7 +837,7 @@
         }
 
         // Klik Ubah Metode Bayar Faktur Penjualan
-        $(document).on('click', '#btn-edit-metode-bayar', function() {
+        $(document).on('click', '#btn-edit-metode-bayar, .btn-trigger-edit-metode', function() {
             const noFaktur = $(this).data('nofaktur');
             const currentMetode = $(this).data('metode') || 'Cash';
             const tglNotaRaw = $(this).data('tanggal') || '';
