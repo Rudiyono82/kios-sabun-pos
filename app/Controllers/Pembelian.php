@@ -536,6 +536,22 @@ class Pembelian extends BaseController
             ]);
         }
 
+        $isCurrentAdmin = (session()->get('role') === 'admin');
+        $tglBeli = substr($pembelian['tanggal'], 0, 10);
+        $today = date('Y-m-d');
+        $isPastDate = ($tglBeli < $today);
+
+        // Jika nota bertanggal lampau dan bukan admin, wajib verifikasi password admin
+        if ($isPastDate && !$isCurrentAdmin) {
+            $passwordAdmin = trim($this->request->getPost('password_admin') ?? '');
+            if (!$this->verifySuperAdminPassword($passwordAdmin)) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Otorisasi ditolak! Password Admin/Owner salah. Mengubah status pembayaran nota tanggal lampau (' . date('d/m/Y', strtotime($tglBeli)) . ') memerlukan persetujuan Admin/Owner.'
+                ]);
+            }
+        }
+
         $db->transStart();
 
         // Update status_bayar di master pembelian
@@ -548,8 +564,11 @@ class Pembelian extends BaseController
             // Pastikan ada catatan pengeluaran di buku kas
             $existingKeu = $db->table('data_keuangan')->like('nama_keuangan', $noBeli)->get()->getRowArray();
             if (!$existingKeu) {
+                $opsiTgl = $this->request->getPost('tgl_potong_kas') ?? 'hari_ini';
+                $tglBayar = ($opsiTgl === 'tgl_nota') ? $pembelian['tanggal'] : date('Y-m-d H:i:s');
+
                 $db->table('data_keuangan')->insert([
-                    'tanggal' => date('Y-m-d H:i:s'),
+                    'tanggal' => $tglBayar,
                     'jenis_keuangan' => 'Pengeluaran',
                     'nama_keuangan' => 'Belanja Restock ' . $noBeli,
                     'total' => (float)$pembelian['total_biaya'],
@@ -561,6 +580,17 @@ class Pembelian extends BaseController
         } else {
             // Jika Lunas (Transfer), Lunas (Tidak Potong Kas), atau Hutang / Tempo -> HAPUS dari buku kas agar tidak memotong kas fisik laci
             $db->table('data_keuangan')->like('nama_keuangan', $noBeli)->delete();
+        }
+
+        if ($isPastDate) {
+            \App\Models\AuditLogModel::log(
+                'UBAH_STATUS_BAYAR_LAMPAU',
+                'PEMBELIAN',
+                "Perubahan status bayar nota lampau {$noBeli} (tgl: {$tglBeli}) menjadi '{$statusBaru}' oleh " . (session()->get('nama_user') ?? 'User') . ($isCurrentAdmin ? ' (Admin Langsung)' : ' (Otorisasi Password Admin)'),
+                null,
+                ['no_beli' => $noBeli, 'status_baru' => $statusBaru, 'tgl_nota' => $tglBeli],
+                (int)($pembelian['id_cabang'] ?? 1)
+            );
         }
 
         $db->transComplete();

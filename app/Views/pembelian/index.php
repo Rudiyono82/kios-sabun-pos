@@ -469,7 +469,7 @@
                     } else {
                         $('#detail-status').attr('class', 'text-warning text-dark small fw-bold').html('<i class="bi bi-clock-history me-1"></i>' + (p.status_bayar || 'Hutang / Tempo'));
                     }
-                    $('#btn-edit-status-bayar').data('nobeli', p.no_beli).data('status', p.status_bayar);
+                    $('#btn-edit-status-bayar').data('nobeli', p.no_beli).data('status', p.status_bayar).data('tanggal', p.tanggal);
                     $('#detail-petugas').text(p.kode_user);
                     $('#detail-catatan').text(p.catatan || 'Tidak ada catatan.');
                     $('#detail-total-biaya').text('Rp ' + new Intl.NumberFormat('id-ID').format(p.total_biaya));
@@ -505,10 +505,54 @@
         $(document).on('click', '#btn-edit-status-bayar', function() {
             const noBeli = $(this).data('nobeli');
             const currentStatus = $(this).data('status') || 'Lunas';
+            const tglNotaRaw = $(this).data('tanggal') || '';
+            const tglNota = tglNotaRaw ? tglNotaRaw.substring(0, 10) : '';
+            const todayStr = '<?= date('Y-m-d') ?>';
+            const isPastDate = tglNota && (tglNota < todayStr);
+            const isAdmin = <?= (session()->get('role') === 'admin') ? 'true' : 'false' ?>;
+
+            let warningHtml = '';
+            if (isPastDate) {
+                warningHtml = `
+                    <div class="alert alert-warning py-2 px-3 small text-start mb-3 d-flex align-items-center gap-2 border-warning shadow-sm">
+                        <i class="bi bi-shield-lock-fill text-warning fs-4"></i>
+                        <div>
+                            <strong class="text-dark">Nota Tanggal Lampau (${tglNota})</strong><br>
+                            <span class="text-muted">Perubahan transaksi hari lampau ${isAdmin ? 'akan dicatat ke Audit Log.' : '<strong class="text-danger">memerlukan Password Otorisasi Admin / Owner!</strong>'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let passwordHtml = '';
+            if (isPastDate && !isAdmin) {
+                passwordHtml = `
+                    <div class="text-start mt-3 p-2 bg-light rounded border border-danger">
+                        <label class="small fw-bold text-danger d-block mb-1">
+                            <i class="bi bi-key-fill me-1"></i>Password Otorisasi Admin / Owner <span class="text-danger">*</span>:
+                        </label>
+                        <input type="password" id="swal-password-admin" class="form-control form-control-sm" placeholder="Masukkan password Admin / Owner...">
+                        <small class="text-muted" style="font-size: 0.72rem;">Wajib otorisasi Admin untuk mengubah transaksi yang sudah tutup hari.</small>
+                    </div>
+                `;
+            }
+
+            let tglPotongHtml = `
+                <div id="wrapper-tgl-potong" class="text-start mt-2" style="${(currentStatus.indexOf('Lunas') !== -1 && currentStatus.indexOf('Transfer') === -1) ? '' : 'display: none;'}">
+                    <label class="small fw-bold text-muted mb-1">
+                        <i class="bi bi-calendar2-check text-primary me-1"></i>Pemotongan Buku Kas Fisik:
+                    </label>
+                    <select id="swal-tgl-potong" class="form-select form-select-sm">
+                        <option value="hari_ini">Potong Kas Hari Ini (<?= date('d/m/Y') ?>) - Rekomendasi Kas Riil</option>
+                        <option value="tgl_nota">Potong Kas di Tanggal Nota (${tglNota}) - Koreksi Riwayat</option>
+                    </select>
+                </div>
+            `;
 
             Swal.fire({
                 title: 'Ubah Status Pembayaran',
                 html: `
+                    ${warningHtml}
                     <div class="text-start small text-muted mb-2">
                         Pilih status pembayaran baru untuk nota pembelian <strong>${noBeli}</strong>:
                     </div>
@@ -518,10 +562,22 @@
                         <option value="Lunas (Tidak Potong Kas)" ${currentStatus === 'Lunas (Tidak Potong Kas)' ? 'selected' : ''}>Lunas (Non-Kas / TIDAK Potong Kas)</option>
                         <option value="Hutang / Tempo" ${currentStatus.indexOf('Hutang') !== -1 || currentStatus.indexOf('Tempo') !== -1 ? 'selected' : ''}>Hutang / Tempo (Kredit)</option>
                     </select>
+                    ${tglPotongHtml}
                     <div class="text-start small mt-2 text-danger">
-                        <i class="bi bi-info-circle me-1"></i>Jika diubah ke <strong>Transfer / Tidak Potong Kas</strong>, sistem otomatis membatalkan pemotongan buku kas fisik laci hari ini.
+                        <i class="bi bi-info-circle me-1"></i>Jika diubah ke <strong>Transfer / Tidak Potong Kas</strong>, sistem otomatis membatalkan pemotongan buku kas laci.
                     </div>
+                    ${passwordHtml}
                 `,
+                didOpen: () => {
+                    $('#swal-select-status').on('change', function() {
+                        const val = $(this).val();
+                        if (val === 'Lunas') {
+                            $('#wrapper-tgl-potong').slideDown(150);
+                        } else {
+                            $('#wrapper-tgl-potong').slideUp(150);
+                        }
+                    });
+                },
                 showCancelButton: true,
                 confirmButtonText: '<i class="bi bi-check-circle me-1"></i>Simpan Perubahan',
                 cancelButtonText: 'Batal',
@@ -530,16 +586,29 @@
                     const selected = $('#swal-select-status').val();
                     if (!selected) {
                         Swal.showValidationMessage('Silakan pilih status pembayaran!');
+                        return false;
                     }
-                    return selected;
+                    const pwd = $('#swal-password-admin').length ? $('#swal-password-admin').val() : '';
+                    if (isPastDate && !isAdmin && !pwd) {
+                        Swal.showValidationMessage('Password otorisasi Admin / Owner wajib diisi!');
+                        return false;
+                    }
+                    const tglPotong = $('#swal-tgl-potong').val() || 'hari_ini';
+                    return {
+                        status: selected,
+                        password_admin: pwd,
+                        tgl_potong_kas: tglPotong
+                    };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    const newStatus = result.value;
-                    $.post('<?= base_url('pembelian/update-status-bayar') ?>', {
+                    const payload = {
                         no_beli: noBeli,
-                        status_bayar: newStatus
-                    }, function(resp) {
+                        status_bayar: result.value.status,
+                        password_admin: result.value.password_admin,
+                        tgl_potong_kas: result.value.tgl_potong_kas
+                    };
+                    $.post('<?= base_url('pembelian/update-status-bayar') ?>', payload, function(resp) {
                         if (resp.status === 'success') {
                             Swal.fire('Berhasil Diperbarui!', resp.message, 'success').then(() => {
                                 location.reload();
@@ -549,7 +618,7 @@
                         }
                     }).fail(function(xhr) {
                         const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal mengubah status bayar.';
-                        Swal.fire('Error!', err, 'error');
+                        Swal.fire('Otorisasi Ditolak!', err, 'error');
                     });
                 }
             });
