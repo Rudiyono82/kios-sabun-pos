@@ -696,6 +696,28 @@ try {
         ");
         echo "[MIGRATION] Historical `total_profit` in `penjualan` synchronized successfully.\n";
 
+        // 4. Sinkronisasi saldo poin dan total_belanja seluruh member dari riwayat penjualan
+        echo "[MIGRATION] Synchronizing member reward points and total belanja from sales...\n";
+        $pdo->exec("
+            UPDATE `member` m
+            JOIN (
+                SELECT p.kode_member, 
+                       SUM(p.grand_total) AS tot_blj,
+                       FLOOR(SUM(p.grand_total) / 10000) AS tot_earned
+                FROM `penjualan` p
+                WHERE p.kode_member IS NOT NULL AND p.kode_member != ''
+                GROUP BY p.kode_member
+            ) sal ON m.kode_member = sal.kode_member
+            LEFT JOIN (
+                SELECT kode_member, SUM(point_ditukar) AS tot_used
+                FROM `voucher`
+                GROUP BY kode_member
+            ) vch ON m.kode_member = vch.kode_member
+            SET m.total_belanja = sal.tot_blj,
+                m.point = GREATEST(0, sal.tot_earned - COALESCE(vch.tot_used, 0));
+        ");
+        echo "[MIGRATION] Member points and total belanja synchronized successfully.\n";
+
     } catch (Exception $e) {
         echo "[MIGRATION NOTICE] Purchase stock reconciliation warning: " . $e->getMessage() . "\n";
     }
