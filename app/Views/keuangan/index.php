@@ -109,9 +109,9 @@
         <div class="col-12 col-md-3">
             <label class="small fw-bold text-muted"><i class="bi bi-shop me-1 text-primary"></i>Cabang Operasional</label>
             <select name="id_cabang" class="form-select form-select-sm">
-                <option value="semua">-- Semua Cabang --</option>
+                <option value="semua" <?= ($filter_cabang === 'semua') ? 'selected' : '' ?>>-- Semua Cabang --</option>
                 <?php foreach ($cabang_list as $cb): ?>
-                    <option value="<?= $cb['id'] ?>" <?= ($filter_cabang == $cb['id']) ? 'selected' : '' ?>>
+                    <option value="<?= $cb['id'] ?>" <?= ((string)$filter_cabang === (string)$cb['id']) ? 'selected' : '' ?>>
                         <?= esc($cb['nama_cabang']) ?>
                     </option>
                 <?php endforeach; ?>
@@ -126,10 +126,13 @@
             </div>
         </div>
         <?php endif; ?>
-        <div class="col-12 col-md-3 mt-md-4">
-            <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill">
+        <div class="col-12 col-md-3 mt-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill fw-semibold">
                 <i class="bi bi-funnel me-1"></i> Terapkan Filter
             </button>
+            <a href="<?= base_url('keuangan') ?>" class="btn btn-outline-secondary btn-sm rounded-pill" title="Reset Filter">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </a>
         </div>
     </form>
 

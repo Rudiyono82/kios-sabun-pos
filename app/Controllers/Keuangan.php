@@ -11,12 +11,17 @@ class Keuangan extends BaseController
         $db = \Config\Database::connect();
         $keuanganModel = new KeuanganModel();
 
-        $tglMulai = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        // Default filter per hari ini (today) dan cabang saat ini login
+        $tglMulai = $this->request->getGet('tgl_mulai') ?: date('Y-m-d');
         $tglSelesai = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
 
         $isAdmin = (session()->get('role') === 'admin');
         $userCabangId = (int)(session()->get('id_cabang') ?: 1);
         $filterCabang = $this->request->getGet('id_cabang');
+
+        if ($filterCabang === null) {
+            $filterCabang = $userCabangId;
+        }
 
         $kategoriList = $db->table('kategori_keuangan')->where('is_active', 1)->orderBy('nama_kategori', 'ASC')->get()->getResultArray();
 
@@ -28,7 +33,7 @@ class Keuangan extends BaseController
         if (!$isAdmin) {
             $builder->where('id_cabang', $userCabangId);
         } else {
-            if (!empty($filterCabang) && $filterCabang !== 'semua') {
+            if ($filterCabang !== 'semua' && !empty($filterCabang)) {
                 $builder->where('id_cabang', (int)$filterCabang);
             }
         }
@@ -53,7 +58,7 @@ class Keuangan extends BaseController
         }
 
         // Hitung Saldo Kas Hari Ini terisolasi per cabang
-        $ringkasanHariIni = $keuanganModel->getRingkasanHariIni($isAdmin && empty($filterCabang) ? null : ($isAdmin ? (int)$filterCabang : $userCabangId));
+        $ringkasanHariIni = $keuanganModel->getRingkasanHariIni($isAdmin && $filterCabang === 'semua' ? null : ($isAdmin ? (int)$filterCabang : $userCabangId));
 
         // Hitung Laba Bersih Periode ini (Khusus Admin)
         $penjualanBuilder = $db->table('penjualan')
@@ -64,7 +69,7 @@ class Keuangan extends BaseController
         if (!$isAdmin) {
             $penjualanBuilder->where('id_cabang', $userCabangId);
         } else {
-            if (!empty($filterCabang) && $filterCabang !== 'semua') {
+            if ($filterCabang !== 'semua' && !empty($filterCabang)) {
                 $penjualanBuilder->where('id_cabang', (int)$filterCabang);
             }
         }
