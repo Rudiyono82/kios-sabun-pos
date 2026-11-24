@@ -272,7 +272,12 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <span class="small text-muted d-block">Metode Bayar:</span>
-                        <span id="dtl-faktur-metode"></span>
+                        <div class="d-flex align-items-center gap-1 mt-1">
+                            <span id="dtl-faktur-metode"></span>
+                            <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold" id="btn-edit-metode-bayar" title="Klik untuk mengubah metode pembayaran faktur ini" style="font-size: 0.68rem; height: 22px;">
+                                <i class="bi bi-pencil-square me-1"></i>Ubah
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -570,6 +575,7 @@
                     $('#dtl-faktur-tgl').text(p.tanggal);
                     $('#dtl-faktur-kasir').text(p.kode_user || '-');
                     $('#dtl-faktur-metode').html(getMetodeBadge(p.metode_bayar));
+                    $('#btn-edit-metode-bayar').data('nofaktur', p.no_faktur).data('metode', p.metode_bayar).data('tanggal', p.tanggal);
 
                     if (m) {
                         $('#dtl-faktur-pembeli').html(`<strong class="text-warning-emphasis">${m.nama}</strong> <small class="text-muted font-monospace d-block">${m.kode_member}</small>`);
@@ -819,6 +825,98 @@
                 Swal.fire('Akses Ditolak!', err, 'error');
             });
         }
+
+        // Klik Ubah Metode Bayar Faktur Penjualan
+        $(document).on('click', '#btn-edit-metode-bayar', function() {
+            const noFaktur = $(this).data('nofaktur');
+            const currentMetode = $(this).data('metode') || 'Cash';
+            const tglNotaRaw = $(this).data('tanggal') || '';
+            const tglNota = tglNotaRaw ? tglNotaRaw.substring(0, 10) : '';
+            const todayStr = '<?= date('Y-m-d') ?>';
+            const isPastDate = tglNota && (tglNota < todayStr);
+            const isAdmin = <?= (session()->get('role') === 'admin') ? 'true' : 'false' ?>;
+
+            let warningHtml = '';
+            if (isPastDate) {
+                warningHtml = `
+                    <div class="alert alert-warning py-2 px-3 small text-start mb-3 d-flex align-items-center gap-2 border-warning">
+                        <i class="bi bi-shield-lock-fill text-warning fs-4"></i>
+                        <div>
+                            <strong class="text-dark">Faktur Tanggal Lampau (${tglNota})</strong><br>
+                            <span class="text-muted">Perubahan transaksi hari lampau ${isAdmin ? 'diawasi dan dicatat di Log Audit.' : '<strong class="text-danger">memerlukan Password Otorisasi Admin!</strong>'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let passwordHtml = '';
+            if (isPastDate && !isAdmin) {
+                passwordHtml = `
+                    <div class="text-start mt-3 p-2 bg-light rounded border border-danger">
+                        <label class="small fw-bold text-danger d-block mb-1">
+                            <i class="bi bi-key-fill me-1"></i>Password Otorisasi Admin / Owner <span class="text-danger">*</span>:
+                        </label>
+                        <input type="password" id="swal-password-admin-metode" class="form-control form-control-sm" placeholder="Masukkan password Admin...">
+                    </div>
+                `;
+            }
+
+            Swal.fire({
+                title: 'Ubah Metode Pembayaran',
+                html: `
+                    ${warningHtml}
+                    <div class="text-start small text-muted mb-2">
+                        Pilih metode pembayaran baru untuk faktur <strong>${noFaktur}</strong>:
+                    </div>
+                    <select id="swal-select-metode" class="form-select form-select-sm fw-bold">
+                        <option value="QRIS" ${currentMetode.toUpperCase() === 'QRIS' ? 'selected' : ''}>QRIS</option>
+                        <option value="Cash" ${currentMetode.toUpperCase() === 'CASH' || currentMetode.toUpperCase() === 'TUNAI' ? 'selected' : ''}>Cash / Tunai</option>
+                        <option value="Transfer" ${currentMetode.toUpperCase().indexOf('TRF') !== -1 || currentMetode.toUpperCase().indexOf('TRANSFER') !== -1 ? 'selected' : ''}>Transfer Bank</option>
+                        <option value="Debit" ${currentMetode.toUpperCase() === 'DEBIT' ? 'selected' : ''}>Kartu Debit</option>
+                    </select>
+                    ${passwordHtml}
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-check-circle me-1"></i>Simpan Perubahan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#2563eb',
+                preConfirm: () => {
+                    const selected = $('#swal-select-metode').val();
+                    if (!selected) {
+                        Swal.showValidationMessage('Silakan pilih metode pembayaran!');
+                        return false;
+                    }
+                    const pwd = $('#swal-password-admin-metode').length ? $('#swal-password-admin-metode').val() : '';
+                    if (isPastDate && !isAdmin && !pwd) {
+                        Swal.showValidationMessage('Password otorisasi Admin wajib diisi!');
+                        return false;
+                    }
+                    return {
+                        metode: selected,
+                        password_admin: pwd
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('<?= base_url('penjualan/update-metode-bayar') ?>', {
+                        no_faktur: noFaktur,
+                        metode_bayar: result.value.metode,
+                        password_admin: result.value.password_admin
+                    }, function(resp) {
+                        if (resp.status === 'success') {
+                            Swal.fire('Berhasil!', resp.message, 'success').then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire('Gagal!', resp.message || 'Terjadi kesalahan.', 'error');
+                        }
+                    }).fail(function(xhr) {
+                        const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal mengubah metode bayar.';
+                        Swal.fire('Otorisasi Ditolak!', err, 'error');
+                    });
+                }
+            });
+        });
     });
 </script>
 <?= $this->endSection() ?>

@@ -718,6 +718,22 @@ try {
         ");
         echo "[MIGRATION] Member points and total belanja synchronized successfully.\n";
 
+        // 5. Koreksi Spesifik Faktur J2611240029 (Metode Bayar: Cash -> QRIS)
+        echo "[MIGRATION] Applying payment method correction for invoice J2611240029 to QRIS...\n";
+        $pdo->exec("
+            UPDATE `penjualan` 
+            SET `metode_bayar` = 'QRIS', 
+                `bayar` = `grand_total`, 
+                `kembalian` = 0 
+            WHERE `no_faktur` = 'J2611240029';
+        ");
+        $pdo->exec("
+            UPDATE `data_keuangan` 
+            SET `nama_keuangan` = REPLACE(`nama_keuangan`, '(Cash)', '(QRIS)') 
+            WHERE `nama_keuangan` LIKE '%J2611240029%';
+        ");
+        echo "[MIGRATION] Invoice J2611240029 updated to QRIS successfully in MySQL.\n";
+
     } catch (Exception $e) {
         echo "[MIGRATION NOTICE] Purchase stock reconciliation warning: " . $e->getMessage() . "\n";
     }

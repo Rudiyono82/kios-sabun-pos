@@ -417,6 +417,89 @@ class Penjualan extends BaseController
         ]);
     }
 
+    // Update Metode Pembayaran Faktur Penjualan (Misal: Cash -> QRIS atau sebaliknya)
+    public function updateMetodeBayar()
+    {
+        $db = \Config\Database::connect();
+        $noFaktur = trim($this->request->getPost('no_faktur') ?? '');
+        $metodeBaru = trim($this->request->getPost('metode_bayar') ?? '');
+
+        if (empty($noFaktur) || empty($metodeBaru)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Parameter no_faktur dan metode_bayar wajib diisi!'
+            ]);
+        }
+
+        $penjualan = $db->table('penjualan')->where('no_faktur', $noFaktur)->get()->getRowArray();
+        if (!$penjualan) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => "Faktur penjualan {$noFaktur} tidak ditemukan!"
+            ]);
+        }
+
+        $isCurrentAdmin = (session()->get('role') === 'admin');
+        $tglFaktur = substr($penjualan['tanggal'], 0, 10);
+        $today = date('Y-m-d');
+        $isPastDate = ($tglFaktur < $today);
+
+        // Jika transaksi hari lampau dan bukan admin, wajib otorisasi password admin
+        if ($isPastDate && !$isCurrentAdmin) {
+            $passwordAdmin = trim($this->request->getPost('password_admin') ?? '');
+            if (!$this->verifySuperAdminPassword($passwordAdmin)) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Otorisasi ditolak! Password Admin/Owner salah. Koreksi transaksi tanggal lampau memerlukan izin Admin.'
+                ]);
+            }
+        }
+
+        $db->transStart();
+
+        $updateData = ['metode_bayar' => $metodeBaru];
+        if ($metodeBaru === 'QRIS' || $metodeBaru === 'Transfer' || $metodeBaru === 'Debit') {
+            $updateData['bayar'] = (float)$penjualan['grand_total'];
+            $updateData['kembalian'] = 0;
+        }
+
+        $db->table('penjualan')->where('no_faktur', $noFaktur)->update($updateData);
+
+        // Update keterangan di data_keuangan jika ada
+        $existingKeu = $db->table('data_keuangan')->like('nama_keuangan', $noFaktur)->get()->getRowArray();
+        if ($existingKeu) {
+            $namaKeuBaru = 'Penjualan ' . $noFaktur . ' (' . $metodeBaru . ')';
+            $db->table('data_keuangan')->where('id', $existingKeu['id'])->update([
+                'nama_keuangan' => $namaKeuBaru
+            ]);
+        }
+
+        \App\Models\AuditLogModel::log(
+            'UBAH_METODE_BAYAR',
+            'PENJUALAN',
+            "Ubah metode bayar faktur {$noFaktur} dari '{$penjualan['metode_bayar']}' menjadi '{$metodeBaru}' oleh " . (session()->get('nama_user') ?? 'User') . ($isCurrentAdmin ? ' (Admin)' : ' (Kasir)'),
+            null,
+            ['no_faktur' => $noFaktur, 'metode_lama' => $penjualan['metode_bayar'], 'metode_baru' => $metodeBaru],
+            (int)($penjualan['id_cabang'] ?? 1)
+        );
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal memperbarui metode bayar faktur!'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => "Metode pembayaran faktur {$noFaktur} berhasil diubah menjadi {$metodeBaru}!",
+            'no_faktur' => $noFaktur,
+            'metode_bayar' => $metodeBaru
+        ]);
+    }
+
     // Helper Otorisasi Password Super Admin
     private function verifySuperAdminPassword($password)
     {

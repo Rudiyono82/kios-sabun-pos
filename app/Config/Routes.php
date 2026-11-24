@@ -120,6 +120,7 @@ $routes->group('penjualan', ['filter' => 'auth'], function($routes) {
     $routes->get('detail/(:segment)', 'Penjualan::detail/$1');
     $routes->post('hapus-item/(:num)', 'Penjualan::hapusItem/$1');
     $routes->post('hapus/(:segment)', 'Penjualan::hapus/$1');
+    $routes->post('update-metode-bayar', 'Penjualan::updateMetodeBayar');
 });
 
 // Cetak Barcode & Label Rak
