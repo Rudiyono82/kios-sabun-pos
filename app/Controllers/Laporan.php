@@ -16,6 +16,10 @@ class Laporan extends BaseController
         $userCabangId = (int)(session()->get('id_cabang') ?: 1);
         $filterCabang = $this->request->getGet('id_cabang');
 
+        if ($filterCabang === null) {
+            $filterCabang = $userCabangId;
+        }
+
         $pBuilder = $db->table('penjualan')->where("DATE(tanggal)", $tgl);
         $kBuilder = $db->table('data_keuangan')->where("DATE(tanggal)", $tgl);
 
@@ -23,7 +27,7 @@ class Laporan extends BaseController
             $pBuilder->where('id_cabang', $userCabangId);
             $kBuilder->where('id_cabang', $userCabangId);
         } else {
-            if (!empty($filterCabang) && $filterCabang !== 'semua') {
+            if ($filterCabang !== 'semua' && !empty($filterCabang)) {
                 $pBuilder->where('id_cabang', (int)$filterCabang);
                 $kBuilder->where('id_cabang', (int)$filterCabang);
             }
@@ -355,7 +359,7 @@ class Laporan extends BaseController
                       SUM(b.stok * b.harga_beli) as total_hpp,
                       SUM(b.stok * b.harga_jual) as total_jual")
             ->join('kategori k', 'k.id = b.kategori_id', 'left')
-            ->groupBy('b.kategori_id')
+            ->groupBy('b.kategori_id, k.nama_kategori')
             ->orderBy('total_hpp', 'DESC')
             ->get()->getResultArray();
 
@@ -654,7 +658,7 @@ class Laporan extends BaseController
     {
         $db = \Config\Database::connect();
 
-        $tglMulai     = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        $tglMulai     = $this->request->getGet('tgl_mulai') ?: date('Y-m-d');
         $tglSelesai   = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
         $metodeBayar  = $this->request->getGet('metode_bayar') ?: 'semua';
         $kasir        = $this->request->getGet('kasir') ?: 'semua';
@@ -665,6 +669,10 @@ class Laporan extends BaseController
         $userCabangId = (int)(session()->get('id_cabang') ?: 1);
         $filterCabang = $this->request->getGet('id_cabang');
 
+        if ($filterCabang === null) {
+            $filterCabang = $userCabangId;
+        }
+
         // Daftar Kasir untuk Dropdown Filter terisolasi per cabang
         $kasirBuilder = $db->table('penjualan')
             ->select('kode_user, nama_kasir');
@@ -673,7 +681,7 @@ class Laporan extends BaseController
         } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
             $kasirBuilder->where('id_cabang', (int)$filterCabang);
         }
-        $kasirList = $kasirBuilder->groupBy('kode_user')->get()->getResultArray();
+        $kasirList = $kasirBuilder->groupBy(['kode_user', 'nama_kasir'])->get()->getResultArray();
 
         $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
         $cabangList = $isAdmin ? $db->table('cabang')->where('status', 'Aktif')->orderBy('id', 'ASC')->get()->getResultArray() : [];
@@ -711,7 +719,7 @@ class Laporan extends BaseController
                     ->groupEnd();
             }
 
-            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang, b.satuan, b.kategori_id, k.nama_kategori')
                 ->orderBy('total_omzet', 'DESC')
                 ->get()->getResultArray();
 
@@ -904,7 +912,7 @@ class Laporan extends BaseController
                 $builder->groupStart()->like('pd.nama_barang', $q)->orLike('pd.id_barang', $q)->groupEnd();
             }
 
-            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori')
                 ->orderBy('total_omzet', 'DESC')
                 ->get()->getResultArray();
 
@@ -997,7 +1005,7 @@ class Laporan extends BaseController
                 $builder->groupStart()->like('pd.nama_barang', $q)->orLike('pd.id_barang', $q)->groupEnd();
             }
 
-            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori')
                 ->orderBy('total_omzet', 'DESC')
                 ->get()->getResultArray();
 
@@ -1101,7 +1109,7 @@ class Laporan extends BaseController
                     ->groupEnd();
             }
 
-            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori')
                 ->orderBy('total_biaya', 'DESC')
                 ->get()->getResultArray();
 
@@ -1256,7 +1264,7 @@ class Laporan extends BaseController
                 $builder->groupStart()->like('pd.nama_barang', $q)->orLike('pd.id_barang', $q)->groupEnd();
             }
 
-            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori')
                 ->orderBy('total_biaya', 'DESC')
                 ->get()->getResultArray();
 
@@ -1330,7 +1338,7 @@ class Laporan extends BaseController
                 $builder->groupStart()->like('pd.nama_barang', $q)->orLike('pd.id_barang', $q)->groupEnd();
             }
 
-            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang')
+            $listBarang = $builder->groupBy('pd.id_barang, pd.nama_barang, b.satuan, k.nama_kategori')
                 ->orderBy('total_biaya', 'DESC')
                 ->get()->getResultArray();
 

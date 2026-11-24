@@ -23,7 +23,7 @@ class Karyawan extends BaseController
                 COALESCE(SUM(p.grand_total), 0) as total_omzet_kasir')
             ->join('cabang c', 'c.id = u.id_cabang', 'left')
             ->join('penjualan p', 'p.kode_user = u.kode_user', 'left')
-            ->groupBy('u.id')
+            ->groupBy('u.id, c.nama_cabang, c.kode_cabang')
             ->orderBy('u.role', 'ASC')
             ->orderBy('u.kode_user', 'ASC')
             ->get()->getResultArray();

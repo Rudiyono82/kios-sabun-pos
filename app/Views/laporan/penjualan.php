@@ -61,9 +61,9 @@
                     <i class="bi bi-shop me-1 text-primary"></i>Cabang Operasional:
                 </label>
                 <select name="id_cabang" class="form-select select2 fw-semibold">
-                    <option value="semua">-- Semua Cabang --</option>
+                    <option value="semua" <?= ($filter_cabang === 'semua') ? 'selected' : '' ?>>-- Semua Cabang --</option>
                     <?php foreach ($cabang_list as $cb): ?>
-                        <option value="<?= $cb['id'] ?>" <?= ($filter_cabang == $cb['id']) ? 'selected' : '' ?>>
+                        <option value="<?= $cb['id'] ?>" <?= ((string)$filter_cabang === (string)$cb['id']) ? 'selected' : '' ?>>
                             <?= esc($cb['nama_cabang']) ?>
                         </option>
                     <?php endforeach; ?>
