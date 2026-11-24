@@ -220,7 +220,7 @@
 <!-- ============================================== -->
 <!-- 1. MODAL CATAT BIAYA PENGELUARAN OPERASIONAL   -->
 <!-- ============================================== -->
-<div class="modal fade" id="modalBiayaKeluar" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="modalBiayaKeluar" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <div class="modal-header bg-danger text-white">
@@ -236,10 +236,26 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label small fw-bold mb-0">Pilih Kategori Beban / Pengeluaran <span class="text-danger">*</span></label>
-                            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" id="btn-tambah-kategori-cepat" style="font-size: 0.78rem;">
-                                <i class="bi bi-plus-circle-fill me-1 text-danger"></i>+ Jenis Pengeluaran Baru
+                            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold text-danger" id="btn-toggle-kategori-inline" style="font-size: 0.78rem;">
+                                <i class="bi bi-plus-circle-fill me-1"></i>+ Jenis Pengeluaran Baru
                             </button>
                         </div>
+
+                        <!-- Form Inline Tambah Kategori Baru Cepat (Langsung di dalam Modal Tanpa Popup) -->
+                        <div id="box-kategori-baru" class="p-2 mb-2 bg-light border border-danger-subtle rounded-3 d-none">
+                            <label class="form-label small fw-bold text-danger mb-1" style="font-size: 0.75rem;"><i class="bi bi-tag-fill me-1"></i>Ketik Nama Pengeluaran Baru:</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="input-kategori-baru-inline" class="form-control" placeholder="Contoh: Beli Baterai Jam Dinding...">
+                                <button class="btn btn-danger fw-bold" type="button" id="btn-simpan-kategori-inline">
+                                    <i class="bi bi-check-lg me-1"></i>Tambahkan
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" id="btn-batal-kategori-inline">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size: 0.68rem;">Otomatis kapital kata per kata, tersimpan ke master, dan langsung terpilih.</div>
+                        </div>
+
                         <select name="nama_keuangan" id="select-kategori-pengeluaran" class="form-select select2" required>
                             <option value="">-- Pilih atau Ketik Jenis Pengeluaran Baru --</option>
                             <?php foreach ($kategori_list as $k): ?>
@@ -250,7 +266,7 @@
                             <option value="Biaya Operasional Lainnya">Lainnya / Biaya Operasional Lainnya</option>
                         </select>
                         <div class="form-text text-muted" style="font-size: 0.72rem;">
-                            <i class="bi bi-info-circle me-1 text-primary"></i>Pilih dari daftar atau <strong>ketik langsung</strong> nama baru di kolom pencarian.
+                            <i class="bi bi-info-circle me-1 text-primary"></i>Pilih dari daftar atau klik <strong>+ Jenis Pengeluaran Baru</strong> di atas.
                         </div>
                     </div>
 
@@ -286,7 +302,7 @@
 <!-- ============================================== -->
 <!-- 2. MODAL CATAT PEMASUKAN KAS LAINNYA           -->
 <!-- ============================================== -->
-<div class="modal fade" id="modalKasMasuk" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="modalKasMasuk" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <div class="modal-header bg-success text-white">
@@ -375,62 +391,72 @@
             });
         }
 
-        // Tombol Tambah Kategori Baru Cepat (Popup Prompt)
-        $('#btn-tambah-kategori-cepat').on('click', function(e) {
+        // Toggle Box Tambah Kategori Inline di dalam Modal
+        $('#btn-toggle-kategori-inline').on('click', function(e) {
             e.preventDefault();
-            Swal.fire({
-                title: 'Tambah Jenis Pengeluaran Baru',
-                html: `
-                    <p class="small text-muted mb-2 text-start">Nama jenis pengeluaran akan otomatis disimpan dan muncul di pilihan:</p>
-                    <input type="text" id="swal-nama-kategori-baru" class="form-control" placeholder="Contoh: Beli Baterai Jam Dinding..." autofocus>
-                `,
-                showCancelButton: true,
-                confirmButtonText: '<i class="bi bi-save me-1"></i> Simpan Kategori',
-                cancelButtonText: 'Batal',
-                confirmButtonColor: '#dc2626',
-                didOpen: () => {
-                    setTimeout(() => {
-                        $('#swal-nama-kategori-baru').focus();
-                    }, 150);
-                },
-                preConfirm: () => {
-                    const nama = $.trim($('#swal-nama-kategori-baru').val());
-                    if (!nama) {
-                        Swal.showValidationMessage('Nama kategori tidak boleh kosong!');
-                        return false;
-                    }
-                    return nama;
-                }
-            }).then((res) => {
-                if (res.isConfirmed && res.value) {
-                    Swal.fire({
-                        title: 'Menyimpan Kategori...',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                    });
+            const $box = $('#box-kategori-baru');
+            if ($box.hasClass('d-none')) {
+                $box.removeClass('d-none');
+                setTimeout(() => {
+                    $('#input-kategori-baru-inline').val('').focus();
+                }, 50);
+            } else {
+                $box.addClass('d-none');
+            }
+        });
 
-                    $.post('<?= base_url('keuangan/tambah-kategori') ?>', {
-                        nama_kategori: res.value,
-                        jenis: 'Pengeluaran'
-                    }, function(resp) {
-                        if (resp.status === 'success') {
-                            const newName = resp.data.nama_kategori;
-                            if ($('#select-kategori-pengeluaran option[value="' + newName + '"]').length === 0) {
-                                const newOption = new Option(newName, newName, true, true);
-                                $('#select-kategori-pengeluaran').append(newOption).trigger('change');
-                            } else {
-                                $('#select-kategori-pengeluaran').val(newName).trigger('change');
-                            }
-                            Swal.fire('Berhasil!', resp.message, 'success');
-                        } else {
-                            Swal.fire('Gagal!', resp.message || 'Terjadi kesalahan.', 'error');
-                        }
-                    }).fail(function(xhr) {
-                        const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal menyimpan kategori baru.';
-                        Swal.fire('Error!', err, 'error');
-                    });
+        $('#btn-batal-kategori-inline').on('click', function(e) {
+            e.preventDefault();
+            $('#box-kategori-baru').addClass('d-none');
+        });
+
+        // Simpan Kategori Baru Inline
+        function eksekusiSimpanKategoriInline() {
+            const nama = $.trim($('#input-kategori-baru-inline').val());
+            if (!nama) {
+                alert('Nama kategori tidak boleh kosong!');
+                $('#input-kategori-baru-inline').focus();
+                return;
+            }
+
+            const $btn = $('#btn-simpan-kategori-inline');
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Proses...');
+
+            $.post('<?= base_url('keuangan/tambah-kategori') ?>', {
+                nama_kategori: nama,
+                jenis: 'Pengeluaran'
+            }, function(resp) {
+                $btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Tambahkan');
+                if (resp.status === 'success') {
+                    const newName = resp.data.nama_kategori;
+                    if ($('#select-kategori-pengeluaran option[value="' + newName + '"]').length === 0) {
+                        const newOption = new Option(newName, newName, true, true);
+                        $('#select-kategori-pengeluaran').append(newOption).trigger('change');
+                    } else {
+                        $('#select-kategori-pengeluaran').val(newName).trigger('change');
+                    }
+                    $('#box-kategori-baru').addClass('d-none');
+                    $('#input-kategori-baru-inline').val('');
+                } else {
+                    alert(resp.message || 'Terjadi kesalahan');
                 }
+            }).fail(function(xhr) {
+                $btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Tambahkan');
+                const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal menyimpan kategori baru.';
+                alert(err);
             });
+        }
+
+        $('#btn-simpan-kategori-inline').on('click', function(e) {
+            e.preventDefault();
+            eksekusiSimpanKategoriInline();
+        });
+
+        $('#input-kategori-baru-inline').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                eksekusiSimpanKategoriInline();
+            }
         });
 
         // Hapus Catatan Kas dengan Otorisasi

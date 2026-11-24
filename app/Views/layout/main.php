@@ -1614,6 +1614,13 @@
             }
         } catch(e) {}
 
+        // Izinkan focus ke SweetAlert2, Select2, atau elemen dialog saat Bootstrap Modal terbuka
+        document.addEventListener('focusin', function(e) {
+            if (e.target && e.target.closest && (e.target.closest('.swal2-container') || e.target.closest('.select2-container'))) {
+                e.stopImmediatePropagation();
+            }
+        }, true);
+
         // Inisialisasi Otomatis Select2 Searchable Dropdown untuk Semua Komponen Select
         function initSearchableSelects(context) {
             try {
