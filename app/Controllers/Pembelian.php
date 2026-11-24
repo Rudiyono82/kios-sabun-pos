@@ -256,7 +256,8 @@ class Pembelian extends BaseController
                 'nama_keuangan' => 'Belanja Restock ' . $noBeli,
                 'total' => $finalTotalBiaya,
                 'keterangan' => 'Supplier: ' . ($json['nama_supplier'] ?? '-') . ' (Tunai Kas Laci)',
-                'kode_user' => session()->get('kode_user') ?? 'ADMIN'
+                'kode_user' => session()->get('kode_user') ?? 'ADMIN',
+                'id_cabang' => $idCabang
             ]);
         }
 
@@ -553,7 +554,8 @@ class Pembelian extends BaseController
                     'nama_keuangan' => 'Belanja Restock ' . $noBeli,
                     'total' => (float)$pembelian['total_biaya'],
                     'keterangan' => 'Supplier: ' . ($pembelian['nama_supplier'] ?: '-') . ' (Tunai Kas Laci)',
-                    'kode_user' => session()->get('kode_user') ?: 'ADMIN'
+                    'kode_user' => session()->get('kode_user') ?: 'ADMIN',
+                    'id_cabang' => (int)($pembelian['id_cabang'] ?? (session()->get('id_cabang') ?: 1))
                 ]);
             }
         } else {
