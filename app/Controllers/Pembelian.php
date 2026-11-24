@@ -233,7 +233,7 @@ class Pembelian extends BaseController
             'nama_supplier' => $json['nama_supplier'] ?? null,
             'kode_user' => session()->get('kode_user') ?? 'ADMIN',
             'total_biaya' => $finalTotalBiaya,
-            'status_bayar' => $json['status_bayar'] ?? 'Lunas',
+            'status_bayar' => $json['status_bayar'] ?? 'Lunas (Transfer)',
             'catatan' => $json['catatan'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
@@ -248,7 +248,7 @@ class Pembelian extends BaseController
 
         // Catat pengeluaran di keuangan jika lunas tunai (potong kas toko)
         // Jika status_bayar == 'Lunas (Transfer)' atau 'Hutang / Tempo', TIDAK memotong kas toko hari ini
-        $statusBayar = $json['status_bayar'] ?? 'Lunas';
+        $statusBayar = $json['status_bayar'] ?? 'Lunas (Transfer)';
         if ($statusBayar === 'Lunas' || $statusBayar === 'Lunas (Tunai)') {
             $db->table('data_keuangan')->insert([
                 'tanggal' => date('Y-m-d H:i:s'),
