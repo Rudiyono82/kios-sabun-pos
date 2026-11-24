@@ -127,10 +127,10 @@
         </div>
         <?php endif; ?>
         <div class="col-12 col-md-3 mt-md-4 d-flex gap-2">
-            <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill fw-semibold">
+            <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill fw-semibold d-inline-flex align-items-center justify-content-center" style="height: 31px;">
                 <i class="bi bi-funnel me-1"></i> Terapkan Filter
             </button>
-            <a href="<?= base_url('keuangan') ?>" class="btn btn-outline-secondary btn-sm rounded-pill" title="Reset Filter">
+            <a href="<?= base_url('keuangan') ?>" class="btn btn-outline-secondary btn-sm rounded-pill d-inline-flex align-items-center justify-content-center px-2 flex-shrink-0" title="Reset Filter" style="height: 31px; width: 36px;">
                 <i class="bi bi-arrow-counterclockwise"></i>
             </a>
         </div>

@@ -95,10 +95,10 @@
             </select>
         </div>
         <div class="col-12 col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+            <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold d-inline-flex align-items-center justify-content-center" style="height: 31px;">
                 <i class="bi bi-filter me-1"></i> Filter
             </button>
-            <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary btn-sm" title="Reset Filter">
+            <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center px-2 flex-shrink-0" title="Reset Filter" style="height: 31px; width: 36px;">
                 <i class="bi bi-arrow-counterclockwise"></i>
             </a>
         </div>
