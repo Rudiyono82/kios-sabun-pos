@@ -12,7 +12,8 @@ class Penjualan extends BaseController
     {
         $db = \Config\Database::connect();
 
-        $tglMulai = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
+        // Default filter per hari ini (today) dan cabang saat ini login
+        $tglMulai = $this->request->getGet('tgl_mulai') ?: date('Y-m-d');
         $tglSelesai = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
         $metodeBayar = $this->request->getGet('metode_bayar') ?: '';
         $jenisPembeli = $this->request->getGet('jenis_pembeli') ?: '';
@@ -21,15 +22,20 @@ class Penjualan extends BaseController
         $userCabangId = (int)(session()->get('id_cabang') ?: 1);
         $filterCabang = $this->request->getGet('id_cabang');
 
+        // Jika filter cabang belum dipilih (misal saat baru pertama kali buka menu), default ke cabang user yang sedang login
+        if ($filterCabang === null) {
+            $filterCabang = $userCabangId;
+        }
+
         $builder = $db->table('penjualan')
             ->where("DATE(tanggal) >=", $tglMulai)
             ->where("DATE(tanggal) <=", $tglSelesai);
 
-        // Isolasi Cabang: Kasir hanya bisa melihat transaksi cabangnya sendiri
+        // Isolasi Cabang: Kasir hanya bisa melihat transaksi cabangnya sendiri, Admin default cabang aktif (bisa pilih 'semua')
         if (!$isAdmin) {
             $builder->where('id_cabang', $userCabangId);
         } else {
-            if (!empty($filterCabang) && $filterCabang !== 'semua') {
+            if ($filterCabang !== 'semua' && !empty($filterCabang)) {
                 $builder->where('id_cabang', (int)$filterCabang);
             }
         }
