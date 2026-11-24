@@ -27,24 +27,24 @@
         </h5>
         <span class="text-muted" style="font-size: 0.74rem;">Catat transaksi pembelian bahan baku kimia / kemasan / barang jadi dengan pembaruan stok otomatis.</span>
     </div>
-    <div class="d-flex align-items-stretch gap-2" style="height: 44px;">
-        <!-- BOX TOTAL BIAYA PEMBELIAN (Pojok Kanan Atas Sejajar Sempurna) -->
-        <div class="d-flex align-items-center justify-content-between px-3 shadow-sm" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac !important; border-radius: 8px; min-width: 250px; height: 100%;">
+    <div class="d-flex align-items-stretch gap-2" style="min-height: 56px; height: 56px;">
+        <!-- BOX TOTAL BIAYA PEMBELIAN (Pojok Kanan Atas - Jelas & Menonjol Seperti POS) -->
+        <div class="d-flex align-items-center justify-content-between px-3 shadow-sm" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac !important; border-radius: 8px; min-width: 320px; height: 100%;">
             <div class="d-flex flex-column justify-content-center me-3 text-start">
-                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; line-height: 1.1; letter-spacing: 0.5px;">TOTAL PEMBELIAN:</span>
-                <span class="badge bg-white text-success border border-success-subtle font-monospace mt-1 py-0 px-1" id="display-total-item" style="font-size: 0.66rem; line-height: 1.2;">0 Item Masuk</span>
+                <span class="text-uppercase fw-bold text-muted" style="font-size: 0.70rem; line-height: 1.1; letter-spacing: 0.5px;">TOTAL PEMBELIAN:</span>
+                <span class="badge bg-white text-success border border-success-subtle font-monospace mt-1 py-1 px-2" id="display-total-item" style="font-size: 0.72rem; line-height: 1.1;">0 Item Masuk</span>
             </div>
             <div class="d-flex flex-column justify-content-center text-end">
-                <h4 class="fw-bold text-success mb-0 font-monospace" id="display-total-biaya" style="font-size: 1.35rem; line-height: 1.1;">Rp 0</h4>
-                <div id="beli-pembulatan-info" class="text-muted d-none font-monospace mt-0" style="font-size: 0.60rem; line-height: 1;"></div>
+                <div class="fw-bolder text-success mb-0 font-monospace" id="display-total-biaya" style="font-size: 2.1rem; line-height: 1; letter-spacing: -0.5px;">Rp 0</div>
+                <div id="beli-pembulatan-info" class="text-muted d-none font-monospace mt-1" style="font-size: 0.65rem; line-height: 1;"></div>
             </div>
         </div>
 
         <!-- Tombol Simpan Transaksi & Kembali (Tinggi & Radius Seragam) -->
-        <button type="button" class="btn btn-success px-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1 text-nowrap" id="btn-simpan-pembelian" style="border-radius: 8px; height: 100%; font-size: 0.82rem;" title="Simpan transaksi pembelian (Shortcut: F9 atau Ctrl+S)">
-            <i class="bi bi-check-circle-fill fs-6"></i> Simpan Transaksi <span class="badge bg-white bg-opacity-25 ms-1" style="font-size: 0.68rem;">[F9]</span>
+        <button type="button" class="btn btn-success px-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1 text-nowrap" id="btn-simpan-pembelian" style="border-radius: 8px; height: 100%; font-size: 0.90rem;" title="Simpan transaksi pembelian (Shortcut: F9 atau Ctrl+S)">
+            <i class="bi bi-check-circle-fill fs-5"></i> Simpan Transaksi <span class="badge bg-white bg-opacity-25 ms-1" style="font-size: 0.72rem;">[F9]</span>
         </button>
-        <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary px-3 fw-semibold d-flex align-items-center justify-content-center text-nowrap" style="border-radius: 8px; height: 100%; font-size: 0.82rem;">
+        <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary px-3 fw-semibold d-flex align-items-center justify-content-center text-nowrap" style="border-radius: 8px; height: 100%; font-size: 0.85rem;">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>
@@ -249,6 +249,13 @@
                             </td>
                         </tr>
                     </tbody>
+                    <tfoot class="table-light border-top border-2" id="tfoot-keranjang-beli" style="display: none;">
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold text-uppercase py-2" style="font-size: 0.85rem;">Total Tagihan Pembelian:</td>
+                            <td class="text-end fw-bold text-success font-monospace py-2" style="font-size: 1.25rem;" id="footer-total-biaya">Rp 0</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
@@ -596,6 +603,8 @@
                     </tr>
                 `);
                 $('#display-total-biaya').text('Rp 0');
+                $('#footer-total-biaya').text('Rp 0');
+                $('#tfoot-keranjang-beli').hide();
                 $('#beli-pembulatan-info').addClass('d-none').text('');
                 $('#display-total-item').text('0 Item Barang Masuk');
                 return;
@@ -635,6 +644,8 @@
             let pembulatan = roundedTotal - total;
 
             $('#display-total-biaya').text('Rp ' + new Intl.NumberFormat('id-ID').format(roundedTotal));
+            $('#footer-total-biaya').text('Rp ' + new Intl.NumberFormat('id-ID').format(roundedTotal));
+            $('#tfoot-keranjang-beli').show();
             if (pembulatan !== 0) {
                 $('#beli-pembulatan-info').removeClass('d-none').text(`Pembulatan: ${pembulatan > 0 ? '+' : ''}Rp ${new Intl.NumberFormat('id-ID').format(pembulatan)} (Asli: Rp ${new Intl.NumberFormat('id-ID').format(total)})`);
             } else {
