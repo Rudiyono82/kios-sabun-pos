@@ -235,6 +235,20 @@ try {
                 continue;
             }
 
+            // KASUS 2b: Tabel Cabang -> Pastikan kompatibilitas kolom is_aktif
+            if ($tableName === 'cabang') {
+                try {
+                    $chkCol = $pdo->query("SHOW COLUMNS FROM `cabang` LIKE 'is_aktif'")->fetch();
+                    if (!$chkCol) {
+                        $pdo->exec("ALTER TABLE `cabang` ADD COLUMN `is_aktif` TINYINT(1) DEFAULT 1 AFTER `status`");
+                        $pdo->exec("UPDATE `cabang` SET `is_aktif` = 1 WHERE `status` = 'Aktif'");
+                        echo "[MIGRATION] Added `is_aktif` column to MySQL `cabang`.\n";
+                    }
+                } catch (Exception $e) {
+                    echo "[MIGRATION NOTICE] cabang is_aktif check: " . $e->getMessage() . "\n";
+                }
+            }
+
             // KASUS 3: Tabel Penjualan (Master Transaksi) -> Insert transaksi baru
             if ($tableName === 'penjualan') {
                 try {

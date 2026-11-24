@@ -75,7 +75,7 @@ class Keuangan extends BaseController
         $profitKotor = (float)($penjualanPeriode['profit_kotor'] ?? 0);
         $labaBersihRiil = $profitKotor - $totalKeluar;
 
-        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
+        $cabangList = $isAdmin ? $db->table('cabang')->where('status', 'Aktif')->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         $data = [
             'title' => 'Buku Kas & Biaya Operasional Toko',

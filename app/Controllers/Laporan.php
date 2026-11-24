@@ -33,7 +33,7 @@ class Laporan extends BaseController
         $keuangan = $kBuilder->orderBy('id', 'ASC')->get()->getResultArray();
 
         $profil = $db->table('profil_toko')->get()->getRowArray();
-        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
+        $cabangList = $isAdmin ? $db->table('cabang')->where('status', 'Aktif')->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         // Rekapitulasi
         $totalOmzet = 0;
@@ -676,7 +676,7 @@ class Laporan extends BaseController
         $kasirList = $kasirBuilder->groupBy('kode_user')->get()->getResultArray();
 
         $profil = $db->table('profil_toko')->get()->getRowArray() ?? [];
-        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
+        $cabangList = $isAdmin ? $db->table('cabang')->where('status', 'Aktif')->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         if ($tipeTampilan === 'barang') {
             // Rekap Penjualan Berdasarkan Produk Terjual
@@ -1427,7 +1427,7 @@ class Laporan extends BaseController
         $isAdmin = (session()->get('role') === 'admin');
         $userCabangId = (int)(session()->get('id_cabang') ?: 1);
         $filterCabang = $this->request->getGet('id_cabang');
-        $cabangList = $isAdmin ? $db->table('cabang')->where('is_aktif', 1)->orderBy('id', 'ASC')->get()->getResultArray() : [];
+        $cabangList = $isAdmin ? $db->table('cabang')->where('status', 'Aktif')->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         // 2. Saldo Awal Kas (Sebelum Periode Ini Dimulai) Terisolasi Cabang
         $saldoSql = "
