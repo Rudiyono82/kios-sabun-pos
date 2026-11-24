@@ -140,6 +140,7 @@ $routes->group('produksi', ['filter' => 'auth'], function($routes) {
 $routes->group('keuangan', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Keuangan::index');
     $routes->post('simpan', 'Keuangan::simpan');
+    $routes->post('tambah-kategori', 'Keuangan::tambahKategori');
     $routes->post('hapus/(:num)', 'Keuangan::hapus/$1');
 });
 

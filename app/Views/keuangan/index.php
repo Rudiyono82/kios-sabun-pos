@@ -234,9 +234,14 @@
 
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Pilih Kategori Beban / Pengeluaran <span class="text-danger">*</span></label>
-                        <select name="nama_keuangan" class="form-select select2" required>
-                            <option value="">-- Pilih Jenis Pengeluaran --</option>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold mb-0">Pilih Kategori Beban / Pengeluaran <span class="text-danger">*</span></label>
+                            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" id="btn-tambah-kategori-cepat" style="font-size: 0.78rem;">
+                                <i class="bi bi-plus-circle-fill me-1 text-danger"></i>+ Jenis Pengeluaran Baru
+                            </button>
+                        </div>
+                        <select name="nama_keuangan" id="select-kategori-pengeluaran" class="form-select select2" required>
+                            <option value="">-- Pilih atau Ketik Jenis Pengeluaran Baru --</option>
                             <?php foreach ($kategori_list as $k): ?>
                                 <?php if ($k['jenis'] === 'Pengeluaran'): ?>
                                     <option value="<?= esc($k['nama_kategori']) ?>"><?= esc($k['nama_kategori']) ?></option>
@@ -244,6 +249,9 @@
                             <?php endforeach; ?>
                             <option value="Biaya Operasional Lainnya">Lainnya / Biaya Operasional Lainnya</option>
                         </select>
+                        <div class="form-text text-muted" style="font-size: 0.72rem;">
+                            <i class="bi bi-info-circle me-1 text-primary"></i>Pilih dari daftar atau <strong>ketik langsung</strong> nama baru di kolom pencarian.
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -344,6 +352,86 @@
                 order: [[0, 'desc']]
             });
         }
+
+        // Inisialisasi Select2 Tags untuk Kategori Pengeluaran (Bisa Pilih atau Ketik Baru)
+        if ($.fn.select2) {
+            $('#select-kategori-pengeluaran').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                dropdownParent: $('#modalBiayaKeluar'),
+                tags: true,
+                placeholder: '-- Pilih atau Ketik Jenis Pengeluaran Baru --',
+                createTag: function (params) {
+                    var term = $.trim(params.term);
+                    if (term === '') return null;
+                    // Format Title Case otomatis kata demi kata
+                    var titleCased = term.toLowerCase().replace(/\b\w/g, function(l){ return l.toUpperCase(); });
+                    return {
+                        id: titleCased,
+                        text: '+ Tambah "' + titleCased + '" (Jenis Baru)',
+                        newTag: true
+                    };
+                }
+            });
+        }
+
+        // Tombol Tambah Kategori Baru Cepat (Popup Prompt)
+        $('#btn-tambah-kategori-cepat').on('click', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Tambah Jenis Pengeluaran Baru',
+                html: `
+                    <p class="small text-muted mb-2 text-start">Nama jenis pengeluaran akan otomatis disimpan dan muncul di pilihan:</p>
+                    <input type="text" id="swal-nama-kategori-baru" class="form-control" placeholder="Contoh: Beli Baterai Jam Dinding..." autofocus>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-save me-1"></i> Simpan Kategori',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc2626',
+                didOpen: () => {
+                    setTimeout(() => {
+                        $('#swal-nama-kategori-baru').focus();
+                    }, 150);
+                },
+                preConfirm: () => {
+                    const nama = $.trim($('#swal-nama-kategori-baru').val());
+                    if (!nama) {
+                        Swal.showValidationMessage('Nama kategori tidak boleh kosong!');
+                        return false;
+                    }
+                    return nama;
+                }
+            }).then((res) => {
+                if (res.isConfirmed && res.value) {
+                    Swal.fire({
+                        title: 'Menyimpan Kategori...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    $.post('<?= base_url('keuangan/tambah-kategori') ?>', {
+                        nama_kategori: res.value,
+                        jenis: 'Pengeluaran'
+                    }, function(resp) {
+                        if (resp.status === 'success') {
+                            const newName = resp.data.nama_kategori;
+                            if ($('#select-kategori-pengeluaran option[value="' + newName + '"]').length === 0) {
+                                const newOption = new Option(newName, newName, true, true);
+                                $('#select-kategori-pengeluaran').append(newOption).trigger('change');
+                            } else {
+                                $('#select-kategori-pengeluaran').val(newName).trigger('change');
+                            }
+                            Swal.fire('Berhasil!', resp.message, 'success');
+                        } else {
+                            Swal.fire('Gagal!', resp.message || 'Terjadi kesalahan.', 'error');
+                        }
+                    }).fail(function(xhr) {
+                        const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal menyimpan kategori baru.';
+                        Swal.fire('Error!', err, 'error');
+                    });
+                }
+            });
+        });
 
         // Hapus Catatan Kas dengan Otorisasi
         $(document).on('click', '.btn-hapus-keuangan', function() {

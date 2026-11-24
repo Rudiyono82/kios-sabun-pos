@@ -748,6 +748,18 @@ try {
         ");
         echo "[MIGRATION] Invoice J2611240010 updated to Cash successfully in MySQL.\n";
 
+        // 7. Update Title Case seluruh kategori_keuangan di MySQL
+        echo "[MIGRATION] Applying Title Case to all kategori_keuangan in MySQL...\n";
+        $sqliteKat = $sqlite->query("SELECT id, nama_kategori FROM kategori_keuangan");
+        $stmtUpKat = $pdo->prepare("UPDATE `kategori_keuangan` SET `nama_kategori` = :nama WHERE `id` = :id");
+        $cntKat = 0;
+        while ($kr = $sqliteKat->fetchArray(SQLITE3_ASSOC)) {
+            $cleanName = ucwords(mb_strtolower(trim($kr['nama_kategori'])));
+            $stmtUpKat->execute([':nama' => $cleanName, ':id' => $kr['id']]);
+            $cntKat++;
+        }
+        echo "[MIGRATION] Successfully updated {$cntKat} kategori_keuangan in MySQL to Title Case.\n";
+
     } catch (Exception $e) {
         echo "[MIGRATION NOTICE] Purchase stock reconciliation warning: " . $e->getMessage() . "\n";
     }

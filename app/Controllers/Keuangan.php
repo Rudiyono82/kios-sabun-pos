@@ -109,7 +109,9 @@ class Keuangan extends BaseController
         $db = \Config\Database::connect();
         
         $jenis = $this->request->getPost('jenis_keuangan');
-        $nama = $this->request->getPost('nama_keuangan');
+        $namaRaw = trim($this->request->getPost('nama_keuangan') ?? '');
+        // Format Nama Transaksi / Kategori Menjadi Title Case (Huruf Pertama Kapital, Selanjutnya Kecil)
+        $nama = ucwords(mb_strtolower($namaRaw));
         $total = (float) str_replace(['.', ',', ' '], '', (string)$this->request->getPost('total'));
         $keterangan = $this->request->getPost('keterangan');
         $isLocked = $this->request->getPost('is_locked') ? 1 : 0;
@@ -117,6 +119,31 @@ class Keuangan extends BaseController
 
         if ($total <= 0) {
             return redirect()->back()->with('error', 'Nominal transaksi harus lebih dari 0.');
+        }
+
+        // Jika ada jenis pengeluaran / pemasukan baru yang belum ada di master kategori, daftarkan otomatis
+        if (!empty($nama) && $nama !== 'Biaya Operasional Lainnya' && ($jenis === 'Pengeluaran' || $jenis === 'Pemasukan')) {
+            $katExists = $db->table('kategori_keuangan')
+                ->where('LOWER(TRIM(nama_kategori))', mb_strtolower($nama))
+                ->where('jenis', $jenis)
+                ->get()->getRowArray();
+
+            if (!$katExists) {
+                $maxRow = $db->query("SELECT MAX(id) as max_id FROM kategori_keuangan")->getRowArray();
+                $nextNum = ($maxRow ? (int)$maxRow['max_id'] : 0) + 1;
+                $kodeKategori = 'MK' . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+                while ($db->table('kategori_keuangan')->where('kode_kategori', $kodeKategori)->countAllResults() > 0) {
+                    $nextNum++;
+                    $kodeKategori = 'MK' . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+                }
+
+                $db->table('kategori_keuangan')->insert([
+                    'kode_kategori' => $kodeKategori,
+                    'nama_kategori' => $nama,
+                    'jenis' => $jenis,
+                    'is_active' => 1
+                ]);
+            }
         }
 
         // Cegah Transaksi Duplikat (Double Click / Debounce 3 Detik)
@@ -217,6 +244,66 @@ class Keuangan extends BaseController
         return $this->response->setJSON([
             'status' => 'success',
             'message' => "Catatan kas '{$row['nama_keuangan']}' senilai Rp " . number_format($row['total'], 0, ',', '.') . " berhasil dihapus!"
+        ]);
+    }
+
+    // Tambah Kategori Keuangan Baru Cepat (AJAX)
+    public function tambahKategori()
+    {
+        $nama = trim($this->request->getPost('nama_kategori') ?? '');
+        $jenis = trim($this->request->getPost('jenis') ?? 'Pengeluaran');
+
+        if (empty($nama)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Nama kategori beban / pengeluaran wajib diisi!'
+            ]);
+        }
+
+        // Format Title Case (Huruf pertama kapital, selanjutnya huruf kecil)
+        $cleanName = ucwords(mb_strtolower($nama));
+        $db = \Config\Database::connect();
+
+        $exists = $db->table('kategori_keuangan')
+            ->where('LOWER(TRIM(nama_kategori))', mb_strtolower($cleanName))
+            ->where('jenis', $jenis)
+            ->get()->getRowArray();
+
+        if ($exists) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Kategori ini sudah terdaftar di database.',
+                'data' => [
+                    'id' => $exists['id'],
+                    'nama_kategori' => $exists['nama_kategori']
+                ]
+            ]);
+        }
+
+        $maxRow = $db->query("SELECT MAX(id) as max_id FROM kategori_keuangan")->getRowArray();
+        $nextNum = ($maxRow ? (int)$maxRow['max_id'] : 0) + 1;
+        $kodeKategori = 'MK' . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+        while ($db->table('kategori_keuangan')->where('kode_kategori', $kodeKategori)->countAllResults() > 0) {
+            $nextNum++;
+            $kodeKategori = 'MK' . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+        }
+
+        $db->table('kategori_keuangan')->insert([
+            'kode_kategori' => $kodeKategori,
+            'nama_kategori' => $cleanName,
+            'jenis' => $jenis,
+            'is_active' => 1
+        ]);
+
+        $newId = $db->insertID();
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => "Jenis pengeluaran '{$cleanName}' berhasil ditambahkan ke daftar kategori!",
+            'data' => [
+                'id' => $newId,
+                'nama_kategori' => $cleanName
+            ]
         ]);
     }
 
