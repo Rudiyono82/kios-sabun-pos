@@ -681,6 +681,21 @@ try {
         $pdo->exec("UPDATE `barang` b JOIN (SELECT id_barang, SUM(stok) as tot_stok FROM `stok_cabang` GROUP BY id_barang) sc ON sc.id_barang = b.id_barang SET b.stok = sc.tot_stok WHERE sc.tot_stok > b.stok");
         echo "[MIGRATION] Stock synchronization between `barang` and `stok_cabang` completed.\n";
 
+        // 3. Sinkronisasi total_profit historis di tabel penjualan dari penjualan_detail
+        echo "[MIGRATION] Synchronizing historical `total_profit` in `penjualan` from `penjualan_detail`...\n";
+        $pdo->exec("
+            UPDATE `penjualan` p
+            JOIN (
+                SELECT no_faktur, SUM(profit) AS sum_profit
+                FROM `penjualan_detail`
+                GROUP BY no_faktur
+                HAVING sum_profit > 0
+            ) pd ON p.no_faktur = pd.no_faktur
+            SET p.total_profit = pd.sum_profit
+            WHERE p.total_profit = 0 OR p.total_profit IS NULL
+        ");
+        echo "[MIGRATION] Historical `total_profit` in `penjualan` synchronized successfully.\n";
+
     } catch (Exception $e) {
         echo "[MIGRATION NOTICE] Purchase stock reconciliation warning: " . $e->getMessage() . "\n";
     }

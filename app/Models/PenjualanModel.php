@@ -130,8 +130,14 @@ class PenjualanModel extends Model
                 $label = ($bulanIndo[$b] ?? date('M', $time)) . " '" . $y;
 
                 $builder = $this->db->table('penjualan')
-                    ->select('COALESCE(SUM(grand_total), 0) as omzet, COALESCE(SUM(total_profit), 0) as profit, COUNT(id) as jml_trx')
-                    ->where("strftime('%Y-%m', tanggal)", $ym);
+                    ->select('COALESCE(SUM(grand_total), 0) as omzet, COALESCE(SUM(total_profit), 0) as profit, COUNT(id) as jml_trx');
+
+                $isMySQL = ($this->db->DBDriver === 'MySQLi');
+                if ($isMySQL) {
+                    $builder->where("DATE_FORMAT(tanggal, '%Y-%m') =", $ym);
+                } else {
+                    $builder->where("strftime('%Y-%m', tanggal) =", $ym);
+                }
 
                 if (!empty($idCabang)) {
                     $builder->where('id_cabang', (int)$idCabang);
