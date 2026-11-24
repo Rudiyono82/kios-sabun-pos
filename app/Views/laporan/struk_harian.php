@@ -268,16 +268,15 @@
     <div class="text-center fw-bold" style="font-size: 12px; margin-bottom: 4px;">
         REKAP FISIK KAS LACI
     </div>
+    <?php
+        $kasBersihHariIni = $total_tunai + ($totalCleanPemasukanLain ?? 0) - $total_pengeluaran;
+    ?>
     <table>
         <tr>
-            <td>Modal Kas Awal</td>
-            <td class="text-end nowrap">Rp <?= number_format($kas_awal, 0, ',', '.') ?></td>
+            <td>Penjualan Tunai (Cash)</td>
+            <td class="text-end nowrap">Rp <?= number_format($total_tunai, 0, ',', '.') ?></td>
         </tr>
-        <tr>
-            <td>+ Penjualan Tunai (Cash)</td>
-            <td class="text-end nowrap">+Rp <?= number_format($total_tunai, 0, ',', '.') ?></td>
-        </tr>
-        <?php if ($totalCleanPemasukanLain > 0): ?>
+        <?php if (!empty($totalCleanPemasukanLain) && $totalCleanPemasukanLain > 0): ?>
         <tr>
             <td>+ Pemasukan Kas Lain</td>
             <td class="text-end nowrap">+Rp <?= number_format($totalCleanPemasukanLain, 0, ',', '.') ?></td>
@@ -286,6 +285,19 @@
         <tr>
             <td>- Pengeluaran Kas Toko</td>
             <td class="text-end nowrap">-Rp <?= number_format($total_pengeluaran, 0, ',', '.') ?></td>
+        </tr>
+    </table>
+
+    <div class="divider"></div>
+
+    <table>
+        <tr>
+            <td>Sisa Kas Penjualan Hari Ini</td>
+            <td class="text-end nowrap">Rp <?= number_format($kasBersihHariIni, 0, ',', '.') ?></td>
+        </tr>
+        <tr>
+            <td>+ Modal Kas Awal</td>
+            <td class="text-end nowrap">+Rp <?= number_format($kas_awal, 0, ',', '.') ?></td>
         </tr>
     </table>
 
