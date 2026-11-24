@@ -1666,6 +1666,8 @@
         }).then(res => {
             if (res.isConfirmed) {
                 cart = [];
+                $('#pay-cash').prop('checked', true).trigger('change');
+                $('#alert-non-tunai').addClass('d-none');
                 renderCart();
             }
         });
@@ -1815,6 +1817,11 @@
                 $('#input-diskon').val(0);
                 $('#chk-jerigen').prop('checked', false).trigger('change');
                 $('#input-bayar').val('');
+
+                // Default Tipe Bayar Kembali ke Cash untuk Transaksi Berikutnya
+                $('#pay-cash').prop('checked', true).trigger('change');
+                $('#alert-non-tunai').addClass('d-none');
+
                 renderCart();
                 currentClientToken = 'POS-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
                 setTimeout(function() {
@@ -1854,6 +1861,9 @@
     $('#modalStruk').on('hidden.bs.modal', function() {
         isSubmittingTransaction = false;
         $('#btn-proses-transaksi').prop('disabled', false).removeClass('disabled').css('pointer-events', '').html('<i class="bi bi-check2-circle fs-5 me-1"></i> SELESAIKAN TRANSAKSI (Enter)');
+        // Kembalikan default tipe bayar ke Cash untuk transaksi berikutnya
+        $('#pay-cash').prop('checked', true).trigger('change');
+        $('#alert-non-tunai').addClass('d-none');
     });
     $('#modalBayar').on('hidden.bs.modal', function() {
         if (!isSubmittingTransaction) {
