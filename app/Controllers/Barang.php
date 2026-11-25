@@ -269,7 +269,8 @@ class Barang extends BaseController
         } else {
             // Permintaan User:
             // Di pembelian / retur: semua barang sesuai suppliernya (master barang & riwayat pembelian) dan SEMUA STATUS (Aktif maupun Nonaktif)
-            if (!empty($kodeSupplier)) {
+            $allSuppliers = ($this->request->getGet('all_suppliers') == '1');
+            if (!empty($kodeSupplier) && !$allSuppliers) {
                 $suppRow = $db->table('supplier')->where('kode_supplier', $kodeSupplier)->get()->getRowArray();
                 $namaSupplier = $suppRow ? trim($suppRow['nama_supplier']) : '';
 

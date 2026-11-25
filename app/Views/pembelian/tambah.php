@@ -213,15 +213,18 @@
 
             <!-- Baris Keterangan & Status (Di Bawah Input agar Seluruh Box Sejajar) -->
             <div class="row mt-1 g-1 align-items-center">
-                <div class="col-12 col-md-8">
+                <div class="col-12 col-md-7">
                     <div id="filter-supplier-badge" class="small text-danger fw-semibold" style="font-size: 0.72rem;">
                         <i class="bi bi-exclamation-circle-fill me-1"></i>Pilih Mitra Supplier di sebelah kiri terlebih dahulu agar daftar produk muncul.
                     </div>
                 </div>
-                <div class="col-12 col-md-4 text-md-end">
-                    <small class="text-muted" style="font-size: 0.68rem;">
-                        <i class="bi bi-info-circle-fill text-primary me-1"></i>Harga beli otomatis dari Master Barang (Lookup)
-                    </small>
+                <div class="col-12 col-md-5 d-flex align-items-center justify-content-md-end gap-2">
+                    <div class="form-check form-switch mb-0" id="container-toggle-semua-barang" style="font-size: 0.72rem;">
+                        <input class="form-check-input" type="checkbox" role="switch" id="toggle-semua-barang" style="cursor: pointer;" disabled>
+                        <label class="form-check-label fw-bold text-primary" for="toggle-semua-barang" style="cursor: pointer;" title="Centang untuk mencari dan menampilkan semua barang toko, bukan hanya produk khusus supplier ini">
+                            <i class="bi bi-box-seam me-1"></i>Tampilkan Semua Barang Toko
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -293,15 +296,38 @@
         const isAdmin = <?= (session()->get('role') === 'admin') ? 'true' : 'false' ?>;
         let currentSelectedSupplier = $('#beli-supplier').val() || '';
 
+        function buildOptionElement(b, prefix = '') {
+            const stokText = isAdmin ? ' - Stok: ' + new Intl.NumberFormat('id-ID').format(b.stok || 0) + ' ' + (b.satuan || '') : '';
+            const optText = prefix + b.nama_barang + ' (' + b.id_barang + ')' + stokText;
+            return $('<option>')
+                .val(b.id_barang)
+                .text(optText)
+                .attr('data-nama', b.nama_barang)
+                .attr('data-satuan', b.satuan)
+                .attr('data-supp1', b.kode_supplier_1 || '')
+                .attr('data-supp2', b.kode_supplier_2 || '')
+                .attr('data-hargabeli', parseFloat(b.harga_beli) || 0)
+                .attr('data-hargajual', parseFloat(b.harga_jual) || 0)
+                .attr('data-hargagrosir', parseFloat(b.harga_grosir) || 0)
+                .attr('data-qtypaketa', parseFloat(b.qty_paket_a) || 0)
+                .attr('data-hrgpaketa', parseFloat(b.hrg_paket_a) || 0)
+                .attr('data-qtypaketb', parseFloat(b.qty_paket_b) || 0)
+                .attr('data-hrgpaketb', parseFloat(b.hrg_paket_b) || 0)
+                .attr('data-qtypaketc', parseFloat(b.qty_paket_c) || 0)
+                .attr('data-hrgpaketc', parseFloat(b.hrg_paket_c) || 0)
+                .attr('data-stok', parseFloat(b.stok) || 0);
+        }
+
         // Fungsi Render Ulang Dropdown Barang: Wajib Pilih Supplier Dulu, Kosong Jika Supplier Belum Dipilih
-        function refreshProductDropdown(supplierCode) {
+        function refreshProductDropdown(supplierCode, showAll = false) {
             $('#pilih-barang').empty();
 
             // Jika supplier belum dipilih: KOSONGKAN LIST DATA & KUNCI (DISABLED)
             if (!supplierCode) {
                 $('#pilih-barang').prop('disabled', true);
+                $('#toggle-semua-barang').prop('disabled', true).prop('checked', false);
                 $('#pilih-barang').append('<option value="">-- Wajib Pilih Mitra Supplier Dahulu --</option>');
-                $('#filter-supplier-badge').removeClass('text-success text-warning').addClass('text-danger fw-semibold')
+                $('#filter-supplier-badge').removeClass('text-success text-warning text-info').addClass('text-danger fw-semibold')
                     .html('<i class="bi bi-exclamation-circle-fill me-1"></i>Pilih Mitra Supplier di sebelah kiri terlebih dahulu agar daftar produk muncul.');
                 $('#input-harga-beli').val('');
                 
@@ -312,45 +338,46 @@
                 return;
             }
 
+            $('#toggle-semua-barang').prop('disabled', false);
+
             // Filter produk berdasarkan supplier terpilih (kode_supplier_1 atau kode_supplier_2)
             const matching = allProducts.filter(p => (p.kode_supplier_1 === supplierCode || p.kode_supplier_2 === supplierCode));
+            const otherProducts = allProducts.filter(p => !(p.kode_supplier_1 === supplierCode || p.kode_supplier_2 === supplierCode));
 
-            if (matching.length > 0) {
-                $('#pilih-barang').prop('disabled', false);
-                $('#pilih-barang').append('<option value="">-- Pilih Barang / Bahan (' + matching.length + ' Produk Tersedia) --</option>');
+            $('#pilih-barang').prop('disabled', false);
 
-                matching.forEach(b => {
-                    const stokText = isAdmin ? ' - Stok: ' + new Intl.NumberFormat('id-ID').format(b.stok || 0) + ' ' + (b.satuan || '') : '';
-                    const optText = b.nama_barang + ' (' + b.id_barang + ')' + stokText;
-                    const $opt = $('<option>')
-                        .val(b.id_barang)
-                        .text(optText)
-                        .attr('data-nama', b.nama_barang)
-                        .attr('data-satuan', b.satuan)
-                        .attr('data-supp1', b.kode_supplier_1 || '')
-                        .attr('data-supp2', b.kode_supplier_2 || '')
-                        .attr('data-hargabeli', parseFloat(b.harga_beli) || 0)
-                        .attr('data-hargajual', parseFloat(b.harga_jual) || 0)
-                        .attr('data-hargagrosir', parseFloat(b.harga_grosir) || 0)
-                        .attr('data-qtypaketa', parseFloat(b.qty_paket_a) || 0)
-                        .attr('data-hrgpaketa', parseFloat(b.hrg_paket_a) || 0)
-                        .attr('data-qtypaketb', parseFloat(b.qty_paket_b) || 0)
-                        .attr('data-hrgpaketb', parseFloat(b.hrg_paket_b) || 0)
-                        .attr('data-qtypaketc', parseFloat(b.qty_paket_c) || 0)
-                        .attr('data-hrgpaketc', parseFloat(b.hrg_paket_c) || 0)
-                        .attr('data-stok', parseFloat(b.stok) || 0);
+            if (showAll) {
+                $('#pilih-barang').append('<option value="">-- Pilih Barang Dari Seluruh Katalog Toko (' + allProducts.length + ' Produk Tersedia) --</option>');
+                
+                if (matching.length > 0) {
+                    const $groupMatch = $('<optgroup>').attr('label', '⭐ Produk Mitra Ini (' + matching.length + ' Produk)');
+                    matching.forEach(b => $groupMatch.append(buildOptionElement(b)));
+                    $('#pilih-barang').append($groupMatch);
+                }
 
-                    $('#pilih-barang').append($opt);
-                });
+                if (otherProducts.length > 0) {
+                    const $groupOther = $('<optgroup>').attr('label', '📦 Produk Toko Lainnya (' + otherProducts.length + ' Produk)');
+                    otherProducts.forEach(b => $groupOther.append(buildOptionElement(b, '• ')));
+                    $('#pilih-barang').append($groupOther);
+                }
 
-                $('#filter-supplier-badge').removeClass('text-danger text-warning').addClass('text-success fw-semibold')
-                    .html('<i class="bi bi-check-circle-fill me-1"></i>' + matching.length + ' produk siap dipilih dari supplier ini.');
+                $('#filter-supplier-badge').removeClass('text-danger text-warning text-success').addClass('text-info fw-semibold')
+                    .html('<i class="bi bi-box-seam me-1"></i>Menampilkan <strong>seluruh katalog toko</strong> (' + allProducts.length + ' produk).');
             } else {
-                $('#pilih-barang').prop('disabled', true);
-                $('#pilih-barang').append('<option value="">-- Tidak ada produk terdaftar untuk supplier ini --</option>');
-                $('#filter-supplier-badge').removeClass('text-danger text-success').addClass('text-warning fw-semibold')
-                    .html('<i class="bi bi-info-circle-fill me-1"></i>Belum ada produk yang terdaftar untuk supplier ini di Master Barang.');
-                $('#input-harga-beli').val('');
+                if (matching.length > 0) {
+                    $('#pilih-barang').append('<option value="">-- Pilih Barang / Bahan (' + matching.length + ' Produk Tersedia) --</option>');
+                    matching.forEach(b => $('#pilih-barang').append(buildOptionElement(b)));
+                    $('#pilih-barang').append($('<option>').val('__TRIGGER_SHOW_ALL__').text('🔍 + Tampilkan Semua Barang Toko (Bukan Hanya Supplier Ini)...'));
+
+                    $('#filter-supplier-badge').removeClass('text-danger text-warning text-info').addClass('text-success fw-semibold')
+                        .html('<i class="bi bi-check-circle-fill me-1"></i>' + matching.length + ' produk siap dipilih dari supplier ini. <a href="javascript:void(0)" class="btn-trigger-all-products text-decoration-underline ms-1 fw-bold text-primary">Cari di semua barang toko</a>');
+                } else {
+                    $('#pilih-barang').append('<option value="">-- Belum ada produk terdaftar untuk supplier ini --</option>');
+                    $('#pilih-barang').append($('<option>').val('__TRIGGER_SHOW_ALL__').text('🔍 Tampilkan Semua Barang Toko Sekarang...'));
+
+                    $('#filter-supplier-badge').removeClass('text-danger text-success text-info').addClass('text-warning fw-semibold')
+                        .html('<i class="bi bi-info-circle-fill me-1"></i>Belum ada produk terdaftar khusus supplier ini. <a href="javascript:void(0)" class="btn-trigger-all-products text-decoration-underline ms-1 fw-bold text-primary">Klik untuk tampilkan semua barang toko</a>');
+                }
             }
 
             if ($('#pilih-barang').hasClass('select2-hidden-accessible')) {
@@ -379,7 +406,7 @@
                         keranjangBeli = [];
                         renderKeranjangBeli();
                         currentSelectedSupplier = newSupp;
-                        refreshProductDropdown(newSupp);
+                        refreshProductDropdown(newSupp, $('#toggle-semua-barang').is(':checked'));
                     } else {
                         $('#beli-supplier').val(currentSelectedSupplier).trigger('change.select2');
                     }
@@ -388,7 +415,7 @@
             }
 
             currentSelectedSupplier = newSupp;
-            refreshProductDropdown(newSupp);
+            refreshProductDropdown(newSupp, $('#toggle-semua-barang').is(':checked'));
         });
 
         // Saat barang dipilih dari dropdown, isi harga beli default (terkunci dari master)
@@ -472,11 +499,31 @@
         $('#input-harga-beli, #input-harga-jual, #input-qty-a, #input-hrg-a, #input-qty-b, #input-hrg-b, #input-qty-c, #input-hrg-c').on('input change keyup', checkPriceDifferenceBadge);
 
         $('#pilih-barang').on('change', function() {
+            if ($(this).val() === '__TRIGGER_SHOW_ALL__') {
+                $(this).val('').trigger('change.select2');
+                $('#toggle-semua-barang').prop('checked', true).trigger('change');
+                return;
+            }
             populatePriceFieldsFromSelected();
         });
 
+        // Toggle Tampilkan Semua Barang Toko
+        $('#toggle-semua-barang').on('change', function() {
+            const isChecked = $(this).is(':checked');
+            const supp = $('#beli-supplier').val();
+            refreshProductDropdown(supp, isChecked);
+            if (isChecked) {
+                setTimeout(() => $('#pilih-barang').select2('open'), 100);
+            }
+        });
+
+        $(document).on('click', '.btn-trigger-all-products', function(e) {
+            e.preventDefault();
+            $('#toggle-semua-barang').prop('checked', true).trigger('change');
+        });
+
         // Inisialisasi awal: jika supplier belum dipilih, dropdown barang KOSONG dan DISABLED
-        refreshProductDropdown(currentSelectedSupplier);
+        refreshProductDropdown(currentSelectedSupplier, false);
 
         // Tombol Tambah Item
         $('#btn-tambah-item').on('click', function() {
@@ -759,9 +806,13 @@
                 return;
             }
 
+            const isShowAll = $('#toggle-semua-barang').is(':checked');
+
             StockLookup.open({
                 mode: 'pembelian',
                 supplier: selectedSupplier,
+                supplierName: $('#beli-supplier').find(':selected').data('nama') || '',
+                showAllSuppliers: isShowAll,
                 onSelect: function(item) {
                     // Cari atau tambahkan opsi di dropdown select2
                     let $existingOpt = $('#pilih-barang').find('option[value="' + item.id_barang + '"]');

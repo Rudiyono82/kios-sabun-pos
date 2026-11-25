@@ -102,6 +102,14 @@
                                     <i class="bi bi-arrow-right"></i>
                                 </button>
                             </div>
+
+                            <!-- Switch Tampilkan Semua Supplier (Khusus Mode Pembelian & Retur) -->
+                            <div class="form-check form-switch mb-0 d-none align-items-center gap-1 bg-light border px-2 py-1 rounded" id="lookup-toggle-all-container" style="font-size: 0.76rem;">
+                                <input class="form-check-input my-0" type="checkbox" role="switch" id="lookup-toggle-all-stock" style="cursor: pointer;">
+                                <label class="form-check-label fw-bold text-primary text-nowrap user-select-none mb-0" for="lookup-toggle-all-stock" style="cursor: pointer;">
+                                    <i class="bi bi-box-seam me-1"></i>Semua Barang Toko
+                                </label>
+                            </div>
                         </div>
 
                         <!-- Tombol Refresh & Petunjuk Keyboard -->
@@ -241,8 +249,19 @@ const StockLookup = {
         this.mode = options.mode || 'penjualan';
         this.supplierCode = options.supplier || '';
         this.supplierName = options.supplierName || '';
+        this.showAllSuppliers = !!options.showAllSuppliers;
         this.onSelectCallback = options.onSelect || null;
         this.selectedItem = null;
+
+        // Atur Switch Toggle Tampilkan Semua Barang (Khusus Mode Pembelian & Retur)
+        if (this.mode === 'pembelian' || this.mode === 'retur') {
+            $('#lookup-toggle-all-container').removeClass('d-none').addClass('d-flex');
+            $('#lookup-toggle-all-stock').prop('checked', this.showAllSuppliers);
+        } else {
+            $('#lookup-toggle-all-container').addClass('d-none').removeClass('d-flex');
+            $('#lookup-toggle-all-stock').prop('checked', false);
+            this.showAllSuppliers = false;
+        }
 
         // Atur Judul & Header Kolom Berdasarkan Mode
         if (this.mode === 'penjualan') {
@@ -255,7 +274,7 @@ const StockLookup = {
         } else if (this.mode === 'retur') {
             const suppLabel = this.supplierName ? (this.supplierName + ' [' + this.supplierCode + ']') : (this.supplierCode || 'Supplier Terpilih');
             $('#lookup-modal-title').text('List of Stock (LookUp Retur: ' + suppLabel + ')');
-            $('#lookup-modal-subtitle').text('Menampilkan produk yang disuplai atau pernah dibeli dari ' + suppLabel);
+            $('#lookup-modal-subtitle').text(this.showAllSuppliers ? 'Menampilkan seluruh produk di toko' : ('Menampilkan produk yang disuplai atau pernah dibeli dari ' + suppLabel));
             $('#lookup-badge-mode').text('MODE RETUR').removeClass('bg-white bg-warning text-primary text-dark').addClass('bg-danger text-white');
             $('#lookup-th-col-harga').text('Harga Modal');
             $('#lookup-detail-lbl-harga').text('Harga Modal (Beli):');
@@ -263,7 +282,7 @@ const StockLookup = {
         } else {
             const suppLabel = this.supplierName ? (this.supplierName + ' [' + this.supplierCode + ']') : (this.supplierCode || 'Supplier Terpilih');
             $('#lookup-modal-title').text('List of Stock (LookUp Pembelian: ' + suppLabel + ')');
-            $('#lookup-modal-subtitle').text('Menampilkan seluruh barang supplier terpilih (status aktif maupun tidak aktif)');
+            $('#lookup-modal-subtitle').text(this.showAllSuppliers ? 'Menampilkan seluruh produk di toko (Semua Supplier)' : ('Menampilkan seluruh barang supplier terpilih: ' + suppLabel));
             $('#lookup-badge-mode').text('MODE PEMBELIAN').removeClass('bg-white bg-danger text-primary text-white').addClass('bg-warning text-dark');
             $('#lookup-th-col-harga').text('Harga Modal');
             $('#lookup-detail-lbl-harga').text('Harga Modal (Beli):');
@@ -318,12 +337,15 @@ const StockLookup = {
             `);
         }
 
+        const isAllSuppliers = (self.mode === 'pembelian' || self.mode === 'retur') && $('#lookup-toggle-all-stock').is(':checked');
+
         self.activeAjaxRequest = $.ajax({
             url: '<?= base_url('barang/lookup') ?>',
             type: 'GET',
             data: {
                 tipe: self.mode,
-                supplier: self.supplierCode,
+                supplier: isAllSuppliers ? '' : self.supplierCode,
+                all_suppliers: isAllSuppliers ? 1 : 0,
                 q: q,
                 filter_by: filterBy
             },
@@ -621,10 +643,19 @@ $(document).ready(function() {
         StockLookup.fetchData(false);
     });
 
-    $(document).on('click', '#btn-lookup-show-all-stock', function() {
-        StockLookup.supplierCode = '';
-        $('#lookup-modal-subtitle').text('Menampilkan seluruh produk di toko');
+    $('#lookup-toggle-all-stock').on('change', function() {
+        const isChecked = $(this).is(':checked');
+        if (isChecked) {
+            $('#lookup-modal-subtitle').text('Menampilkan SELURUH produk di toko (semua supplier)');
+        } else {
+            const suppLabel = StockLookup.supplierName ? (StockLookup.supplierName + ' [' + StockLookup.supplierCode + ']') : (StockLookup.supplierCode || 'Supplier Terpilih');
+            $('#lookup-modal-subtitle').text('Menampilkan produk khusus supplier: ' + suppLabel);
+        }
         StockLookup.fetchData(false);
+    });
+
+    $(document).on('click', '#btn-lookup-show-all-stock', function() {
+        $('#lookup-toggle-all-stock').prop('checked', true).trigger('change');
     });
 
     $('#lookup-filter-by').on('change', function() {
