@@ -34,21 +34,35 @@
     <!-- Ringkasan Kas & Omzet Hari Terpilih -->
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="p-3 bg-light rounded-3 border">
+            <div class="p-3 bg-light rounded-3 border h-100">
                 <small class="text-muted fw-semibold d-block text-uppercase">Kas Awal Toko</small>
                 <h4 class="fw-bold text-dark mt-1 mb-0">Rp <?= number_format($rekap['kas_awal'], 0, ',', '.') ?></h4>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="p-3 bg-light rounded-3 border">
+            <div class="p-3 bg-light rounded-3 border h-100">
                 <small class="text-muted fw-semibold d-block text-uppercase">Total Omzet Penjualan</small>
-                <h4 class="fw-bold text-primary mt-1 mb-0">Rp <?= number_format($rekap['omzet'], 0, ',', '.') ?></h4>
+                <h4 class="fw-bold text-primary mt-1 mb-1">Rp <?= number_format($rekap['omzet'], 0, ',', '.') ?></h4>
+                <div class="d-flex flex-wrap gap-1 mt-1" style="font-size: 0.75rem;">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-cash me-1"></i>Cash: Rp <?= number_format($rekap['omzet_tunai'] ?? 0, 0, ',', '.') ?></span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-qr-code me-1"></i>QRIS: Rp <?= number_format($rekap['omzet_qris'] ?? 0, 0, ',', '.') ?></span>
+                    <?php if (!empty($rekap['omzet_transfer'])): ?>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">TF: Rp <?= number_format($rekap['omzet_transfer'], 0, ',', '.') ?></span>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="p-3 bg-light rounded-3 border">
+            <div class="p-3 bg-light rounded-3 border h-100">
                 <small class="text-muted fw-semibold d-block text-uppercase">Total Pengeluaran / Biaya</small>
                 <h4 class="fw-bold text-danger mt-1 mb-0">Rp <?= number_format($rekap['pengeluaran'], 0, ',', '.') ?></h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 bg-warning bg-opacity-10 rounded-3 border border-warning-subtle h-100">
+                <small class="text-warning-emphasis fw-bold d-block text-uppercase">Kas Fisik di Laci</small>
+                <h4 class="fw-bold text-dark mt-1 mb-0">Rp <?= number_format($rekap['kas_akhir'], 0, ',', '.') ?></h4>
+                <small class="text-muted" style="font-size: 0.75rem;">(Kas Awal + Cash - Pengeluaran)</small>
             </div>
         </div>
         <?php if (!empty($is_admin)): ?>
@@ -56,13 +70,6 @@
             <div class="p-3 bg-success bg-opacity-10 rounded-3 border border-success-subtle">
                 <small class="text-success fw-bold d-block text-uppercase">Estimasi Margin Profit</small>
                 <h4 class="fw-bold text-success mt-1 mb-0">Rp <?= number_format($rekap['profit'], 0, ',', '.') ?> <span class="badge bg-success text-white fs-6 ms-1" title="Kode No. Laporan Terselubung">[Hex: <?= esc($no_laporan) ?>]</span></h4>
-            </div>
-        </div>
-        <?php else: ?>
-        <div class="col-md-3">
-            <div class="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary-subtle">
-                <small class="text-primary fw-bold d-block text-uppercase">Total Transaksi</small>
-                <h4 class="fw-bold text-primary mt-1 mb-0"><?= number_format(count($penjualan), 0, ',', '.') ?> <span class="fs-6 fw-normal text-muted">Faktur</span></h4>
             </div>
         </div>
         <?php endif; ?>

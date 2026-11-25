@@ -41,15 +41,28 @@ class Laporan extends BaseController
 
         // Rekapitulasi
         $totalOmzet = 0;
+        $totalTunai = 0;
+        $totalQris = 0;
+        $totalTransfer = 0;
         $realTotalProfit = 0;
         $totalQty = 0;
         $totalJerigenTukar = 0;
 
         foreach ($penjualan as &$p) {
-            $totalOmzet += (float) $p['grand_total'];
+            $gt = (float) $p['grand_total'];
+            $totalOmzet += $gt;
             $totalQty += (float) $p['total_qty'];
             $totalJerigenTukar += (float) $p['potongan_tukar_jerigen'];
             $realTotalProfit += (float) ($p['total_profit'] ?? 0);
+
+            $metode = strtolower(trim($p['metode_bayar'] ?? 'cash'));
+            if (str_contains($metode, 'qris')) {
+                $totalQris += $gt;
+            } elseif (str_contains($metode, 'trf') || str_contains($metode, 'transfer')) {
+                $totalTransfer += $gt;
+            } else {
+                $totalTunai += $gt;
+            }
 
             if (!$isAdmin) {
                 // Keamanan Finansial: Hapus data profit transaksi dari sisi kasir
@@ -67,6 +80,10 @@ class Laporan extends BaseController
                 continue;
             }
             if (strpos($nama, 'total omzet') !== false || strpos($nama, 'total profit') !== false) {
+                continue;
+            }
+            // Abaikan pencatatan non-tunai laci dari sistem lama (seperti QRIS / TRANSFER BANK di data_keuangan)
+            if (in_array(strtoupper(trim($k['nama_keuangan'] ?? '')), ['QRIS', 'TRANSFER BANK', 'TRANSFER', 'DEBIT EDC BCA', 'EDC'])) {
                 continue;
             }
             if ($k['jenis_keuangan'] === 'Kas Awal') $kasAwal += (float) $k['total'];
@@ -91,13 +108,16 @@ class Laporan extends BaseController
             'cabang_list' => $cabangList,
             'rekap' => [
                 'omzet' => $totalOmzet,
+                'omzet_tunai' => $totalTunai,
+                'omzet_qris' => $totalQris,
+                'omzet_transfer' => $totalTransfer,
                 'profit' => $isAdmin ? $realTotalProfit : 0,
                 'no_laporan' => $noLaporan,
                 'qty' => $totalQty,
                 'tukar_jerigen' => $totalJerigenTukar,
                 'kas_awal' => $kasAwal,
                 'pengeluaran' => $pengeluaran,
-                'kas_akhir' => $kasAwal + $totalOmzet - $pengeluaran,
+                'kas_akhir' => $kasAwal + $totalTunai - $pengeluaran,
             ]
         ];
 
@@ -206,6 +226,10 @@ class Laporan extends BaseController
                     ];
                 }
             } elseif ($jenis === 'Pengeluaran') {
+                // Abaikan jika ini hanya pencatatan non-tunai laci dari sistem lama (QRIS / Transfer BANK) yang bukan pengeluaran kas riil
+                if (in_array(strtoupper(trim($nama)), ['QRIS', 'TRANSFER BANK', 'TRANSFER', 'DEBIT EDC BCA', 'EDC'])) {
+                    continue;
+                }
                 $totalPengeluaran += $total;
                 $listPengeluaran[] = [
                     'nama' => $nama,
