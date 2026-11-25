@@ -742,6 +742,31 @@ try {
         }
         echo "[MIGRATION] Successfully updated {$cntKat} kategori_keuangan in MySQL to Title Case.\n";
 
+        // 8. Pembersihan Duplikasi Transaksi Input Paralel Tanggal 25 Nov 2026
+        // Kasir melakukan input ganda di Web POS (format J261125%) dan di VB6 Access (format J001408%).
+        // Karena seluruh transaksi asli J001408% (52 faktur) sudah diimpor dari Access, hapus duplikat J261125%.
+        $chkAccessTrx = $pdo->query("SELECT COUNT(*) FROM `penjualan` WHERE DATE(tanggal) = '2026-11-25' AND `no_faktur` LIKE 'J001408%'")->fetchColumn();
+        if ($chkAccessTrx > 0) {
+            echo "[MIGRATION] Harmonizing 25 Nov 2026 sales to match Access (52 transactions)...\n";
+            $pdo->exec("DELETE pd FROM `penjualan_detail` pd JOIN `penjualan` p ON p.no_faktur = pd.no_faktur WHERE DATE(p.tanggal) = '2026-11-25' AND p.no_faktur LIKE 'J261125%'");
+            $pdo->exec("DELETE FROM `penjualan` WHERE DATE(tanggal) = '2026-11-25' AND `no_faktur` LIKE 'J261125%'");
+            echo "[MIGRATION] Duplicate J261125% removed successfully.\n";
+        }
+
+        // Pastikan Kas Awal 25 Nov 2026 tidak terhitung dobel (tepat Rp 379.000)
+        $kasAwal25Rows = $pdo->query("SELECT id FROM `data_keuangan` WHERE DATE(tanggal) = '2026-11-25' AND (jenis_keuangan = 'Kas Awal' OR nama_keuangan LIKE '%Kas Awal%') ORDER BY id ASC")->fetchAll(PDO::FETCH_COLUMN);
+        if (count($kasAwal25Rows) > 1) {
+            $firstId = array_shift($kasAwal25Rows);
+            $dupIds = implode(',', $kasAwal25Rows);
+            $pdo->exec("UPDATE `data_keuangan` SET `total` = 379000 WHERE id = {$firstId}");
+            $pdo->exec("DELETE FROM `data_keuangan` WHERE id IN ({$dupIds})");
+            echo "[MIGRATION] Cleaned duplicate Kas Awal on 2026-11-25 (retained ID #{$firstId} with Rp 379.000).\n";
+        }
+
+        // Bersihkan duplikasi pengeluaran Restock B2611250002 jika kasir sudah input bayar mama farhan
+        $pdo->exec("DELETE FROM `data_keuangan` WHERE DATE(tanggal) = '2026-11-25' AND `nama_keuangan` LIKE '%B2611250002%'");
+        echo "[MIGRATION] Cleaned duplicate restock cash entry B2611250002 on 2026-11-25.\n";
+
     } catch (Exception $e) {
         echo "[MIGRATION NOTICE] Purchase stock reconciliation warning: " . $e->getMessage() . "\n";
     }
