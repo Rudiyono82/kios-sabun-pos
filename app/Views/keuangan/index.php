@@ -7,7 +7,15 @@
         <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-wallet2 text-success me-2"></i>Buku Kas & Biaya Operasional Toko</h4>
         <p class="text-muted small mb-0">Catat dan pantau seluruh pengeluaran rutin toko (listrik, plastik, lakban, jerigen, konsumsi, bensin) serta saldo kas riil toko.</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- Quick Print Laporan Harian Sesuai Tanggal (Warisan Kemudahan Program Lama) -->
+        <div class="d-flex align-items-center gap-1 bg-white p-1 rounded-pill border shadow-sm" title="Pilih tanggal untuk melihat/cetak struk laporan harian toko (seperti di program lama)">
+            <span class="small fw-semibold text-muted ps-2"><i class="bi bi-calendar-event me-1 text-primary"></i>Tgl:</span>
+            <input type="date" id="tgl_print_laporan_harian" class="form-control form-control-sm border-0 bg-transparent px-1" value="<?= date('Y-m-d', strtotime('-1 day')) ?>" style="width: 125px; font-size: 0.85rem;">
+            <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold text-nowrap" id="btn_print_laporan_keuangan">
+                <i class="bi bi-receipt me-1 text-warning"></i> Print Laporan Harian
+            </button>
+        </div>
         <?php if (session()->get('role') === 'admin'): ?>
         <a href="<?= base_url('laporan/arus-kas') ?>" class="btn btn-outline-success rounded-pill px-3 shadow-sm fw-bold">
             <i class="bi bi-cash-coin me-1"></i> Laporan Arus Kas &amp; Aset
@@ -457,6 +465,12 @@
                 e.preventDefault();
                 eksekusiSimpanKategoriInline();
             }
+        });
+
+        $('#btn_print_laporan_keuangan').on('click', function() {
+            const tgl = $('#tgl_print_laporan_harian').val() || '<?= date('Y-m-d') ?>';
+            const url = '<?= base_url('laporan/cetak-struk-harian') ?>?tanggal=' + tgl;
+            window.open(url, 'StrukHarian', 'width=440,height=700');
         });
 
         // Hapus Catatan Kas dengan Otorisasi
