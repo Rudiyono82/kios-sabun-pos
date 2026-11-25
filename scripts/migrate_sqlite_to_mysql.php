@@ -119,6 +119,8 @@ function upsertBarangBatch(PDO $pdo, array $rows): void
             `hrg_paket_b` = VALUES(`hrg_paket_b`),
             `qty_paket_c` = VALUES(`qty_paket_c`),
             `hrg_paket_c` = VALUES(`hrg_paket_c`),
+            `kode_supplier_1` = VALUES(`kode_supplier_1`),
+            `kode_supplier_2` = VALUES(`kode_supplier_2`),
             `updated_at` = VALUES(`updated_at`)";
     
     $stmt = $pdo->prepare($sql);
@@ -747,6 +749,13 @@ try {
             WHERE `nama_keuangan` LIKE '%J2611240010%';
         ");
         echo "[MIGRATION] Invoice J2611240010 updated to Cash successfully in MySQL.\n";
+
+        // 7. Sinkronisasi Kode Supplier dari Access (Termasuk Botol Sprey 250ml ke SP200323009 ONLINE SHOP)
+        echo "[MIGRATION] Synchronizing kode_supplier_1 updates from Access in MySQL...\n";
+        $pdo->exec("UPDATE `barang` SET `kode_supplier_1` = 'SP200323009' WHERE `id_barang` = 'B2019139';");
+        $pdo->exec("UPDATE `barang` SET `kode_supplier_1` = 'SP110526024' WHERE `id_barang` IN ('B2019109', 'B2019174', 'B2020389', 'B2020392', 'B2020505', 'B2022804', 'B2022862', 'B2023007', 'B2024022', 'B2024024', 'B2024030', 'B2025004', 'B2025010');");
+        $pdo->exec("UPDATE `barang` SET `kode_supplier_1` = 'SP190825022' WHERE `id_barang` = 'B2020562';");
+        echo "[MIGRATION] kode_supplier_1 updated successfully in MySQL.\n";
 
         // 7. Update Title Case seluruh kategori_keuangan di MySQL
         echo "[MIGRATION] Applying Title Case to all kategori_keuangan in MySQL...\n";
