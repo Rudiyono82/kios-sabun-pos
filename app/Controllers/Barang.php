@@ -149,21 +149,8 @@ class Barang extends BaseController
                 $data['min_stok']     = (float) ($this->request->getPost('min_stok') ?: 5);
             } else {
                 // EDIT BARANG OLEH KASIR:
-                // Jika barang sudah Aktif, kunci total harga dan stok (pertahankan dari database)
-                if (($existing['status'] ?? '') === 'Aktif') {
-                    $data['status']       = 'Aktif';
-                    $data['harga_beli']   = (float) ($existing['harga_beli'] ?? 0);
-                    $data['harga_jual']   = (float) ($existing['harga_jual'] ?? 0);
-                    $data['harga_grosir'] = (float) ($existing['harga_grosir'] ?? 0);
-                    $data['qty_paket_a']  = (float) ($existing['qty_paket_a'] ?? 0);
-                    $data['hrg_paket_a']  = (float) ($existing['hrg_paket_a'] ?? 0);
-                    $data['qty_paket_b']  = (float) ($existing['qty_paket_b'] ?? 0);
-                    $data['hrg_paket_b']  = (float) ($existing['hrg_paket_b'] ?? 0);
-                    $data['qty_paket_c']  = (float) ($existing['qty_paket_c'] ?? 0);
-                    $data['hrg_paket_c']  = (float) ($existing['hrg_paket_c'] ?? 0);
-                    $data['stok']         = (float) ($existing['stok'] ?? 0);
-                    $data['min_stok']     = (float) ($existing['min_stok'] ?? 5);
-                } else {
+                $currentStatus = $existing['status'] ?? 'Aktif';
+                if ($currentStatus === 'Pending') {
                     // Jika masih status Pending, kasir boleh mengedit informasi usulan harga
                     $data['status']       = 'Pending';
                     $data['harga_beli']   = $cleanNumber($this->request->getPost('harga_beli'));
@@ -177,6 +164,20 @@ class Barang extends BaseController
                     $data['hrg_paket_c']  = $cleanNumber($this->request->getPost('hrg_paket_c'));
                     $data['stok']         = 0;
                     $data['min_stok']     = (float) ($this->request->getPost('min_stok') ?: 5);
+                } else {
+                    // Barang SUDAH AKTIF atau TIDAK AKTIF: pertahankan status asli dan kunci total harga serta stok
+                    $data['status']       = $currentStatus;
+                    $data['harga_beli']   = (float) ($existing['harga_beli'] ?? 0);
+                    $data['harga_jual']   = (float) ($existing['harga_jual'] ?? 0);
+                    $data['harga_grosir'] = (float) ($existing['harga_grosir'] ?? 0);
+                    $data['qty_paket_a']  = (float) ($existing['qty_paket_a'] ?? 0);
+                    $data['hrg_paket_a']  = (float) ($existing['hrg_paket_a'] ?? 0);
+                    $data['qty_paket_b']  = (float) ($existing['qty_paket_b'] ?? 0);
+                    $data['hrg_paket_b']  = (float) ($existing['hrg_paket_b'] ?? 0);
+                    $data['qty_paket_c']  = (float) ($existing['qty_paket_c'] ?? 0);
+                    $data['hrg_paket_c']  = (float) ($existing['hrg_paket_c'] ?? 0);
+                    $data['stok']         = (float) ($existing['stok'] ?? 0);
+                    $data['min_stok']     = (float) ($existing['min_stok'] ?? 5);
                 }
             }
         }

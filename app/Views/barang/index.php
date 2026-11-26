@@ -13,7 +13,7 @@
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Cetak / Export Laporan
             </a>
             <button type="button" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
-                <i class="bi bi-plus-lg me-1"></i> <?= $is_admin ? 'Tambah Barang Baru' : 'Ajukan Barang Baru (Pending)' ?>
+                <i class="bi bi-plus-lg me-1"></i> Tambah Barang Baru
             </button>
         </div>
     </div>
@@ -216,8 +216,8 @@
                                 <option value="Nonaktif">Nonaktif</option>
                             </select>
                             <?php else: ?>
-                            <input type="text" class="form-control bg-light fw-bold text-warning" id="form-status-display" value="Pending (Menunggu Persetujuan Admin)" readonly>
-                            <input type="hidden" name="status" id="form-status" value="Pending">
+                            <input type="text" class="form-control bg-light fw-bold text-success" id="form-status-display" value="Aktif" readonly>
+                            <input type="hidden" name="status" id="form-status" value="Aktif">
                             <?php endif; ?>
                         </div>
 
@@ -548,6 +548,9 @@
                 $('#modalBarangSubtitle').removeClass('text-white text-opacity-75 text-dark').addClass('text-muted').html('<span class="badge bg-warning text-dark me-1"><i class="bi bi-clock-history"></i> Status Pending</span> Anda masih dapat mengubah informasi produk, harga beli, jual, dan paket grosir sebelum disetujui Admin.');
                 $('#btn-simpan-barang').removeClass('d-none').html('<i class="bi bi-save me-1"></i> Simpan Perubahan Pengajuan');
 
+                $('#form-status-display').val('Pending (Menunggu Persetujuan Admin)').removeClass('text-success text-secondary').addClass('text-warning');
+                $('#form-status').val('Pending');
+
                 $('#form-harga_beli, #form-harga_jual, #form-harga_grosir').prop('readonly', false).removeClass('bg-light text-muted');
                 $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').prop('readonly', false).removeClass('bg-light text-muted');
                 $('#form-stok, #form-min_stok').prop('readonly', true).addClass('bg-light text-muted');
@@ -556,10 +559,15 @@
                 $('#badge-header-paket').html('<span class="badge bg-info-subtle text-info border border-info-subtle small"><i class="bi bi-pencil-fill me-1"></i>Usulan Paket Grosir</span>');
                 $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
             } else {
-                // Barang Aktif: Kunci harga dan stok demi integritas finansial
+                // Barang Aktif / Nonaktif: Kunci harga dan stok demi integritas finansial
                 $('#modalBarangTitle').removeClass('text-white text-dark').addClass('text-primary').html('<i class="bi bi-pencil-square me-2"></i>Edit Info Produk: ' + b.nama_barang);
                 $('#modalBarangSubtitle').removeClass('text-white text-opacity-75 text-dark').addClass('text-muted').html('<span class="badge bg-warning text-dark me-1"><i class="bi bi-shield-lock-fill"></i> Akses Kasir</span> Anda dapat mengubah Nama, Barcode, Kategori, Satuan, Supplier & Foto. <strong>Harga & Stok dikunci demi keamanan.</strong>');
                 $('#btn-simpan-barang').removeClass('d-none').html('<i class="bi bi-save me-1"></i> Simpan Info Produk');
+
+                const statusLabel = (b.status === 'Tidak Aktif' || b.status === 'Nonaktif') ? 'Nonaktif / Tidak Aktif' : 'Aktif';
+                const statusColor = (b.status === 'Tidak Aktif' || b.status === 'Nonaktif') ? 'text-secondary' : 'text-success';
+                $('#form-status-display').val(statusLabel).removeClass('text-warning text-success text-secondary').addClass(statusColor);
+                $('#form-status').val(b.status || 'Aktif');
 
                 $('#form-harga_beli, #form-harga_jual, #form-harga_grosir').prop('readonly', true).addClass('bg-light text-muted');
                 $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').prop('readonly', true).addClass('bg-light text-muted');
@@ -631,11 +639,11 @@
             $('#form-status').val('Aktif').trigger('change');
             $('#form-stok, #form-min_stok').prop('readonly', false).removeClass('bg-light text-muted');
         } else {
-            $('#modalBarangTitle').removeClass('text-dark text-primary').addClass('text-white').html('<i class="bi bi-box-seam me-2"></i>Ajukan Barang Baru (Pending Approval)');
-            $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Barang akan diajukan dengan status PENDING dan harus disetujui Admin sebelum aktif di POS.');
+            $('#modalBarangTitle').removeClass('text-dark text-primary').addClass('text-white').html('<i class="bi bi-box-seam me-2"></i>Tambah Barang Baru');
+            $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Barang baru yang diinput Kasir otomatis berstatus PENDING dan harus disetujui Admin sebelum aktif di POS.');
             $('#btn-simpan-barang').removeClass('d-none').html('<i class="bi bi-send me-1"></i> Ajukan Barang Baru');
             $('#form-status').val('Pending');
-            $('#form-status-display').val('Pending (Menunggu Persetujuan Admin)');
+            $('#form-status-display').val('Pending (Otomatis untuk Barang Baru)').removeClass('text-success text-secondary').addClass('text-warning');
             $('#form-stok').val('0').prop('readonly', true).addClass('bg-light text-muted');
         }
 
