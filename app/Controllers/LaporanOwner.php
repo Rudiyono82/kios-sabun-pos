@@ -71,7 +71,7 @@ class LaporanOwner extends BaseController
     {
         $bulanPad = sprintf('%02d', (int)$bulan);
         $startDate = "{$tahun}-{$bulanPad}-01";
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int)$bulan, (int)$tahun);
+        $daysInMonth = (int)date('t', strtotime("{$tahun}-{$bulanPad}-01"));
         $endDate = "{$tahun}-{$bulanPad}-{$daysInMonth}";
 
         // Filter Cabang SQL snippet
@@ -85,19 +85,17 @@ class LaporanOwner extends BaseController
             $cabangSqlPembelian = " AND pb.id_cabang = {$cabangId}";
         }
 
-        // 1. Query Penjualan per Hari
+        // 1. Query Penjualan per Hari (Gunakan tabel penjualan langsung agar tidak terjadi perkalian baris)
         $qPenjualan = $db->query("
             SELECT 
                 DATE(p.tanggal) as tgl,
-                COUNT(DISTINCT p.id) as total_trx,
+                COUNT(p.id) as total_trx,
                 COALESCE(SUM(p.grand_total), 0) as omzet,
-                COALESCE(SUM(CASE WHEN p.metode_bayar = 'QRIS' THEN p.grand_total ELSE 0 END), 0) as qris,
-                COALESCE(SUM(CASE WHEN p.metode_bayar = 'Transfer' THEN p.grand_total ELSE 0 END), 0) as transfer,
-                COALESCE(SUM(CASE WHEN p.metode_bayar = 'Cash' THEN p.grand_total ELSE 0 END), 0) as cash,
-                COALESCE(SUM(pd.harga_beli * pd.qty), 0) as hpp_modal,
-                COALESCE(SUM(pd.profit), 0) as gross_profit
+                COALESCE(SUM(CASE WHEN UPPER(p.metode_bayar) LIKE '%QRIS%' THEN p.grand_total ELSE 0 END), 0) as qris,
+                COALESCE(SUM(CASE WHEN UPPER(p.metode_bayar) LIKE '%TRF%' OR UPPER(p.metode_bayar) LIKE '%TRANSFER%' THEN p.grand_total ELSE 0 END), 0) as transfer,
+                COALESCE(SUM(CASE WHEN UPPER(p.metode_bayar) NOT LIKE '%QRIS%' AND UPPER(p.metode_bayar) NOT LIKE '%TRF%' AND UPPER(p.metode_bayar) NOT LIKE '%TRANSFER%' THEN p.grand_total ELSE 0 END), 0) as cash,
+                COALESCE(SUM(p.total_profit), 0) as gross_profit
             FROM penjualan p
-            LEFT JOIN penjualan_detail pd ON pd.no_faktur = p.no_faktur
             WHERE DATE(p.tanggal) >= '{$startDate}' AND DATE(p.tanggal) <= '{$endDate}' {$cabangSqlPenjualan}
             GROUP BY DATE(p.tanggal)
             ORDER BY DATE(p.tanggal) ASC
@@ -105,10 +103,13 @@ class LaporanOwner extends BaseController
 
         $mapPenjualan = [];
         foreach ($qPenjualan as $pj) {
+            $omzet = (float)$pj['omzet'];
             $gross = (float)$pj['gross_profit'];
-            if ($gross <= 0 && (float)$pj['omzet'] > 0 && (float)$pj['hpp_modal'] > 0) {
-                $gross = (float)$pj['omzet'] - (float)$pj['hpp_modal'];
+            $hppModal = $omzet - $gross;
+            if ($hppModal < 0) {
+                $hppModal = 0;
             }
+            $pj['hpp_modal'] = $hppModal;
             $pj['gross_profit'] = $gross;
             $mapPenjualan[$pj['tgl']] = $pj;
         }
@@ -388,7 +389,7 @@ class LaporanOwner extends BaseController
             FROM barang b
             LEFT JOIN kategori k ON k.id = b.kategori_id
             WHERE b.status = 'Aktif'
-            GROUP BY k.id
+            GROUP BY k.id, k.nama_kategori
             ORDER BY total_modal DESC
         ")->getResultArray();
 

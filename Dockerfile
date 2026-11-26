@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     mysqli \
     pdo_mysql \
+    calendar \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Enable Apache rewrite module & prefork MPM
