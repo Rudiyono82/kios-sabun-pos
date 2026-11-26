@@ -36,6 +36,7 @@ $routes->group('pos', ['filter' => 'auth'], function($routes) {
 $routes->group('barang', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Barang::index');
     $routes->get('lookup', 'Barang::lookup');
+    $routes->get('generate-kode', 'Barang::generateKode');
     $routes->post('simpan', 'Barang::simpan');
     $routes->match(['get', 'post'], 'approve/(:num)', 'Barang::approve/$1', ['filter' => 'admin']);
     $routes->match(['get', 'post'], 'reject/(:num)', 'Barang::reject/$1', ['filter' => 'admin']);

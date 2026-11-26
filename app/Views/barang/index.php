@@ -192,7 +192,13 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold text-muted">Kode Barang (ID Unique) <span class="text-danger">*</span></label>
-                            <input type="text" name="id_barang" id="form-id_barang" class="form-control text-uppercase fw-bold" placeholder="Contoh: B2020400" required>
+                            <div class="input-group">
+                                <input type="text" name="id_barang" id="form-id_barang" class="form-control text-uppercase fw-bold" value="<?= esc($auto_kode_barang ?? '') ?>" placeholder="B<?= date('Y') ?>..." required>
+                                <button class="btn btn-outline-secondary" type="button" id="btn-refresh-kode" title="Generate Ulang Kode Barang Otomatis">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-magic me-1"></i>Format otomatis: B + Tahun (<?= date('Y') ?>) + Urut (3 digit)</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold text-muted">Barcode Scanner</label>
@@ -483,6 +489,7 @@
 <?= $this->section('scripts') ?>
 <script>
     const isAdmin = <?= $is_admin ? 'true' : 'false' ?>;
+    let defaultAutoKode = '<?= esc($auto_kode_barang ?? '') ?>';
 
     $('#table-barang').DataTable({
         language: {
@@ -491,6 +498,20 @@
             info: "Menampilkan _START_ - _END_ dari _TOTAL_ barang",
             paginate: { first: "«", last: "»", next: "›", previous: "‹" }
         }
+    });
+
+    // Refresh Kode Barang Otomatis
+    $('#btn-refresh-kode').on('click', function() {
+        const $btn = $(this);
+        $btn.prop('disabled', true).find('i').addClass('spinner-border spinner-border-sm').removeClass('bi bi-arrow-clockwise');
+        $.getJSON('<?= base_url('barang/generate-kode') ?>', function(res) {
+            if (res && res.kode) {
+                $('#form-id_barang').val(res.kode);
+                defaultAutoKode = res.kode;
+            }
+        }).always(function() {
+            $btn.prop('disabled', false).find('i').removeClass('spinner-border spinner-border-sm').addClass('bi bi-arrow-clockwise');
+        });
     });
 
     // Event Klik Edit (Admin & Kasir)
@@ -513,25 +534,41 @@
             $('#badge-header-paket').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-unlock-fill me-1"></i>Admin Enabled</span>');
             $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
         } else {
-            // Kasir: Mode Edit Terbatas (Nama, Barcode, Kategori, Satuan, Supplier, Status, Foto)
+            // Kasir
             $('#modalBarangHeader').removeClass('bg-primary text-white bg-warning text-dark').addClass('bg-primary bg-opacity-10 text-primary');
             $('#modalBarangHeader .btn-close').removeClass('btn-close-white');
-            $('#modalBarangTitle').removeClass('text-white text-dark').addClass('text-primary').html('<i class="bi bi-pencil-square me-2"></i>Edit Info Produk: ' + b.nama_barang);
-            $('#modalBarangSubtitle').removeClass('text-white text-opacity-75 text-dark').addClass('text-muted').html('<span class="badge bg-warning text-dark me-1"><i class="bi bi-shield-lock-fill"></i> Akses Kasir</span> Anda dapat mengubah Nama, Barcode, Kategori, Satuan, Supplier & Foto. <strong>Harga & Stok dikunci demi keamanan.</strong>');
-            $('#btn-simpan-barang').removeClass('d-none').html('<i class="bi bi-save me-1"></i> Simpan Info Produk');
             
             // Aktifkan input informasi umum
             $('#modalTambahBarang input, #modalTambahBarang select').prop('disabled', false);
-            $('#form-barcode, #form-nama_barang, #form-kategori_id, #form-satuan, #form-kode_supplier_1, #form-kode_supplier_2, #form-status, #form-is_jerigen, #form-foto_barang, #form-hapus_foto').prop('readonly', false);
+            $('#form-barcode, #form-nama_barang, #form-kategori_id, #form-satuan, #form-kode_supplier_1, #form-kode_supplier_2, #form-is_jerigen, #form-foto_barang, #form-hapus_foto').prop('readonly', false);
 
-            // Kunci harga dan stok untuk kasir (readonly + styling abu-abu)
-            $('#form-harga_beli, #form-harga_jual, #form-harga_grosir').prop('readonly', true).addClass('bg-light text-muted');
-            $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').prop('readonly', true).addClass('bg-light text-muted');
-            $('#form-stok, #form-min_stok').prop('readonly', true).addClass('bg-light text-muted');
-            
-            $('#badge-header-harga').html('<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small"><i class="bi bi-lock-fill me-1"></i>Harga Terkunci (Hanya Admin)</span>');
-            $('#badge-header-paket').html('<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small"><i class="bi bi-lock-fill me-1"></i>Paket Grosir Terkunci (Hanya Admin)</span>');
-            $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').removeClass('d-none');
+            if (b.status === 'Pending') {
+                // Barang Pending: Kasir masih berhak mengubah usulan harga dan paket grosir
+                $('#modalBarangTitle').removeClass('text-white text-dark').addClass('text-primary').html('<i class="bi bi-pencil-square me-2"></i>Edit Pengajuan Barang: ' + b.nama_barang);
+                $('#modalBarangSubtitle').removeClass('text-white text-opacity-75 text-dark').addClass('text-muted').html('<span class="badge bg-warning text-dark me-1"><i class="bi bi-clock-history"></i> Status Pending</span> Anda masih dapat mengubah informasi produk, harga beli, jual, dan paket grosir sebelum disetujui Admin.');
+                $('#btn-simpan-barang').removeClass('d-none').html('<i class="bi bi-save me-1"></i> Simpan Perubahan Pengajuan');
+
+                $('#form-harga_beli, #form-harga_jual, #form-harga_grosir').prop('readonly', false).removeClass('bg-light text-muted');
+                $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').prop('readonly', false).removeClass('bg-light text-muted');
+                $('#form-stok, #form-min_stok').prop('readonly', true).addClass('bg-light text-muted');
+
+                $('#badge-header-harga').html('<span class="badge bg-info-subtle text-info border border-info-subtle small"><i class="bi bi-pencil-fill me-1"></i>Usulan Harga Kasir</span>');
+                $('#badge-header-paket').html('<span class="badge bg-info-subtle text-info border border-info-subtle small"><i class="bi bi-pencil-fill me-1"></i>Usulan Paket Grosir</span>');
+                $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
+            } else {
+                // Barang Aktif: Kunci harga dan stok demi integritas finansial
+                $('#modalBarangTitle').removeClass('text-white text-dark').addClass('text-primary').html('<i class="bi bi-pencil-square me-2"></i>Edit Info Produk: ' + b.nama_barang);
+                $('#modalBarangSubtitle').removeClass('text-white text-opacity-75 text-dark').addClass('text-muted').html('<span class="badge bg-warning text-dark me-1"><i class="bi bi-shield-lock-fill"></i> Akses Kasir</span> Anda dapat mengubah Nama, Barcode, Kategori, Satuan, Supplier & Foto. <strong>Harga & Stok dikunci demi keamanan.</strong>');
+                $('#btn-simpan-barang').removeClass('d-none').html('<i class="bi bi-save me-1"></i> Simpan Info Produk');
+
+                $('#form-harga_beli, #form-harga_jual, #form-harga_grosir').prop('readonly', true).addClass('bg-light text-muted');
+                $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').prop('readonly', true).addClass('bg-light text-muted');
+                $('#form-stok, #form-min_stok').prop('readonly', true).addClass('bg-light text-muted');
+                
+                $('#badge-header-harga').html('<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small"><i class="bi bi-lock-fill me-1"></i>Harga Terkunci (Hanya Admin)</span>');
+                $('#badge-header-paket').html('<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small"><i class="bi bi-lock-fill me-1"></i>Paket Grosir Terkunci (Hanya Admin)</span>');
+                $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').removeClass('d-none');
+            }
         }
         
         $('#form-id_barang').val(b.id_barang).prop('readonly', true);
@@ -602,8 +639,9 @@
             $('#form-stok').val('0').prop('readonly', true).addClass('bg-light text-muted');
         }
 
-        $('#form-id_barang').prop('readonly', false);
+        $('#form-id_barang').val(defaultAutoKode).prop('readonly', false);
         $('#formBarang')[0].reset();
+        $('#form-id_barang').val(defaultAutoKode);
         $('#form-foto_barang').val('');
         $('#form-gambar_lama').val('');
         $('#preview-foto-img').attr('src', '').addClass('d-none');

@@ -26,6 +26,7 @@ class Barang extends BaseController
             'title' => 'Master Data Barang & Stok',
             'barang' => $barangList,
             'is_admin' => $isAdmin,
+            'auto_kode_barang' => $barangModel->generateKodeBarang(),
             'pending_count' => $db->table('barang')->where('status', 'Pending')->countAllResults(),
             'kategori' => $db->table('kategori')->get()->getResultArray(),
             'satuan' => $db->table('satuan')->get()->getResultArray(),
@@ -33,6 +34,18 @@ class Barang extends BaseController
         ];
 
         return view('barang/index', $data);
+    }
+
+    /**
+     * Endpoint API JSON untuk generate kode barang otomatis B{YYYY}{NNN}
+     */
+    public function generateKode()
+    {
+        $barangModel = new BarangModel();
+        return $this->response->setJSON([
+            'status' => 'success',
+            'kode'   => $barangModel->generateKodeBarang()
+        ]);
     }
 
     public function simpan()
@@ -47,8 +60,23 @@ class Barang extends BaseController
         $satuan     = trim((string)$this->request->getPost('satuan'));
         $hargaBeli  = $this->request->getPost('harga_beli');
 
+        // Otomatis generate kode barang jika kosong atau 'AUTO'
+        if (empty($idBarang) || $idBarang === 'AUTO') {
+            $idBarang = $barangModel->generateKodeBarang();
+        }
+
         if (empty($idBarang) || empty($namaBarang)) {
             return redirect()->back()->withInput()->with('error', 'Kode Barang dan Nama Barang wajib diisi!');
+        }
+
+        // Cek duplikasi kode barang
+        $existingByKode = $barangModel->where('id_barang', $idBarang)->first();
+        if ($existingByKode && (!$id || $existingByKode['id'] != $id)) {
+            if (!$id) {
+                $idBarang = $barangModel->generateKodeBarang();
+            } else {
+                return redirect()->back()->withInput()->with('error', "Kode Barang '{$idBarang}' sudah digunakan oleh produk lain!");
+            }
         }
 
         // Satuan dan Kategori di Master Barang = Mandatori
@@ -65,8 +93,8 @@ class Barang extends BaseController
             return redirect()->to('/barang')->with('error', 'Data barang tidak ditemukan!');
         }
 
-        // Harga Beli (Modal) = Mandatori saat tambah barang baru (oleh Admin)
-        if ($isAdmin && !$existing && ($hargaBeli === null || $hargaBeli === '')) {
+        // Harga Beli (Modal) = Mandatori saat tambah barang baru
+        if (!$existing && ($hargaBeli === null || $hargaBeli === '')) {
             return redirect()->back()->withInput()->with('error', 'Harga Modal (Beli) wajib diisi saat tambah barang baru!');
         }
 

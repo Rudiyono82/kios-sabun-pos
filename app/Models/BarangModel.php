@@ -67,5 +67,36 @@ class BarangModel extends Model
 
         return $builder->get()->getResultArray();
     }
+
+    /**
+     * Generate Kode Barang Otomatis
+     * Format: 'B' + [Tahun 4 digit] + [Nomor Urut Sequence 3 digit per tahun]
+     * Contoh: B2026001, B2026074, dst.
+     */
+    public function generateKodeBarang(?string $year = null): string
+    {
+        $year = $year ?: date('Y');
+        $prefix = 'B' . $year;
+
+        $rows = $this->db->table($this->table)
+            ->select('id_barang')
+            ->like('id_barang', $prefix, 'after')
+            ->get()->getResultArray();
+
+        $maxSeq = 0;
+        foreach ($rows as $r) {
+            $code = trim($r['id_barang'] ?? '');
+            $numPart = substr($code, strlen($prefix));
+            if (is_numeric($numPart)) {
+                $val = (int)$numPart;
+                if ($val > $maxSeq) {
+                    $maxSeq = $val;
+                }
+            }
+        }
+
+        $nextSeq = $maxSeq + 1;
+        return $prefix . str_pad((string)$nextSeq, 3, '0', STR_PAD_LEFT);
+    }
 }
 
