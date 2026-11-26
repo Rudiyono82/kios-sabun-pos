@@ -704,17 +704,32 @@
                 didOpen: () => { Swal.showLoading(); }
             });
 
-            $.post('<?= base_url('pembelian/hapus') ?>/' + noBeli, { password_admin: passwordAdmin }, function(res) {
-                if (res.status === 'success') {
-                    Swal.fire('Berhasil Dihapus!', res.message, 'success').then(() => {
-                        window.location.reload();
-                    });
-                } else {
-                    Swal.fire('Gagal!', res.message, 'error');
+            $.ajax({
+                url: '<?= base_url('pembelian/hapus') ?>/' + encodeURIComponent(noBeli),
+                type: 'POST',
+                dataType: 'json',
+                data: { password_admin: passwordAdmin },
+                success: function(res) {
+                    if (res && res.status === 'success') {
+                        Swal.fire('Berhasil Dihapus!', res.message, 'success').then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire('Gagal!', (res && res.message) ? res.message : 'Terjadi kesalahan saat memproses permintaan.', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    let errMsg = 'Akses ditolak atau terjadi kesalahan server.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errMsg = xhr.responseJSON.message;
+                    } else if (xhr.responseText) {
+                        try {
+                            const parsed = JSON.parse(xhr.responseText);
+                            if (parsed.message) errMsg = parsed.message;
+                        } catch(e) {}
+                    }
+                    Swal.fire('Gagal Menghapus!', errMsg, 'error');
                 }
-            }).fail(function(xhr) {
-                const err = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan saat memproses permintaan.';
-                Swal.fire('Akses Ditolak!', err, 'error');
             });
         }
     });

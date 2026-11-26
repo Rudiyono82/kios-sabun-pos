@@ -15,19 +15,29 @@ class PembelianModel extends Model
 
     public function generateNoBeli()
     {
-        $prefix = 'B' . date('ymd');
-        $last = $this->like('no_beli', $prefix, 'after')
+        // Cari nomor nota terakhir berformat NOTAxxxx agar seragam dengan program lama
+        $db = \Config\Database::connect();
+        $rows = $db->table($this->table)
+            ->like('no_beli', 'NOTA', 'after')
             ->orderBy('id', 'DESC')
-            ->first();
-        
-        if ($last) {
-            $lastNum = (int) substr($last['no_beli'], -4);
-            $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextNum = '0001';
+            ->limit(50)
+            ->get()->getResultArray();
+
+        $maxNum = 0;
+        foreach ($rows as $r) {
+            if (preg_match('/^NOTA(\d+)$/i', trim($r['no_beli'] ?? ''), $matches)) {
+                $num = (int)$matches[1];
+                if ($num > $maxNum) {
+                    $maxNum = $num;
+                }
+            }
         }
 
-        return $prefix . $nextNum;
+        if ($maxNum > 0) {
+            return 'NOTA' . ($maxNum + 1);
+        }
+
+        return 'NOTA' . (date('y') . '001');
     }
 }
 

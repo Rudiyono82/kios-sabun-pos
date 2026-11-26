@@ -105,7 +105,7 @@ $routes->group('pembelian', ['filter' => 'auth'], function($routes) {
     $routes->post('simpan', 'Pembelian::simpan');
     $routes->post('update-status-bayar', 'Pembelian::updateStatusBayar');
     $routes->post('update-harga-barang', 'Pembelian::updateHargaBarang');
-    $routes->post('hapus/(:segment)', 'Pembelian::hapus/$1', ['filter' => 'admin']);
+    $routes->post('hapus/(:segment)', 'Pembelian::hapus/$1');
 });
 
 // Retur Barang ke Supplier (Rijek / Expired)

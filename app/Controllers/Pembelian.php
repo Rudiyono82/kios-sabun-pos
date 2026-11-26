@@ -372,7 +372,12 @@ class Pembelian extends BaseController
         $db->table('pembelian')->where('no_beli', $noBeli)->delete();
 
         // 3. Hapus catatan kas pengeluaran jika ada
-        $db->table('data_keuangan')->like('nama_keuangan', $noBeli)->delete();
+        $db->table('data_keuangan')
+            ->groupStart()
+                ->like('nama_keuangan', $noBeli)
+                ->orLike('keterangan', $noBeli)
+            ->groupEnd()
+            ->delete();
 
         $db->transComplete();
 
