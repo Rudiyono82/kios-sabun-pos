@@ -291,7 +291,7 @@
     <div class="divider"></div>
 
     <table>
-        <tr>
+        <tr class="fw-bold" style="font-weight: bold;">
             <td>Sisa Kas Penjualan Hari Ini</td>
             <td class="text-end nowrap">Rp <?= number_format($kasBersihHariIni, 0, ',', '.') ?></td>
         </tr>
