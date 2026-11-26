@@ -1462,11 +1462,22 @@ class Laporan extends BaseController
         $cabangList = $isAdmin ? $db->table('cabang')->where('status', 'Aktif')->orderBy('id', 'ASC')->get()->getResultArray() : [];
 
         // 2. Saldo Awal Kas (Sebelum Periode Ini Dimulai) Terisolasi Cabang
+        // Mengikutsertakan Omzet Penjualan POS Kasir Masa Lalu agar merefleksikan arus kas masuk riil toko
+        $qPosLalu = $db->table('penjualan')
+            ->select("COALESCE(SUM(grand_total), 0) as omzet_lalu")
+            ->where('tanggal <', $startDate);
+        if (!$isAdmin) {
+            $qPosLalu->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $qPosLalu->where('id_cabang', (int)$filterCabang);
+        }
+        $omzetLalu = (float)($qPosLalu->get()->getRowArray()['omzet_lalu'] ?? 0);
+
         $saldoSql = "
             SELECT COALESCE(SUM(CASE 
                 WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
                 WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
-                ELSE 0 END), 0) as saldo_awal
+                ELSE 0 END), 0) as saldo_buku_lalu
             FROM data_keuangan
             WHERE tanggal < ?
         ";
@@ -1479,8 +1490,10 @@ class Laporan extends BaseController
             $saldoParams[] = (int)$filterCabang;
         }
         $saldoAwalRow = $db->query($saldoSql, $saldoParams)->getRowArray();
+        $saldoBukuLalu = (float)($saldoAwalRow['saldo_buku_lalu'] ?? 0);
 
-        $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
+        // Saldo Awal Kas Gabungan = Omzet POS Masa Lalu + Mutasi Buku Kas Masa Lalu
+        $saldoAwal = max(0, $omzetLalu + $saldoBukuLalu);
 
         // 3. Mutasi Transaksi Arus Kas dalam Periode
         $builder = $db->table('data_keuangan')
@@ -1723,11 +1736,22 @@ class Laporan extends BaseController
         $userCabangId = (int)(session()->get('id_cabang') ?: 1);
         $filterCabang = $this->request->getGet('id_cabang');
 
+        // Mengikutsertakan Omzet Penjualan POS Kasir Masa Lalu agar merefleksikan arus kas masuk riil toko
+        $qPosLalu = $db->table('penjualan')
+            ->select("COALESCE(SUM(grand_total), 0) as omzet_lalu")
+            ->where('tanggal <', $startDate);
+        if (!$isAdmin) {
+            $qPosLalu->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $qPosLalu->where('id_cabang', (int)$filterCabang);
+        }
+        $omzetLalu = (float)($qPosLalu->get()->getRowArray()['omzet_lalu'] ?? 0);
+
         $saldoSql = "
             SELECT COALESCE(SUM(CASE 
                 WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
                 WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
-                ELSE 0 END), 0) as saldo_awal
+                ELSE 0 END), 0) as saldo_buku_lalu
             FROM data_keuangan
             WHERE tanggal < ?
         ";
@@ -1740,8 +1764,10 @@ class Laporan extends BaseController
             $saldoParams[] = (int)$filterCabang;
         }
         $saldoAwalRow = $db->query($saldoSql, $saldoParams)->getRowArray();
+        $saldoBukuLalu = (float)($saldoAwalRow['saldo_buku_lalu'] ?? 0);
 
-        $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
+        // Saldo Awal Kas Gabungan = Omzet POS Masa Lalu + Mutasi Buku Kas Masa Lalu
+        $saldoAwal = max(0, $omzetLalu + $saldoBukuLalu);
 
         $builder = $db->table('data_keuangan')
             ->where('tanggal >=', $startDate)
@@ -1931,11 +1957,22 @@ class Laporan extends BaseController
         $userCabangId = (int)(session()->get('id_cabang') ?: 1);
         $filterCabang = $this->request->getGet('id_cabang');
 
+        // Mengikutsertakan Omzet Penjualan POS Kasir Masa Lalu agar merefleksikan arus kas masuk riil toko
+        $qPosLalu = $db->table('penjualan')
+            ->select("COALESCE(SUM(grand_total), 0) as omzet_lalu")
+            ->where('tanggal <', $startDate);
+        if (!$isAdmin) {
+            $qPosLalu->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $qPosLalu->where('id_cabang', (int)$filterCabang);
+        }
+        $omzetLalu = (float)($qPosLalu->get()->getRowArray()['omzet_lalu'] ?? 0);
+
         $saldoSql = "
             SELECT COALESCE(SUM(CASE 
                 WHEN jenis_keuangan IN ('Kas Awal', 'Pemasukan') THEN total 
                 WHEN jenis_keuangan = 'Pengeluaran' THEN -total 
-                ELSE 0 END), 0) as saldo_awal
+                ELSE 0 END), 0) as saldo_buku_lalu
             FROM data_keuangan
             WHERE tanggal < ?
         ";
@@ -1948,8 +1985,10 @@ class Laporan extends BaseController
             $saldoParams[] = (int)$filterCabang;
         }
         $saldoAwalRow = $db->query($saldoSql, $saldoParams)->getRowArray();
+        $saldoBukuLalu = (float)($saldoAwalRow['saldo_buku_lalu'] ?? 0);
 
-        $saldoAwal = (float)($saldoAwalRow['saldo_awal'] ?? 0);
+        // Saldo Awal Kas Gabungan = Omzet POS Masa Lalu + Mutasi Buku Kas Masa Lalu
+        $saldoAwal = max(0, $omzetLalu + $saldoBukuLalu);
 
         $builder = $db->table('data_keuangan')
             ->where('tanggal >=', $startDate)
