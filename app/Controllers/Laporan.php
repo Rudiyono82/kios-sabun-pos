@@ -1572,21 +1572,45 @@ class Laporan extends BaseController
         $potensiKeuntunganStok = max(0, $nilaiAsetJual - $nilaiAsetHpp);
         $persenMarginStok = ($nilaiAsetHpp > 0) ? round(($potensiKeuntunganStok / $nilaiAsetHpp) * 100, 1) : 0;
 
-        // 6. Pemisahan Komponen Kas: Uang Tunai Fisik vs Uang di Rekening Bank & QRIS
-        $qBankIn = $db->table('penjualan')
+        // 6. Pemisahan Komponen Kas Riil: Uang Tunai Fisik Toko vs Uang di Rekening Bank & QRIS
+        // A. Penjualan Non-Tunai Periode Ini (Bank, QRIS, Debit)
+        $qPerBankIn = $db->table('penjualan')
             ->select("COALESCE(SUM(grand_total), 0) as bank_in")
+            ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate)
             ->whereIn('metode_bayar', ['Transfer', 'QRIS', 'Debit', 'debit', 'transfer', 'qris']);
         if (!$isAdmin) {
-            $qBankIn->where('id_cabang', $userCabangId);
+            $qPerBankIn->where('id_cabang', $userCabangId);
         } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
-            $qBankIn->where('id_cabang', (int)$filterCabang);
+            $qPerBankIn->where('id_cabang', (int)$filterCabang);
         }
-        $bankInRow = $qBankIn->get()->getRowArray();
-        $totalBankIn = (float)($bankInRow['bank_in'] ?? 0);
+        $periodePenjualanBank = (float)($qPerBankIn->get()->getRowArray()['bank_in'] ?? 0);
 
+        // B. Penjualan Tunai Periode Ini (Cash / Tunai)
+        $qPerCashIn = $db->table('penjualan')
+            ->select("COALESCE(SUM(grand_total), 0) as cash_in")
+            ->where('tanggal >=', $startDate)
+            ->where('tanggal <=', $endDate)
+            ->groupStart()
+                ->whereIn('metode_bayar', ['Cash', 'Tunai', 'cash', 'tunai'])
+                ->orWhere('metode_bayar IS NULL')
+                ->orWhere('metode_bayar', '')
+            ->groupEnd();
+        if (!$isAdmin) {
+            $qPerCashIn->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $qPerCashIn->where('id_cabang', (int)$filterCabang);
+        }
+        $periodePenjualanCash = (float)($qPerCashIn->get()->getRowArray()['cash_in'] ?? 0);
+
+        if ($totalPenjualanPOS <= 0) {
+            $totalPenjualanPOS = $periodePenjualanCash + $periodePenjualanBank;
+        }
+
+        // C. Pengeluaran via Transfer Bank pada Periode Ini
         $qBankOut = $db->table('data_keuangan')
             ->select("COALESCE(SUM(total), 0) as bank_out")
+            ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate)
             ->where('jenis_keuangan', 'Pengeluaran')
             ->groupStart()
@@ -1606,27 +1630,16 @@ class Laporan extends BaseController
         $bankOutRow = $qBankOut->get()->getRowArray();
         $totalBankOut = (float)($bankOutRow['bank_out'] ?? 0);
 
-        $saldoKasBank = max(0, $totalBankIn - $totalBankOut);
-        if ($saldoKasBank > $saldoAkhirKas) {
-            $saldoKasBank = $saldoAkhirKas;
-        }
-        $saldoKasTunai = max(0, $saldoAkhirKas - $saldoKasBank);
+        // Pilar 2: Saldo Kas Bank & QRIS (Murni Penjualan Non-Tunai Masuk - Pengeluaran Transfer Resmi)
+        $saldoKasBank = max(0, $periodePenjualanBank - $totalBankOut);
 
-        // Penjualan periode aktif
-        $qPerBankIn = $db->table('penjualan')
-            ->select("COALESCE(SUM(grand_total), 0) as bank_in")
-            ->where('tanggal >=', $startDate)
-            ->where('tanggal <=', $endDate)
-            ->whereIn('metode_bayar', ['Transfer', 'QRIS', 'Debit', 'debit', 'transfer', 'qris']);
-        if (!$isAdmin) {
-            $qPerBankIn->where('id_cabang', $userCabangId);
-        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
-            $qPerBankIn->where('id_cabang', (int)$filterCabang);
-        }
-        $periodePenjualanBank = (float)($qPerBankIn->get()->getRowArray()['bank_in'] ?? 0);
-        $periodePenjualanCash = max(0, $totalPenjualanPOS - $periodePenjualanBank);
+        // Pengeluaran Tunai Toko (Total Pengeluaran dikurangi pengeluaran transfer bank)
+        $pengeluaranTunaiToko = max(0, $totalPengeluaran - $totalBankOut);
 
-        // 7. Total Valuasi Kekayaan / Aset Toko Seluruhnya (Cash + Rekening Bank + Modal Stok)
+        // Pilar 1: Saldo Kas Tunai Fisik Toko (Kas Awal + Penjualan Tunai + Pemasukan Kas Lain - Pengeluaran Tunai Toko)
+        $saldoKasTunai = max(0, ($totalKasAwal + $periodePenjualanCash + $totalPemasukanLain) - $pengeluaranTunaiToko);
+
+        // 7. Total Valuasi Kekayaan / Aset Bersih Toko (Pilar 1 + Pilar 2 + Pilar 3)
         $totalKekayaanToko = $saldoKasTunai + $saldoKasBank + $nilaiAsetHpp;
 
         $data = [
@@ -1752,6 +1765,9 @@ class Laporan extends BaseController
         $runningBalance = $saldoAwal;
         $totalPemasukan = 0;
         $totalPengeluaran = 0;
+        $totalKasAwal = 0;
+        $totalPenjualanPOS = 0;
+        $totalPemasukanLain = 0;
         $transaksiList = [];
 
         foreach ($rawList as $r) {
@@ -1762,6 +1778,16 @@ class Laporan extends BaseController
             if ($r['jenis_keuangan'] === 'Pemasukan' || $r['jenis_keuangan'] === 'Kas Awal') {
                 $masuk = $nom;
                 $totalPemasukan += $masuk;
+
+                if ($r['jenis_keuangan'] === 'Kas Awal') {
+                    $totalKasAwal += $nom;
+                } else {
+                    if (stripos($r['nama_keuangan'], 'Penjualan') !== false) {
+                        $totalPenjualanPOS += $nom;
+                    } else {
+                        $totalPemasukanLain += $nom;
+                    }
+                }
             } elseif ($r['jenis_keuangan'] === 'Pengeluaran') {
                 $keluar = $nom;
                 $totalPengeluaran += $keluar;
@@ -1782,21 +1808,42 @@ class Laporan extends BaseController
         $totalUnit = (float)($asetBarang['total_unit'] ?? 0);
         $nilaiAsetHpp = (float)($asetBarang['total_hpp'] ?? 0);
 
-        // Komponen Kas Tunai vs Bank
-        $qBankIn = $db->table('penjualan')
+        // Komponen Kas Tunai vs Bank (Pilar 1 & Pilar 2 Berbasis Arus Kas Riil Periode)
+        // A. Penjualan Non-Tunai Periode Ini (Bank, QRIS, Debit)
+        $qPerBankIn = $db->table('penjualan')
             ->select("COALESCE(SUM(grand_total), 0) as bank_in")
+            ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate)
             ->whereIn('metode_bayar', ['Transfer', 'QRIS', 'Debit', 'debit', 'transfer', 'qris']);
         if (!$isAdmin) {
-            $qBankIn->where('id_cabang', $userCabangId);
+            $qPerBankIn->where('id_cabang', $userCabangId);
         } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
-            $qBankIn->where('id_cabang', (int)$filterCabang);
+            $qPerBankIn->where('id_cabang', (int)$filterCabang);
         }
-        $bankInRow = $qBankIn->get()->getRowArray();
-        $totalBankIn = (float)($bankInRow['bank_in'] ?? 0);
+        $bankInRow = $qPerBankIn->get()->getRowArray();
+        $periodePenjualanBank = (float)($bankInRow['bank_in'] ?? 0);
 
+        // B. Penjualan Tunai Periode Ini (Cash / Tunai)
+        $qPerCashIn = $db->table('penjualan')
+            ->select("COALESCE(SUM(grand_total), 0) as cash_in")
+            ->where('tanggal >=', $startDate)
+            ->where('tanggal <=', $endDate)
+            ->groupStart()
+                ->whereIn('metode_bayar', ['Cash', 'Tunai', 'cash', 'tunai'])
+                ->orWhere('metode_bayar IS NULL')
+                ->orWhere('metode_bayar', '')
+            ->groupEnd();
+        if (!$isAdmin) {
+            $qPerCashIn->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $qPerCashIn->where('id_cabang', (int)$filterCabang);
+        }
+        $periodePenjualanCash = (float)($qPerCashIn->get()->getRowArray()['cash_in'] ?? 0);
+
+        // C. Pengeluaran via Transfer Bank pada Periode Ini
         $qBankOut = $db->table('data_keuangan')
             ->select("COALESCE(SUM(total), 0) as bank_out")
+            ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate)
             ->where('jenis_keuangan', 'Pengeluaran')
             ->groupStart()
@@ -1816,11 +1863,14 @@ class Laporan extends BaseController
         $bankOutRow = $qBankOut->get()->getRowArray();
         $totalBankOut = (float)($bankOutRow['bank_out'] ?? 0);
 
-        $saldoKasBank = max(0, $totalBankIn - $totalBankOut);
-        if ($saldoKasBank > $runningBalance) {
-            $saldoKasBank = $runningBalance;
-        }
-        $saldoKasTunai = max(0, $runningBalance - $saldoKasBank);
+        // Pilar 2: Saldo Kas Bank & QRIS
+        $saldoKasBank = max(0, $periodePenjualanBank - $totalBankOut);
+
+        // Pengeluaran Tunai Toko
+        $pengeluaranTunaiToko = max(0, $totalPengeluaran - $totalBankOut);
+
+        // Pilar 1: Saldo Kas Tunai Fisik Toko
+        $saldoKasTunai = max(0, ($totalKasAwal + $periodePenjualanCash + $totalPemasukanLain) - $pengeluaranTunaiToko);
 
         $totalKekayaanToko = $saldoKasTunai + $saldoKasBank + $nilaiAsetHpp;
 
@@ -1921,6 +1971,9 @@ class Laporan extends BaseController
         $runningBalance = $saldoAwal;
         $totalPemasukan = 0;
         $totalPengeluaran = 0;
+        $totalKasAwal = 0;
+        $totalPenjualanPOS = 0;
+        $totalPemasukanLain = 0;
         $transaksiList = [];
 
         foreach ($rawList as $r) {
@@ -1931,6 +1984,16 @@ class Laporan extends BaseController
             if ($r['jenis_keuangan'] === 'Pemasukan' || $r['jenis_keuangan'] === 'Kas Awal') {
                 $masuk = $nom;
                 $totalPemasukan += $masuk;
+
+                if ($r['jenis_keuangan'] === 'Kas Awal') {
+                    $totalKasAwal += $nom;
+                } else {
+                    if (stripos($r['nama_keuangan'], 'Penjualan') !== false) {
+                        $totalPenjualanPOS += $nom;
+                    } else {
+                        $totalPemasukanLain += $nom;
+                    }
+                }
             } elseif ($r['jenis_keuangan'] === 'Pengeluaran') {
                 $keluar = $nom;
                 $totalPengeluaran += $keluar;
@@ -1951,21 +2014,42 @@ class Laporan extends BaseController
         $totalUnit = (float)($asetBarang['total_unit'] ?? 0);
         $nilaiAsetHpp = (float)($asetBarang['total_hpp'] ?? 0);
 
-        // Komponen Kas Tunai vs Bank
-        $qBankIn = $db->table('penjualan')
+        // Komponen Kas Tunai vs Bank (Pilar 1 & Pilar 2 Berbasis Arus Kas Riil Periode)
+        // A. Penjualan Non-Tunai Periode Ini (Bank, QRIS, Debit)
+        $qPerBankIn = $db->table('penjualan')
             ->select("COALESCE(SUM(grand_total), 0) as bank_in")
+            ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate)
             ->whereIn('metode_bayar', ['Transfer', 'QRIS', 'Debit', 'debit', 'transfer', 'qris']);
         if (!$isAdmin) {
-            $qBankIn->where('id_cabang', $userCabangId);
+            $qPerBankIn->where('id_cabang', $userCabangId);
         } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
-            $qBankIn->where('id_cabang', (int)$filterCabang);
+            $qPerBankIn->where('id_cabang', (int)$filterCabang);
         }
-        $bankInRow = $qBankIn->get()->getRowArray();
-        $totalBankIn = (float)($bankInRow['bank_in'] ?? 0);
+        $bankInRow = $qPerBankIn->get()->getRowArray();
+        $periodePenjualanBank = (float)($bankInRow['bank_in'] ?? 0);
 
+        // B. Penjualan Tunai Periode Ini (Cash / Tunai)
+        $qPerCashIn = $db->table('penjualan')
+            ->select("COALESCE(SUM(grand_total), 0) as cash_in")
+            ->where('tanggal >=', $startDate)
+            ->where('tanggal <=', $endDate)
+            ->groupStart()
+                ->whereIn('metode_bayar', ['Cash', 'Tunai', 'cash', 'tunai'])
+                ->orWhere('metode_bayar IS NULL')
+                ->orWhere('metode_bayar', '')
+            ->groupEnd();
+        if (!$isAdmin) {
+            $qPerCashIn->where('id_cabang', $userCabangId);
+        } elseif (!empty($filterCabang) && $filterCabang !== 'semua') {
+            $qPerCashIn->where('id_cabang', (int)$filterCabang);
+        }
+        $periodePenjualanCash = (float)($qPerCashIn->get()->getRowArray()['cash_in'] ?? 0);
+
+        // C. Pengeluaran via Transfer Bank pada Periode Ini
         $qBankOut = $db->table('data_keuangan')
             ->select("COALESCE(SUM(total), 0) as bank_out")
+            ->where('tanggal >=', $startDate)
             ->where('tanggal <=', $endDate)
             ->where('jenis_keuangan', 'Pengeluaran')
             ->groupStart()
@@ -1985,11 +2069,14 @@ class Laporan extends BaseController
         $bankOutRow = $qBankOut->get()->getRowArray();
         $totalBankOut = (float)($bankOutRow['bank_out'] ?? 0);
 
-        $saldoKasBank = max(0, $totalBankIn - $totalBankOut);
-        if ($saldoKasBank > $runningBalance) {
-            $saldoKasBank = $runningBalance;
-        }
-        $saldoKasTunai = max(0, $runningBalance - $saldoKasBank);
+        // Pilar 2: Saldo Kas Bank & QRIS
+        $saldoKasBank = max(0, $periodePenjualanBank - $totalBankOut);
+
+        // Pengeluaran Tunai Toko
+        $pengeluaranTunaiToko = max(0, $totalPengeluaran - $totalBankOut);
+
+        // Pilar 1: Saldo Kas Tunai Fisik Toko
+        $saldoKasTunai = max(0, ($totalKasAwal + $periodePenjualanCash + $totalPemasukanLain) - $pengeluaranTunaiToko);
 
         $totalKekayaanToko = $saldoKasTunai + $saldoKasBank + $nilaiAsetHpp;
 
