@@ -40,15 +40,15 @@ class Barang extends BaseController
         $id = $this->request->getPost('id');
         $isAdmin = (session()->get('role') === 'admin');
 
-        // Proteksi Hak Akses: Hanya Admin yang dapat menambah atau mengedit Master Barang
-        if (!$isAdmin) {
+        // Proteksi Tambah Barang: Hanya Admin yang berhak mendaftarkan barang baru (karena wajib menentukan harga & stok awal)
+        if (!$isAdmin && empty($id)) {
             if ($this->request->isAJAX()) {
                 return $this->response->setStatusCode(403)->setJSON([
                     'status' => 'error',
-                    'message' => 'Akses ditolak! Kasir tidak memiliki wewenang untuk menambah atau mengedit master data barang.'
+                    'message' => 'Akses ditolak! Kasir tidak memiliki wewenang untuk menambah master barang baru. Hubungi Admin/Owner.'
                 ]);
             }
-            return redirect()->to('/barang')->with('error', 'Akses ditolak! Kasir tidak memiliki wewenang untuk menambah atau mengedit master data barang.');
+            return redirect()->to('/barang')->with('error', 'Akses ditolak! Kasir tidak memiliki wewenang untuk menambah master barang baru. Hubungi Admin/Owner.');
         }
 
         $idBarang   = strtoupper(trim((string)$this->request->getPost('id_barang')));
@@ -69,8 +69,13 @@ class Barang extends BaseController
             return redirect()->back()->withInput()->with('error', 'Satuan Kemasan Barang wajib dipilih!');
         }
 
-        // Harga Beli (Modal) = Mandatori saat tambah barang baru
+        // Ambil data existing dari database
         $existing = $id ? $barangModel->find($id) : null;
+        if ($id && !$existing) {
+            return redirect()->to('/barang')->with('error', 'Data barang tidak ditemukan!');
+        }
+
+        // Harga Beli (Modal) = Mandatori saat tambah barang baru (oleh Admin)
         if (!$existing && ($hargaBeli === null || $hargaBeli === '')) {
             return redirect()->back()->withInput()->with('error', 'Harga Modal (Beli) wajib diisi saat tambah barang baru!');
         }
@@ -93,18 +98,35 @@ class Barang extends BaseController
             return (float) str_replace(['.', ',', ' '], '', (string)$val);
         };
 
-        // Pengaturan harga, paket grosir, dan stok (Hanya Admin yang berhak input dan ubah)
-        $data['harga_beli']   = $cleanNumber($this->request->getPost('harga_beli'));
-        $data['harga_jual']   = $cleanNumber($this->request->getPost('harga_jual'));
-        $data['harga_grosir'] = $cleanNumber($this->request->getPost('harga_grosir'));
-        $data['qty_paket_a']  = (float) $this->request->getPost('qty_paket_a');
-        $data['hrg_paket_a']  = $cleanNumber($this->request->getPost('hrg_paket_a'));
-        $data['qty_paket_b']  = (float) $this->request->getPost('qty_paket_b');
-        $data['hrg_paket_b']  = $cleanNumber($this->request->getPost('hrg_paket_b'));
-        $data['qty_paket_c']  = (float) $this->request->getPost('qty_paket_c');
-        $data['hrg_paket_c']  = $cleanNumber($this->request->getPost('hrg_paket_c'));
-        $data['stok']         = (float) $this->request->getPost('stok');
-        $data['min_stok']     = (float) ($this->request->getPost('min_stok') ?: 5);
+        if ($isAdmin) {
+            // Pengaturan harga, paket grosir, dan stok (Hanya Admin yang berhak input dan ubah)
+            $data['harga_beli']   = $cleanNumber($this->request->getPost('harga_beli'));
+            $data['harga_jual']   = $cleanNumber($this->request->getPost('harga_jual'));
+            $data['harga_grosir'] = $cleanNumber($this->request->getPost('harga_grosir'));
+            $data['qty_paket_a']  = (float) $this->request->getPost('qty_paket_a');
+            $data['hrg_paket_a']  = $cleanNumber($this->request->getPost('hrg_paket_a'));
+            $data['qty_paket_b']  = (float) $this->request->getPost('qty_paket_b');
+            $data['hrg_paket_b']  = $cleanNumber($this->request->getPost('hrg_paket_b'));
+            $data['qty_paket_c']  = (float) $this->request->getPost('qty_paket_c');
+            $data['hrg_paket_c']  = $cleanNumber($this->request->getPost('hrg_paket_c'));
+            $data['stok']         = (float) $this->request->getPost('stok');
+            $data['min_stok']     = (float) ($this->request->getPost('min_stok') ?: 5);
+        } else {
+            // Proteksi Kasir: Kunci total harga beli, harga jual, paket grosir, dan stok (pertahankan nilai database yang sudah ada)
+            if ($existing) {
+                $data['harga_beli']   = (float) ($existing['harga_beli'] ?? 0);
+                $data['harga_jual']   = (float) ($existing['harga_jual'] ?? 0);
+                $data['harga_grosir'] = (float) ($existing['harga_grosir'] ?? 0);
+                $data['qty_paket_a']  = (float) ($existing['qty_paket_a'] ?? 0);
+                $data['hrg_paket_a']  = (float) ($existing['hrg_paket_a'] ?? 0);
+                $data['qty_paket_b']  = (float) ($existing['qty_paket_b'] ?? 0);
+                $data['hrg_paket_b']  = (float) ($existing['hrg_paket_b'] ?? 0);
+                $data['qty_paket_c']  = (float) ($existing['qty_paket_c'] ?? 0);
+                $data['hrg_paket_c']  = (float) ($existing['hrg_paket_c'] ?? 0);
+                $data['stok']         = (float) ($existing['stok'] ?? 0);
+                $data['min_stok']     = (float) ($existing['min_stok'] ?? 5);
+            }
+        }
 
         // Handle Upload Foto / Gambar Barang
         $fileFoto = $this->request->getFile('foto_barang');
