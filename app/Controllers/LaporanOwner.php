@@ -121,11 +121,11 @@ class LaporanOwner extends BaseController
         }, $supplierList);
 
         $supplierKeywords = [
-            'mama farhan', 'farhan', 'sales', 'supplier', 'restock', 'belanja restock',
-            'toko mahkota', 'paket toko mahkota', 'kispray', 'botol', 'jerigen', 'parfum',
-            'brm', 'rinso', 'citrun', 'wades', 'siliwangi', 'silih wangi', 'karel',
+            'paket toko', 'bayar paket toko', 'suplier', 'supplier', 'mama farhan', 'farhan',
+            'sales', 'restock', 'belanja restock', 'toko mahkota', 'kispray', 'botol', 'jerigen',
+            'parfum', 'brm', 'rinso', 'citrun', 'wades', 'siliwangi', 'silih wangi', 'karel',
             'mawar', 'kulakan', 'belanja dari boss', 'chemical boss', 'qela shop',
-            'indo sabun', 'bayar baygon', 'bayar barang'
+            'indo sabun', 'bayar baygon', 'bayar barang', 'belanja barang'
         ];
 
         // 2. Query Pengeluaran (Toko & Pribadi) & Kas Awal dari data_keuangan
