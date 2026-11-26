@@ -506,37 +506,33 @@ try {
 
             // KASUS 7: Tabel Pembelian Detail -> Insert rincian pembelian baru
             if ($tableName === 'pembelian_detail') {
-                if ($sqliteRows > $mysqlRows) {
-                    echo "[MIGRATION] Syncing new `pembelian_detail` ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
-                    $existingBeli = [];
-                    $stB = $pdo->query("SELECT DISTINCT no_beli FROM `pembelian_detail`");
-                    while ($b = $stB->fetchColumn()) {
-                        $existingBeli[$b] = true;
-                    }
+                echo "[MIGRATION] Checking & syncing new `pembelian_detail` ($sqliteRows in SQLite vs $mysqlRows in MySQL)...\n";
+                $existingBeli = [];
+                $stB = $pdo->query("SELECT DISTINCT no_beli FROM `pembelian_detail`");
+                while ($b = $stB->fetchColumn()) {
+                    $existingBeli[$b] = true;
+                }
 
-                    $dataRes = $sqlite->query("SELECT * FROM `pembelian_detail`");
-                    $batch = [];
-                    $inserted = 0;
-                    $pdo->beginTransaction();
-                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
-                        if (!isset($existingBeli[$row['no_beli']])) {
-                            unset($row['id']);
-                            $batch[] = $row;
-                            $inserted++;
-                            if (count($batch) >= 250) {
-                                insertBatchIgnore($pdo, 'pembelian_detail', $batch);
-                                $batch = [];
-                            }
+                $dataRes = $sqlite->query("SELECT * FROM `pembelian_detail`");
+                $batch = [];
+                $inserted = 0;
+                $pdo->beginTransaction();
+                while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                    if (!isset($existingBeli[$row['no_beli']])) {
+                        unset($row['id']);
+                        $batch[] = $row;
+                        $inserted++;
+                        if (count($batch) >= 250) {
+                            insertBatchIgnore($pdo, 'pembelian_detail', $batch);
+                            $batch = [];
                         }
                     }
-                    if (count($batch) > 0) {
-                        insertBatchIgnore($pdo, 'pembelian_detail', $batch);
-                    }
-                    $pdo->commit();
-                    echo "[MIGRATION] `pembelian_detail` synced: {$inserted} purchase item rows inserted into MySQL.\n";
-                } else {
-                    echo "[MIGRATION] `pembelian_detail` is up to date ($mysqlRows rows). Skipped.\n";
                 }
+                if (count($batch) > 0) {
+                    insertBatchIgnore($pdo, 'pembelian_detail', $batch);
+                }
+                $pdo->commit();
+                echo "[MIGRATION] `pembelian_detail` synced: {$inserted} purchase item rows inserted into MySQL.\n";
                 continue;
             }
 
@@ -833,6 +829,16 @@ try {
         // Bersihkan duplikasi pengeluaran Restock B2611250002 jika kasir sudah input bayar mama farhan
         $pdo->exec("DELETE FROM `data_keuangan` WHERE DATE(tanggal) = '2026-11-25' AND `nama_keuangan` LIKE '%B2611250002%'");
         echo "[MIGRATION] Cleaned duplicate restock cash entry B2611250002 on 2026-11-25.\n";
+
+        // 9. Sinkronisasi Stok & Harga Pembelian Terbaru dari Access (NOTA2605 & NOTA2606)
+        echo "[MIGRATION] Reconciling stock & purchase prices for NOTA2605 & NOTA2606 in MySQL...\n";
+        $pdo->exec("UPDATE `barang` SET `stok` = 25, `harga_beli` = 3350 WHERE `id_barang` = 'B2024031';");
+        $pdo->exec("UPDATE `stok_cabang` SET `stok` = 25 WHERE `id_barang` = 'B2024031' AND `id_cabang` = 1;");
+        $pdo->exec("UPDATE `barang` SET `stok` = 5, `harga_beli` = 7537, `status` = 'Aktif' WHERE `id_barang` = 'B2026074';");
+        $pdo->exec("UPDATE `stok_cabang` SET `stok` = 5 WHERE `id_barang` = 'B2026074' AND `id_cabang` = 1;");
+        $pdo->exec("UPDATE `barang` SET `stok` = 5, `harga_beli` = 7537, `status` = 'Aktif' WHERE `id_barang` = 'B2026075';");
+        $pdo->exec("UPDATE `stok_cabang` SET `stok` = 5 WHERE `id_barang` = 'B2026075' AND `id_cabang` = 1;");
+        echo "[MIGRATION] Stock and status for B2024031, B2026074, B2026075 reconciled.\n";
 
     } catch (Exception $e) {
         echo "[MIGRATION NOTICE] Purchase stock reconciliation warning: " . $e->getMessage() . "\n";
