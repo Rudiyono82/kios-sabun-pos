@@ -14,9 +14,10 @@
             line-height: 1.35;
             color: #000;
             background-color: #fff;
-            margin: 0;
-            padding: 10px;
-            width: 300px;
+            margin: 0 auto;
+            padding: 10px 14px;
+            width: 100%;
+            max-width: 330px;
         }
         .text-center { text-align: center; }
         .text-end { text-align: right; }
@@ -85,6 +86,7 @@
                 padding: 0;
                 margin: 0;
                 width: 100%;
+                max-width: 100%;
             }
             @page {
                 margin: 0;
