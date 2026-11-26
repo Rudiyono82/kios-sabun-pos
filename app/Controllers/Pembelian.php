@@ -78,8 +78,8 @@ class Pembelian extends BaseController
             'title' => 'Input Pembelian Supplier Baru',
             'no_beli' => $pembelianModel->generateNoBeli(),
             'suppliers' => $db->table('supplier')->orderBy('nama_supplier', 'ASC')->get()->getResultArray(),
-            // Sesuai permintaan user: input pembelian menampilkan semua status (Aktif maupun Nonaktif)
-            'barangs' => $db->table('barang')->orderBy('nama_barang', 'ASC')->get()->getResultArray(),
+            // Hanya barang yang sudah disetujui (bukan Pending) yang dapat dibeli dari supplier
+            'barangs' => $db->table('barang')->where('status !=', 'Pending')->orderBy('nama_barang', 'ASC')->get()->getResultArray(),
         ];
 
         return view('pembelian/tambah', $data);
@@ -132,6 +132,13 @@ class Pembelian extends BaseController
         foreach ($json['items'] as $item) {
             $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
             if (!$barang) continue;
+
+            if (($barang['status'] ?? '') === 'Pending') {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => "Barang '" . ($barang['nama_barang'] ?? $item['id_barang']) . "' masih berstatus PENDING (belum disetujui Admin) sehingga belum dapat dibeli!"
+                ]);
+            }
 
             $qty = (float) $item['qty'];
             // Harga beli item yang diinput pada keranjang

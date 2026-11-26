@@ -37,6 +37,8 @@ $routes->group('barang', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'Barang::index');
     $routes->get('lookup', 'Barang::lookup');
     $routes->post('simpan', 'Barang::simpan');
+    $routes->match(['get', 'post'], 'approve/(:num)', 'Barang::approve/$1', ['filter' => 'admin']);
+    $routes->match(['get', 'post'], 'reject/(:num)', 'Barang::reject/$1', ['filter' => 'admin']);
     $routes->match(['get', 'post'], 'hapus/(:num)', 'Barang::hapus/$1');
     $routes->post('update-stok-cepat', 'Barang::updateStokCepat', ['filter' => 'admin']);
 });

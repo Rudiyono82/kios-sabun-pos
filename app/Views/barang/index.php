@@ -12,13 +12,28 @@
             <a href="<?= base_url('laporan/barang') ?>" class="btn btn-outline-primary rounded-pill px-3 fw-medium shadow-sm">
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Cetak / Export Laporan
             </a>
-            <?php if ($is_admin): ?>
             <button type="button" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
-                <i class="bi bi-plus-lg me-1"></i> Tambah Barang Baru
+                <i class="bi bi-plus-lg me-1"></i> <?= $is_admin ? 'Tambah Barang Baru' : 'Ajukan Barang Baru (Pending)' ?>
             </button>
-            <?php endif; ?>
         </div>
     </div>
+
+    <?php if (!empty($pending_count) && $pending_count > 0): ?>
+        <div class="alert alert-warning border-0 shadow-sm rounded-4 d-flex flex-wrap align-items-center justify-content-between p-3 mb-4 gap-2">
+            <div class="d-flex align-items-center">
+                <div class="bg-warning bg-opacity-25 text-dark rounded-circle p-2 me-3">
+                    <i class="bi bi-clock-history fs-4"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark">Ada <?= $pending_count ?> Pengajuan Barang Baru Menunggu Persetujuan Admin</h6>
+                    <small class="text-muted">Barang berstatus Pending belum bisa dijual di POS atau dibeli sebelum disetujui (Approved) Admin/Owner.</small>
+                </div>
+            </div>
+            <button type="button" id="btn-filter-pending" class="btn btn-warning rounded-pill px-3 fw-bold text-dark shadow-sm">
+                <i class="bi bi-funnel me-1"></i> Filter Barang Pending
+            </button>
+        </div>
+    <?php endif; ?>
 
     <?php if (session()->getFlashdata('success')): ?>
         <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
@@ -106,15 +121,33 @@
                         </td>
                         <?php endif; ?>
                         <td>
-                            <span class="badge <?= $b['status'] == 'Aktif' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' ?>">
-                                <?= esc($b['status']) ?>
-                            </span>
+                            <?php if ($b['status'] === 'Pending'): ?>
+                                <span class="badge bg-warning text-dark fw-bold px-2 py-1 shadow-sm">
+                                    <i class="bi bi-clock-history me-1"></i>Pending
+                                </span>
+                            <?php elseif ($b['status'] === 'Aktif'): ?>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                    <i class="bi bi-check-circle me-1"></i>Aktif
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary-subtle text-secondary px-2 py-1">
+                                    <i class="bi bi-dash-circle me-1"></i><?= esc($b['status']) ?>
+                                </span>
+                            <?php endif; ?>
                         </td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
+                                <?php if ($is_admin && $b['status'] === 'Pending'): ?>
+                                <a href="<?= base_url('barang/approve/' . $b['id']) ?>" 
+                                   class="btn btn-success fw-bold btn-approve-barang" 
+                                   data-nama="<?= esc($b['nama_barang']) ?>"
+                                   title="Setujui Barang Ini Sekarang">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Approve
+                                </a>
+                                <?php endif; ?>
                                 <button type="button" class="btn btn-outline-primary btn-edit-barang" 
                                     data-barang='<?= htmlspecialchars(json_encode($b), ENT_QUOTES, 'UTF-8') ?>' 
-                                    title="<?= $is_admin ? 'Edit Data Barang' : 'Edit Info Produk (Harga & Stok Terkunci)' ?>">
+                                    title="<?= $is_admin ? 'Edit Data Barang' : 'Edit Info Produk' ?>">
                                     <i class="bi bi-pencil-square me-1"></i>Edit
                                 </button>
                                 <?php if ($is_admin): ?>
@@ -170,10 +203,16 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold text-muted">Status Produk</label>
+                            <?php if ($is_admin): ?>
                             <select name="status" id="form-status" class="form-select">
                                 <option value="Aktif">Aktif</option>
+                                <option value="Pending">Pending (Menunggu Persetujuan)</option>
                                 <option value="Nonaktif">Nonaktif</option>
                             </select>
+                            <?php else: ?>
+                            <input type="text" class="form-control bg-light fw-bold text-warning" id="form-status-display" value="Pending (Menunggu Persetujuan Admin)" readonly>
+                            <input type="hidden" name="status" id="form-status" value="Pending">
+                            <?php endif; ?>
                         </div>
 
                         <div class="col-md-6">
@@ -545,10 +584,24 @@
 
     $('#modalTambahBarang').on('hidden.bs.modal', function () {
         $('#form-barang-id').val('');
-        $('#modalBarangHeader').removeClass('bg-warning text-dark').addClass('bg-primary text-white');
+        $('#modalBarangHeader').removeClass('bg-warning bg-info bg-opacity-10 text-dark').addClass('bg-primary text-white');
         $('#modalBarangHeader .btn-close').addClass('btn-close-white');
-        $('#modalBarangTitle').removeClass('text-dark').addClass('text-white').html('<i class="bi bi-box-seam me-2"></i>Tambah Barang Baru');
-        $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
+        
+        if (isAdmin) {
+            $('#modalBarangTitle').removeClass('text-dark text-primary').addClass('text-white').html('<i class="bi bi-box-seam me-2"></i>Tambah Barang Baru');
+            $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Lengkapi data produk, kategori, satuan, serta harga grosir paket');
+            $('#btn-simpan-barang').removeClass('d-none').html('<i class="bi bi-save me-1"></i> Simpan Data Barang');
+            $('#form-status').val('Aktif').trigger('change');
+            $('#form-stok, #form-min_stok').prop('readonly', false).removeClass('bg-light text-muted');
+        } else {
+            $('#modalBarangTitle').removeClass('text-dark text-primary').addClass('text-white').html('<i class="bi bi-box-seam me-2"></i>Ajukan Barang Baru (Pending Approval)');
+            $('#modalBarangSubtitle').removeClass('text-dark text-opacity-75').addClass('text-white text-opacity-75').text('Barang akan diajukan dengan status PENDING dan harus disetujui Admin sebelum aktif di POS.');
+            $('#btn-simpan-barang').removeClass('d-none').html('<i class="bi bi-send me-1"></i> Ajukan Barang Baru');
+            $('#form-status').val('Pending');
+            $('#form-status-display').val('Pending (Menunggu Persetujuan Admin)');
+            $('#form-stok').val('0').prop('readonly', true).addClass('bg-light text-muted');
+        }
+
         $('#form-id_barang').prop('readonly', false);
         $('#formBarang')[0].reset();
         $('#form-foto_barang').val('');
@@ -561,17 +614,49 @@
         $('#form-satuan').val('').trigger('change');
         $('#form-kode_supplier_1').val('').trigger('change');
         $('#form-kode_supplier_2').val('').trigger('change');
-        $('#form-status').val('Aktif').trigger('change');
         $('#form-harga_beli, #form-harga_jual, #form-harga_grosir, #form-hrg_paket_a, #form-hrg_paket_b, #form-hrg_paket_c').val('0');
 
-        // Saat Tambah Baru: SEMUA field harga beli, harga jual, grosir, dan paket A/B/C di-ENABLE bisa diinput
-        $('#form-harga_beli').prop('disabled', false).prop('required', true).removeClass('bg-light text-muted');
-        $('#form-harga_jual').prop('disabled', false).prop('required', true).removeClass('bg-light text-muted');
+        // Saat Tambah Baru: field harga bisa diisi
+        $('#form-harga_beli').prop('disabled', false).prop('required', isAdmin).removeClass('bg-light text-muted');
+        $('#form-harga_jual').prop('disabled', false).prop('required', false).removeClass('bg-light text-muted');
         $('#form-harga_grosir').prop('disabled', false).removeClass('bg-light text-muted');
-        $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').prop('disabled', false).removeClass('bg-light');
-        $('#badge-header-harga').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-pencil-fill me-1"></i>Bisa Diinput</span>');
-        $('#badge-header-paket').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-pencil-fill me-1"></i>Bisa Diinput</span>');
-        $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
+        $('#form-qty_paket_a, #form-hrg_paket_a, #form-qty_paket_b, #form-hrg_paket_b, #form-qty_paket_c, #form-hrg_paket_c').prop('disabled', false).removeClass('bg-light text-muted');
+        
+        if (isAdmin) {
+            $('#badge-header-harga').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-pencil-fill me-1"></i>Bisa Diinput</span>');
+            $('#badge-header-paket').html('<span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-pencil-fill me-1"></i>Bisa Diinput</span>');
+            $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
+        } else {
+            $('#badge-header-harga').html('<span class="badge bg-info-subtle text-info border border-info-subtle small"><i class="bi bi-pencil-fill me-1"></i>Usulan Harga Kasir</span>');
+            $('#badge-header-paket').html('<span class="badge bg-info-subtle text-info border border-info-subtle small"><i class="bi bi-pencil-fill me-1"></i>Usulan Paket Grosir</span>');
+            $('#badge-lock-beli, #badge-lock-jual, #badge-lock-grosir').addClass('d-none');
+        }
+    });
+
+    // Tombol Filter Barang Pending
+    $('#btn-filter-pending').on('click', function() {
+        $('#table-barang').DataTable().search('Pending').draw();
+    });
+
+    // Konfirmasi Approval Barang Baru oleh Admin
+    $(document).on('click', '.btn-approve-barang', function(e) {
+        e.preventDefault();
+        const url = $(this).attr('href');
+        const nama = $(this).data('nama');
+        Swal.fire({
+            title: 'Setujui Barang Baru?',
+            html: `Apakah Anda yakin ingin menyetujui barang <strong>${nama}</strong>?<br><br><small class="text-muted">Setelah disetujui, status menjadi <strong>Aktif</strong> dan barang langsung bisa dijual di POS serta dipesan di menu Pembelian.</small>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-check-circle-fill me-1"></i> Ya, Setujui Sekarang!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
     });
 
     // Live Preview Upload Foto Produk Baru

@@ -295,6 +295,14 @@ class Pos extends BaseController
                 $barang = $db->table('barang')->where('id_barang', $item['id_barang'])->get()->getRowArray();
                 if (!$barang) continue;
 
+                if (($barang['status'] ?? '') !== 'Aktif') {
+                    $db->transRollback();
+                    return $this->response->setStatusCode(400)->setJSON([
+                        'status' => 'error',
+                        'message' => "Barang '" . ($barang['nama_barang'] ?? $item['id_barang']) . "' masih berstatus Pending atau tidak aktif sehingga tidak dapat dijual!"
+                    ]);
+                }
+
                 $qty = (float) $item['qty'];
                 $hargaJual = (float) $item['harga_jual'];
                 $hargaBeli = (float) $barang['harga_beli'];
