@@ -114,6 +114,20 @@ class LaporanOwner extends BaseController
             $mapPenjualan[$pj['tgl']] = $pj;
         }
 
+        // Ambil daftar nama supplier untuk pencocokan otomatis belanja modal
+        $supplierList = $db->table('supplier')->select('nama_supplier')->get()->getResultArray();
+        $supplierNames = array_map(function($s) {
+            return strtolower(trim($s['nama_supplier']));
+        }, $supplierList);
+
+        $supplierKeywords = [
+            'mama farhan', 'farhan', 'sales', 'supplier', 'restock', 'belanja restock',
+            'toko mahkota', 'paket toko mahkota', 'kispray', 'botol', 'jerigen', 'parfum',
+            'brm', 'rinso', 'citrun', 'wades', 'siliwangi', 'silih wangi', 'karel',
+            'mawar', 'kulakan', 'belanja dari boss', 'chemical boss', 'qela shop',
+            'indo sabun', 'bayar baygon', 'bayar barang'
+        ];
+
         // 2. Query Pengeluaran (Toko & Pribadi) & Kas Awal dari data_keuangan
         $qKeuangan = $db->query("
             SELECT 
@@ -129,6 +143,8 @@ class LaporanOwner extends BaseController
 
         $mapPengeluaran = [];
         $mapKasAwal = [];
+        $mapSupplierKeuangan = [];
+
         foreach ($qKeuangan as $k) {
             $tgl = $k['tgl'];
             if (!isset($mapPengeluaran[$tgl])) {
@@ -142,26 +158,67 @@ class LaporanOwner extends BaseController
             if (!isset($mapKasAwal[$tgl])) {
                 $mapKasAwal[$tgl] = 0;
             }
+            if (!isset($mapSupplierKeuangan[$tgl])) {
+                $mapSupplierKeuangan[$tgl] = [
+                    'items' => [],
+                    'total' => 0
+                ];
+            }
 
             if ($k['jenis_keuangan'] === 'Kas Awal') {
                 $mapKasAwal[$tgl] += (float)$k['total'];
             } elseif ($k['jenis_keuangan'] === 'Pengeluaran') {
                 $nama = trim($k['nama_keuangan']);
-                // Abaikan jika hanya pencatatan non-tunai laci (QRIS / Transfer BANK) yang bukan pengeluaran riil
-                if (strcasecmp($nama, 'QRIS') === 0 || strcasecmp($nama, 'Transfer BANK') === 0) {
+                // Abaikan jika hanya pencatatan non-tunai laci (QRIS / Transfer BANK / Debit BCA) yang bukan pengeluaran riil
+                if (in_array(strtoupper($nama), ['QRIS', 'TRANSFER BANK', 'TRANSFER', 'DEBIT EDC BCA', 'EDC', 'DEBIT'])) {
                     continue;
                 }
 
-                $tipe = strtolower($k['tipe_pengeluaran'] ?? 'toko');
                 $nominal = (float)$k['total'];
+                $tipe = strtolower($k['tipe_pengeluaran'] ?? 'toko');
+                $namaLower = strtolower($nama);
 
-                if ($tipe === 'pribadi') {
+                // A. Klasifikasi Pengeluaran Pribadi / Prive
+                $isPribadi = ($tipe === 'pribadi' || strpos($namaLower, 'ibu') !== false || strpos($namaLower, 'pribadi') !== false || strpos($namaLower, 'prive') !== false || strpos($namaLower, 'spp') !== false || strpos($namaLower, 'berobat') !== false || strpos($namaLower, 'baju') !== false);
+
+                // B. Klasifikasi Belanja Barang / Restock Supplier (Perputaran Modal Toko)
+                $isSupplier = false;
+                if (!$isPribadi) {
+                    if ($tipe === 'supplier' || $tipe === 'restock') {
+                        $isSupplier = true;
+                    } else {
+                        foreach ($supplierKeywords as $kw) {
+                            if (strpos($namaLower, $kw) !== false) {
+                                $isSupplier = true;
+                                break;
+                            }
+                        }
+                        if (!$isSupplier) {
+                            foreach ($supplierNames as $sup) {
+                                if (!empty($sup) && strpos($namaLower, $sup) !== false) {
+                                    $isSupplier = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if ($isPribadi) {
                     $mapPengeluaran[$tgl]['pribadi_items'][] = [
                         'nama' => $nama,
                         'total' => $nominal
                     ];
                     $mapPengeluaran[$tgl]['pribadi_total'] += $nominal;
+                } elseif ($isSupplier) {
+                    // Masuk ke Belanja Modal Supplier (Tab 2 - Buku Modal & Kas)
+                    $mapSupplierKeuangan[$tgl]['items'][] = [
+                        'supplier' => $nama,
+                        'total' => $nominal
+                    ];
+                    $mapSupplierKeuangan[$tgl]['total'] += $nominal;
                 } else {
+                    // Pengeluaran Toko Operasional Murni (Tab 1 - Buku Profit)
                     $mapPengeluaran[$tgl]['toko_items'][] = [
                         'nama' => $nama,
                         'total' => $nominal
@@ -171,7 +228,7 @@ class LaporanOwner extends BaseController
             }
         }
 
-        // 3. Query Pembelian / Restock Supplier
+        // 3. Query Pembelian / Restock Supplier dari tabel pembelian
         $qPembelian = $db->query("
             SELECT 
                 DATE(pb.tanggal) as tgl,
@@ -191,11 +248,37 @@ class LaporanOwner extends BaseController
                     'total' => 0
                 ];
             }
-            $mapPembelian[$tgl]['items'][] = [
-                'supplier' => $pb['nama_supplier'],
-                'total' => (float)$pb['total_biaya']
-            ];
-            $mapPembelian[$tgl]['total'] += (float)$pb['total_biaya'];
+            $tot = (float)$pb['total_biaya'];
+            if ($tot > 0) {
+                $mapPembelian[$tgl]['items'][] = [
+                    'supplier' => $pb['nama_supplier'] ?: 'Supplier',
+                    'total' => $tot
+                ];
+                $mapPembelian[$tgl]['total'] += $tot;
+            }
+        }
+
+        // Gabungkan belanja supplier dari data_keuangan ke Tab 2 (tanpa menduplikasi nominal yang sama di tanggal yang sama)
+        foreach ($mapSupplierKeuangan as $tgl => $kSup) {
+            if (!isset($mapPembelian[$tgl])) {
+                $mapPembelian[$tgl] = [
+                    'items' => [],
+                    'total' => 0
+                ];
+            }
+            foreach ($kSup['items'] as $item) {
+                $alreadyExists = false;
+                foreach ($mapPembelian[$tgl]['items'] as $existing) {
+                    if (abs($existing['total'] - $item['total']) < 1) {
+                        $alreadyExists = true;
+                        break;
+                    }
+                }
+                if (!$alreadyExists) {
+                    $mapPembelian[$tgl]['items'][] = $item;
+                    $mapPembelian[$tgl]['total'] += $item['total'];
+                }
+            }
         }
 
         // 4. Bangun Rekap Baris per Tanggal (1..$daysInMonth) dengan Rolling Balance
@@ -241,8 +324,9 @@ class LaporanOwner extends BaseController
 
             // Kas Awal & Saldo Laci Kasir
             $kasAwal = $mapKasAwal[$dateStr] ?? 0;
-            // Saldo Laci = Kas Awal + Cash Masuk - Pengeluaran Toko Tunai
-            $saldoLaci = ($kasAwal + $cash) - $pengToko;
+            $supplierKas = isset($mapSupplierKeuangan[$dateStr]) ? (float)$mapSupplierKeuangan[$dateStr]['total'] : 0;
+            // Saldo Laci Fisik = Kas Awal + Cash Masuk - Beban Toko Tunai - Prive Tunai - Belanja Supplier Tunai
+            $saldoLaci = ($kasAwal + $cash) - $pengToko - $pengPribadi - $supplierKas;
 
             // Rolling Profit (Persis Format Buku Foto 1)
             $profitAwal = $runningProfitAwal;
