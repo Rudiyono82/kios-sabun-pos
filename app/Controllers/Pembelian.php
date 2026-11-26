@@ -12,8 +12,8 @@ class Pembelian extends BaseController
     {
         $db = \Config\Database::connect();
 
-        // Default filter per hari ini (today)
-        $tglMulai = $this->request->getGet('tgl_mulai') ?: date('Y-m-d');
+        // Default filter dari awal bulan sampai hari ini
+        $tglMulai = $this->request->getGet('tgl_mulai') ?: date('Y-m-01');
         $tglSelesai = $this->request->getGet('tgl_selesai') ?: date('Y-m-d');
         $kodeSupplier = $this->request->getGet('kode_supplier') ?: '';
         $statusBayar = $this->request->getGet('status_bayar') ?: '';

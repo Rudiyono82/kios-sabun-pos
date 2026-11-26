@@ -98,9 +98,19 @@
             <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold d-inline-flex align-items-center justify-content-center" style="height: 31px;">
                 <i class="bi bi-filter me-1"></i> Filter
             </button>
-            <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center px-2 flex-shrink-0" title="Reset Filter" style="height: 31px; width: 36px;">
+            <a href="<?= base_url('pembelian') ?>" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center px-2 flex-shrink-0" title="Reset Filter (Awal Bulan s/d Hari Ini)" style="height: 31px; width: 36px;">
                 <i class="bi bi-arrow-counterclockwise"></i>
             </a>
+        </div>
+
+        <!-- Tombol Pintas Preset Periode -->
+        <div class="col-12 d-flex flex-wrap align-items-center gap-1 mt-2 pt-2 border-top">
+            <span class="small text-muted me-2 fw-semibold"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Pintas Cepat:</span>
+            <a href="<?= base_url('pembelian?tgl_mulai=' . date('Y-m-01') . '&tgl_selesai=' . date('Y-m-d')) ?>" class="btn btn-xs rounded-pill px-2 py-1 <?= ($tgl_mulai === date('Y-m-01') && $tgl_selesai === date('Y-m-d')) ? 'btn-primary fw-bold' : 'btn-outline-secondary' ?>">Bulan Ini (<?= date('M Y') ?>)</a>
+            <a href="<?= base_url('pembelian?tgl_mulai=' . date('Y-m-d') . '&tgl_selesai=' . date('Y-m-d')) ?>" class="btn btn-xs rounded-pill px-2 py-1 <?= ($tgl_mulai === date('Y-m-d') && $tgl_selesai === date('Y-m-d')) ? 'btn-primary fw-bold' : 'btn-outline-secondary' ?>">Hari Ini</a>
+            <a href="<?= base_url('pembelian?tgl_mulai=' . date('Y-m-d', strtotime('-1 day')) . '&tgl_selesai=' . date('Y-m-d')) ?>" class="btn btn-xs rounded-pill px-2 py-1 <?= ($tgl_mulai === date('Y-m-d', strtotime('-1 day')) && $tgl_selesai === date('Y-m-d')) ? 'btn-primary fw-bold' : 'btn-outline-secondary' ?>">2 Hari Terakhir</a>
+            <a href="<?= base_url('pembelian?tgl_mulai=' . date('Y-m-d', strtotime('-7 days')) . '&tgl_selesai=' . date('Y-m-d')) ?>" class="btn btn-xs rounded-pill px-2 py-1">7 Hari Terakhir</a>
+            <a href="<?= base_url('pembelian?tgl_mulai=' . date('Y-m-01', strtotime('-1 month')) . '&tgl_selesai=' . date('Y-m-t', strtotime('-1 month'))) ?>" class="btn btn-xs rounded-pill px-2 py-1">Bulan Lalu</a>
         </div>
     </form>
 </div>
