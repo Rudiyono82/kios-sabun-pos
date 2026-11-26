@@ -730,17 +730,25 @@ try {
         $pdo->exec("UPDATE `barang` SET `kode_supplier_1` = 'SP190825022' WHERE `id_barang` = 'B2020562';");
         echo "[MIGRATION] kode_supplier_1 updated successfully in MySQL.\n";
 
-        // 7. Update Title Case seluruh kategori_keuangan di MySQL
-        echo "[MIGRATION] Applying Title Case to all kategori_keuangan in MySQL...\n";
-        $sqliteKat = $sqlite->query("SELECT id, nama_kategori FROM kategori_keuangan");
-        $stmtUpKat = $pdo->prepare("UPDATE `kategori_keuangan` SET `nama_kategori` = :nama WHERE `id` = :id");
+        // 7. Update Title Case seluruh kategori_keuangan di MySQL & Sinkronisasi tipe_pengeluaran
+        echo "[MIGRATION] Applying Title Case & tipe_pengeluaran to all kategori_keuangan in MySQL...\n";
+        try {
+            $pdo->exec("ALTER TABLE `kategori_keuangan` ADD COLUMN `tipe_pengeluaran` VARCHAR(50) DEFAULT 'toko';");
+        } catch (\Exception $e) {}
+        try {
+            $pdo->exec("ALTER TABLE `data_keuangan` ADD COLUMN `tipe_pengeluaran` VARCHAR(50) DEFAULT 'toko';");
+        } catch (\Exception $e) {}
+
+        $sqliteKat = $sqlite->query("SELECT id, nama_kategori, tipe_pengeluaran FROM kategori_keuangan");
+        $stmtUpKat = $pdo->prepare("UPDATE `kategori_keuangan` SET `nama_kategori` = :nama, `tipe_pengeluaran` = :tipe WHERE `id` = :id");
         $cntKat = 0;
         while ($kr = $sqliteKat->fetchArray(SQLITE3_ASSOC)) {
             $cleanName = ucwords(mb_strtolower(trim($kr['nama_kategori'])));
-            $stmtUpKat->execute([':nama' => $cleanName, ':id' => $kr['id']]);
+            $tipeKat = !empty($kr['tipe_pengeluaran']) ? $kr['tipe_pengeluaran'] : 'toko';
+            $stmtUpKat->execute([':nama' => $cleanName, ':tipe' => $tipeKat, ':id' => $kr['id']]);
             $cntKat++;
         }
-        echo "[MIGRATION] Successfully updated {$cntKat} kategori_keuangan in MySQL to Title Case.\n";
+        echo "[MIGRATION] Successfully updated {$cntKat} kategori_keuangan in MySQL.\n";
 
         // 8. Pembersihan Duplikasi Transaksi Input Paralel Tanggal 25 Nov 2026
         // Kasir melakukan input ganda di Web POS (format J261125%) dan di VB6 Access (format J001408%).

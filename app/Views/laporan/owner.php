@@ -656,28 +656,32 @@
             <form action="<?= base_url('laporan/owner/simpan-pengeluaran') ?>" method="POST" id="formPengeluaranOwner">
                 <?= csrf_field() ?>
                 <div class="modal-body p-4">
-                    <!-- 1. Pilihan Tipe Pengeluaran (Toko vs Pribadi) -->
+                    <!-- 1. Pilihan Tipe Pengeluaran (Toko vs Modal vs Pribadi) -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-slate-700">Jenis / Tipe Pengeluaran <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold text-slate-700">Kategori Peruntukan Biaya <span class="text-danger">*</span></label>
                         <div class="row g-2">
-                            <div class="col-6">
+                            <div class="col-4">
                                 <input type="radio" class="btn-check" name="tipe_pengeluaran" id="tipe_toko" value="toko" checked autocomplete="off" onchange="toggleTipeHint()">
-                                <label class="btn btn-outline-success w-100 py-2.5 text-start fw-bold d-flex align-items-center gap-2" for="tipe_toko">
+                                <label class="btn btn-outline-success w-100 py-2.5 text-center fw-bold d-flex flex-column align-items-center gap-1" for="tipe_toko">
                                     <i class="bi bi-shop fs-5"></i>
-                                    <div>
-                                        <div class="text-sm">Beban Toko</div>
-                                        <small class="text-xs fw-normal opacity-75">Operasional Toko</small>
-                                    </div>
+                                    <div class="text-xs fw-bold">Operasional</div>
+                                    <small class="text-xxs fw-normal opacity-75" style="font-size: 0.68rem;">(Potong Profit)</small>
                                 </label>
                             </div>
-                            <div class="col-6">
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="tipe_pengeluaran" id="tipe_supplier" value="supplier" autocomplete="off" onchange="toggleTipeHint()">
+                                <label class="btn btn-outline-warning w-100 py-2.5 text-center fw-bold d-flex flex-column align-items-center gap-1 text-dark" for="tipe_supplier">
+                                    <i class="bi bi-box-seam fs-5 text-warning"></i>
+                                    <div class="text-xs fw-bold">Belanja Modal</div>
+                                    <small class="text-xxs fw-normal opacity-75" style="font-size: 0.68rem;">(Putar Modal)</small>
+                                </label>
+                            </div>
+                            <div class="col-4">
                                 <input type="radio" class="btn-check" name="tipe_pengeluaran" id="tipe_pribadi" value="pribadi" autocomplete="off" onchange="toggleTipeHint()">
-                                <label class="btn btn-outline-danger w-100 py-2.5 text-start fw-bold d-flex align-items-center gap-2" for="tipe_pribadi">
+                                <label class="btn btn-outline-danger w-100 py-2.5 text-center fw-bold d-flex flex-column align-items-center gap-1" for="tipe_pribadi">
                                     <i class="bi bi-person-fill fs-5"></i>
-                                    <div>
-                                        <div class="text-sm">Pribadi / Prive</div>
-                                        <small class="text-xs fw-normal opacity-75">Keperluan Rumah/Owner</small>
-                                    </div>
+                                    <div class="text-xs fw-bold">Pribadi/Prive</div>
+                                    <small class="text-xxs fw-normal opacity-75" style="font-size: 0.68rem;">(Keperluan Owner)</small>
                                 </label>
                             </div>
                         </div>
@@ -758,13 +762,17 @@
 
     function toggleTipeHint() {
         const isPribadi = document.getElementById('tipe_pribadi').checked;
+        const isSupplier = document.getElementById('tipe_supplier').checked;
         const hintEl = document.getElementById('tipeHint');
         if (isPribadi) {
             hintEl.className = 'form-text text-xs mt-1.5 text-danger';
-            hintEl.innerHTML = '<i class="bi bi-info-circle me-1"></i> Contoh Pribadi/Prive: Belanja dapur, paket ibu/anak, SPP sekolah, berobat dokter, baju, dll.';
+            hintEl.innerHTML = '<i class="bi bi-info-circle me-1"></i> Contoh Pribadi/Prive: Belanja dapur, paket ibu/anak, SPP sekolah, berobat dokter, baju, dll. <em>(Memotong Profit Akhir)</em>';
+        } else if (isSupplier) {
+            hintEl.className = 'form-text text-xs mt-1.5 text-warning text-dark';
+            hintEl.innerHTML = '<i class="bi bi-info-circle me-1"></i> Contoh Belanja Modal: Mama Farhan, Paket Toko, Beli Botol/Jerigen, Sales Alfa/Kispray. <em>(Masuk Tab 2 - Tidak memotong profit)</em>';
         } else {
             hintEl.className = 'form-text text-xs mt-1.5 text-success';
-            hintEl.innerHTML = '<i class="bi bi-info-circle me-1"></i> Contoh Beban Toko: Lakban, kresek, bensin, token PLN, makan karyawan, galon, dll.';
+            hintEl.innerHTML = '<i class="bi bi-info-circle me-1"></i> Contoh Beban Toko: Lakban, kresek, bensin, token PLN, makan karyawan, galon, dll. <em>(Memotong Profit Toko)</em>';
         }
     }
 

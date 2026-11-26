@@ -161,7 +161,15 @@ class Keuangan extends BaseController
             return redirect()->to(base_url('keuangan'))->with('success', 'Transaksi kas operasional berhasil dicatat!');
         }
 
-        $tipePengeluaran = $this->request->getPost('tipe_pengeluaran') === 'pribadi' ? 'pribadi' : 'toko';
+        $tipeInput = strtolower(trim((string)$this->request->getPost('tipe_pengeluaran')));
+        if (in_array($tipeInput, ['supplier', 'modal', 'restock'])) {
+            $tipePengeluaran = 'supplier';
+        } elseif ($tipeInput === 'pribadi') {
+            $tipePengeluaran = 'pribadi';
+        } else {
+            $tipePengeluaran = 'toko';
+        }
+
         $tglCustom = $this->request->getPost('tanggal') ? ($this->request->getPost('tanggal') . ' ' . date('H:i:s')) : date('Y-m-d H:i:s');
 
         $db->table('data_keuangan')->insert([
@@ -288,10 +296,14 @@ class Keuangan extends BaseController
             $kodeKategori = 'MK' . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
         }
 
+        $tipeInput = strtolower(trim((string)$this->request->getPost('tipe_pengeluaran')));
+        $tipeKat = in_array($tipeInput, ['supplier', 'pribadi']) ? $tipeInput : 'toko';
+
         $db->table('kategori_keuangan')->insert([
             'kode_kategori' => $kodeKategori,
             'nama_kategori' => $cleanName,
             'jenis' => $jenis,
+            'tipe_pengeluaran' => $tipeKat,
             'is_active' => 1
         ]);
 

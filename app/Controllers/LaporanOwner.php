@@ -507,7 +507,14 @@ class LaporanOwner extends BaseController
         $db = \Config\Database::connect();
 
         $tanggal = $this->request->getPost('tanggal') ?: date('Y-m-d');
-        $tipe = $this->request->getPost('tipe_pengeluaran') === 'pribadi' ? 'pribadi' : 'toko';
+        $tipeInput = strtolower(trim((string)$this->request->getPost('tipe_pengeluaran')));
+        if (in_array($tipeInput, ['supplier', 'modal', 'restock'])) {
+            $tipe = 'supplier';
+        } elseif ($tipeInput === 'pribadi') {
+            $tipe = 'pribadi';
+        } else {
+            $tipe = 'toko';
+        }
         $nama = trim($this->request->getPost('nama_keuangan'));
         $total = (float) str_replace(['.', ',', ' '], '', (string)$this->request->getPost('total'));
         $keterangan = trim($this->request->getPost('keterangan') ?: '');
@@ -534,7 +541,7 @@ class LaporanOwner extends BaseController
             'kode_user' => session()->get('kode_user') ?? 'OWNER'
         ]);
 
-        $label = $tipe === 'pribadi' ? 'Pribadi / Prive' : 'Operasional Toko';
+        $label = $tipe === 'pribadi' ? 'Pribadi / Prive' : ($tipe === 'supplier' ? 'Belanja Modal / Supplier' : 'Operasional Toko');
         return redirect()->back()->with('success', "Pengeluaran {$label} \"{$nama}\" sebesar Rp " . number_format($total, 0, ',', '.') . " berhasil dicatat!");
     }
 

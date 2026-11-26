@@ -173,9 +173,20 @@
                                         <i class="bi bi-arrow-down-left me-1"></i> Pemasukan
                                     </span>
                                 <?php elseif ($t['jenis_keuangan'] === 'Pengeluaran'): ?>
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                                        <i class="bi bi-arrow-up-right me-1"></i> Pengeluaran
-                                    </span>
+                                    <?php $tp = strtolower($t['tipe_pengeluaran'] ?? 'toko'); ?>
+                                    <?php if ($tp === 'supplier'): ?>
+                                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle" title="Perputaran Modal: Belanja Restock / Supplier (Tidak memotong profit)">
+                                            <i class="bi bi-box-seam text-warning me-1"></i> Modal Toko
+                                        </span>
+                                    <?php elseif ($tp === 'pribadi'): ?>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" title="Prive: Pengeluaran Pribadi / Keluarga Owner">
+                                            <i class="bi bi-person-fill me-1"></i> Prive Pribadi
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary-subtle text-secondary border" title="Beban: Operasional Rutin Toko (Memotong profit)">
+                                            <i class="bi bi-shop me-1"></i> Beban Toko
+                                        </span>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="badge bg-info-subtle text-info border border-info-subtle">
                                         <i class="bi bi-cash-stack me-1"></i> Kas Awal
@@ -241,6 +252,42 @@
                 <input type="hidden" name="jenis_keuangan" value="Pengeluaran">
 
                 <div class="modal-body p-4">
+                    <!-- 1. Pilihan 3 Kategori Pengeluaran -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold mb-1 text-dark">
+                            <i class="bi bi-diagram-3-fill text-danger me-1"></i>Kategori Peruntukan Biaya <span class="text-danger">*</span>
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="tipe_pengeluaran" id="tipe_keluar_toko" value="toko" checked autocomplete="off" onchange="updateTipeKeluarHint()">
+                                <label class="btn btn-outline-danger w-100 py-2 px-1 text-center fw-bold" for="tipe_keluar_toko" style="font-size: 0.78rem;">
+                                    <i class="bi bi-shop d-block fs-5 mb-1"></i>
+                                    <span>Beban Toko</span>
+                                    <small class="d-block text-xxs fw-normal opacity-75" style="font-size: 0.65rem;">(Potong Profit)</small>
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="tipe_pengeluaran" id="tipe_keluar_supplier" value="supplier" autocomplete="off" onchange="updateTipeKeluarHint()">
+                                <label class="btn btn-outline-warning w-100 py-2 px-1 text-center fw-bold text-dark" for="tipe_keluar_supplier" style="font-size: 0.78rem;">
+                                    <i class="bi bi-box-seam d-block fs-5 mb-1 text-warning"></i>
+                                    <span>Belanja Modal</span>
+                                    <small class="d-block text-xxs fw-normal opacity-75" style="font-size: 0.65rem;">(Putar Modal)</small>
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="tipe_pengeluaran" id="tipe_keluar_pribadi" value="pribadi" autocomplete="off" onchange="updateTipeKeluarHint()">
+                                <label class="btn btn-outline-primary w-100 py-2 px-1 text-center fw-bold" for="tipe_keluar_pribadi" style="font-size: 0.78rem;">
+                                    <i class="bi bi-person-fill d-block fs-5 mb-1"></i>
+                                    <span>Pribadi / Prive</span>
+                                    <small class="d-block text-xxs fw-normal opacity-75" style="font-size: 0.65rem;">(Keperluan Owner)</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="tipeKeluarHint" class="form-text text-xs mt-1 text-danger">
+                            <i class="bi bi-info-circle me-1"></i> <strong>Operasional Toko:</strong> Lakban, kresek, token PLN, air galon, makan karyawan, servis, dll.
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label small fw-bold mb-0">Pilih Kategori Beban / Pengeluaran <span class="text-danger">*</span></label>
@@ -268,10 +315,10 @@
                             <option value="">-- Pilih atau Ketik Jenis Pengeluaran Baru --</option>
                             <?php foreach ($kategori_list as $k): ?>
                                 <?php if ($k['jenis'] === 'Pengeluaran'): ?>
-                                    <option value="<?= esc($k['nama_kategori']) ?>"><?= esc($k['nama_kategori']) ?></option>
+                                    <option value="<?= esc($k['nama_kategori']) ?>" data-tipe="<?= esc($k['tipe_pengeluaran'] ?? 'toko') ?>"><?= esc($k['nama_kategori']) ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
-                            <option value="Biaya Operasional Lainnya">Lainnya / Biaya Operasional Lainnya</option>
+                            <option value="Biaya Operasional Lainnya" data-tipe="toko">Lainnya / Biaya Operasional Lainnya</option>
                         </select>
                         <div class="form-text text-muted" style="font-size: 0.72rem;">
                             <i class="bi bi-info-circle me-1 text-primary"></i>Pilih dari daftar atau klik <strong>+ Jenis Pengeluaran Baru</strong> di atas.
@@ -399,6 +446,34 @@
             });
         }
 
+        // Sinkronisasi otomatis Tipe Pengeluaran saat kategori dipilih dari dropdown
+        $('#select-kategori-pengeluaran').on('change', function() {
+            const selectedOpt = $(this).find('option:selected');
+            const tipe = selectedOpt.data('tipe');
+            if (tipe === 'supplier') {
+                $('#tipe_keluar_supplier').prop('checked', true).trigger('change');
+            } else if (tipe === 'pribadi') {
+                $('#tipe_keluar_pribadi').prop('checked', true).trigger('change');
+            } else if (tipe === 'toko') {
+                $('#tipe_keluar_toko').prop('checked', true).trigger('change');
+            }
+        });
+
+        window.updateTipeKeluarHint = function() {
+            const val = $('input[name="tipe_pengeluaran"]:checked').val();
+            const hint = $('#tipeKeluarHint');
+            if (val === 'supplier') {
+                hint.removeClass('text-danger text-primary').addClass('text-warning text-dark')
+                    .html('<i class="bi bi-info-circle me-1"></i> <strong>Perputaran Modal:</strong> Kulakan ke supplier (Mama Farhan, Paket Toko, Beli Botol/Jerigen, Sales Alfa/Kispray). <em>Tidak memotong laba/profit</em>.');
+            } else if (val === 'pribadi') {
+                hint.removeClass('text-danger text-warning').addClass('text-primary')
+                    .html('<i class="bi bi-info-circle me-1"></i> <strong>Prive Owner:</strong> Pengambilan dana keperluan pribadi/keluarga (Belanjaan Ibu, Paket Ibu, SPP, Berobat, Uang Dapur).');
+            } else {
+                hint.removeClass('text-primary text-warning').addClass('text-danger')
+                    .html('<i class="bi bi-info-circle me-1"></i> <strong>Operasional Toko:</strong> Lakban, kresek, token PLN, air galon, makan karyawan, servis, dll. <em>Memotong laba kotor toko</em>.');
+            }
+        };
+
         // Toggle Box Tambah Kategori Inline di dalam Modal
         $('#btn-toggle-kategori-inline').on('click', function(e) {
             e.preventDefault();
@@ -430,9 +505,11 @@
             const $btn = $('#btn-simpan-kategori-inline');
             $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Proses...');
 
+            const currentTipe = $('input[name="tipe_pengeluaran"]:checked').val() || 'toko';
             $.post('<?= base_url('keuangan/tambah-kategori') ?>', {
                 nama_kategori: nama,
-                jenis: 'Pengeluaran'
+                jenis: 'Pengeluaran',
+                tipe_pengeluaran: currentTipe
             }, function(resp) {
                 $btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Tambahkan');
                 if (resp.status === 'success') {
