@@ -195,46 +195,109 @@ try {
 
             $sqliteRows = (int)$sqlite->querySingle("SELECT COUNT(*) FROM `{$tableName}`");
 
-            // KASUS 1: Tabel barang -> Selalu sync stok & harga terbaru (UPSERT)
+            // KASUS 1: Tabel barang -> Lindungi data live production di MySQL (JANGAN timpa nama/harga/stok yang sudah diedit user)
             if ($tableName === 'barang') {
-                echo "[MIGRATION] Syncing master `barang` (stok & harga) to MySQL...\n";
-                $dataRes = $sqlite->query("SELECT * FROM `barang`");
-                $batch = [];
-                $pdo->beginTransaction();
-                while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
-                    $batch[] = $row;
-                    if (count($batch) >= 250) {
-                        upsertBarangBatch($pdo, $batch);
-                        $batch = [];
+                if ($mysqlRows > 0) {
+                    echo "[MIGRATION] Master `barang` di MySQL sudah memiliki {$mysqlRows} data. Hanya menambahkan barang baru jika ada, data eksisting tidak ditimpa...\n";
+                    $existingCodes = [];
+                    $stC = $pdo->query("SELECT id_barang FROM `barang`");
+                    while ($c = $stC->fetchColumn()) {
+                        $existingCodes[$c] = true;
                     }
+
+                    $dataRes = $sqlite->query("SELECT * FROM `barang`");
+                    $batch = [];
+                    $inserted = 0;
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        if (!isset($existingCodes[$row['id_barang']])) {
+                            unset($row['id']);
+                            $batch[] = $row;
+                            $inserted++;
+                            if (count($batch) >= 250) {
+                                insertBatchIgnore($pdo, 'barang', $batch);
+                                $batch = [];
+                            }
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        insertBatchIgnore($pdo, 'barang', $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] Selesai: {$inserted} barang baru ditambahkan. Data nama, stok, dan harga live di MySQL tetap aman terjaga.\n";
+                    continue;
+                } else {
+                    echo "[MIGRATION] Seeding awal master `barang` ke MySQL...\n";
+                    $dataRes = $sqlite->query("SELECT * FROM `barang`");
+                    $batch = [];
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        $batch[] = $row;
+                        if (count($batch) >= 250) {
+                            upsertBarangBatch($pdo, $batch);
+                            $batch = [];
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        upsertBarangBatch($pdo, $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] Seeding `barang` berhasil ({$sqliteRows} produk).\n";
+                    continue;
                 }
-                if (count($batch) > 0) {
-                    upsertBarangBatch($pdo, $batch);
-                }
-                $pdo->commit();
-                echo "[MIGRATION] `barang` synced successfully ($sqliteRows products).\n";
-                continue;
             }
 
-            // KASUS 2: Tabel stok_cabang -> Selalu sync stok cabang
+            // KASUS 2: Tabel stok_cabang -> Lindungi data stok live production di MySQL
             if ($tableName === 'stok_cabang') {
-                echo "[MIGRATION] Syncing `stok_cabang` to MySQL...\n";
-                $dataRes = $sqlite->query("SELECT * FROM `stok_cabang`");
-                $batch = [];
-                $pdo->beginTransaction();
-                while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
-                    $batch[] = $row;
-                    if (count($batch) >= 250) {
-                        upsertStokCabangBatch($pdo, $batch);
-                        $batch = [];
+                if ($mysqlRows > 0) {
+                    echo "[MIGRATION] `stok_cabang` di MySQL sudah memiliki {$mysqlRows} data. Hanya menambahkan item cabang baru jika belum ada...\n";
+                    $existingKeys = [];
+                    $stSc = $pdo->query("SELECT id_cabang, id_barang FROM `stok_cabang`");
+                    while ($rSc = $stSc->fetch()) {
+                        $existingKeys[$rSc['id_cabang'] . '|' . $rSc['id_barang']] = true;
                     }
+
+                    $dataRes = $sqlite->query("SELECT * FROM `stok_cabang`");
+                    $batch = [];
+                    $inserted = 0;
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        $key = $row['id_cabang'] . '|' . $row['id_barang'];
+                        if (!isset($existingKeys[$key])) {
+                            unset($row['id']);
+                            $batch[] = $row;
+                            $inserted++;
+                            if (count($batch) >= 250) {
+                                insertBatchIgnore($pdo, 'stok_cabang', $batch);
+                                $batch = [];
+                            }
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        insertBatchIgnore($pdo, 'stok_cabang', $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] `stok_cabang` selesai: {$inserted} record baru ditambahkan. Data stok live tetap aman.\n";
+                    continue;
+                } else {
+                    echo "[MIGRATION] Seeding awal `stok_cabang` ke MySQL...\n";
+                    $dataRes = $sqlite->query("SELECT * FROM `stok_cabang`");
+                    $batch = [];
+                    $pdo->beginTransaction();
+                    while ($row = $dataRes->fetchArray(SQLITE3_ASSOC)) {
+                        $batch[] = $row;
+                        if (count($batch) >= 250) {
+                            upsertStokCabangBatch($pdo, $batch);
+                            $batch = [];
+                        }
+                    }
+                    if (count($batch) > 0) {
+                        upsertStokCabangBatch($pdo, $batch);
+                    }
+                    $pdo->commit();
+                    echo "[MIGRATION] Seeding `stok_cabang` berhasil.\n";
+                    continue;
                 }
-                if (count($batch) > 0) {
-                    upsertStokCabangBatch($pdo, $batch);
-                }
-                $pdo->commit();
-                echo "[MIGRATION] `stok_cabang` synced successfully.\n";
-                continue;
             }
 
             // KASUS 2b: Tabel Cabang -> Pastikan kompatibilitas kolom is_aktif
@@ -647,11 +710,7 @@ try {
     // =========================================================================
     try {
         echo "[MIGRATION] Harmonizing stock between barang and stok_cabang...\n";
-        // Pastikan Botol Sprey 250ml (B2019139) tepat 98 pcs sesuai data Access terkini
-        $pdo->exec("UPDATE `stok_cabang` SET stok = 98 WHERE id_barang = 'B2019139'");
-        $pdo->exec("UPDATE `barang` SET stok = 98 WHERE id_barang = 'B2019139'");
-
-        // 2. Harmonisasi menyeluruh: Jika stok_cabang = 0 tapi barang.stok > 0 (karena pembelian terdahulu)
+        // Harmonisasi menyeluruh: Jika stok_cabang = 0 tapi barang.stok > 0 (karena pembelian terdahulu)
         $pdo->exec("UPDATE `stok_cabang` sc JOIN `barang` b ON b.id_barang = sc.id_barang SET sc.stok = b.stok WHERE sc.stok = 0 AND b.stok > 0");
         $pdo->exec("UPDATE `barang` b JOIN (SELECT id_barang, SUM(stok) as tot_stok FROM `stok_cabang` GROUP BY id_barang) sc ON sc.id_barang = b.id_barang SET b.stok = sc.tot_stok WHERE sc.tot_stok > b.stok");
         echo "[MIGRATION] Stock synchronization between `barang` and `stok_cabang` completed.\n";
