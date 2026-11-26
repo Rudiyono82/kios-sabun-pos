@@ -250,12 +250,18 @@ class Pembelian extends BaseController
         // Jika status_bayar == 'Lunas (Transfer)' atau 'Hutang / Tempo', TIDAK memotong kas toko hari ini
         $statusBayar = $json['status_bayar'] ?? 'Lunas (Transfer)';
         if ($statusBayar === 'Lunas' || $statusBayar === 'Lunas (Tunai)') {
+            $catatanText = trim((string)($json['catatan'] ?? ''));
+            // Jika kasir mengisi kolom keterangan/catatan, gunakan keterangan tersebut sebagai nama pengeluaran
+            // Contoh: kasir menulis "Bayar mama farhan", maka nama pengeluaran di kas = "Bayar mama farhan"
+            // Jika kolom catatan kosong, default ke "Belanja Restock " . $noBeli
+            $namaKeuangan = !empty($catatanText) ? $catatanText : ('Belanja Restock ' . $noBeli);
+
             $db->table('data_keuangan')->insert([
                 'tanggal' => date('Y-m-d H:i:s'),
                 'jenis_keuangan' => 'Pengeluaran',
-                'nama_keuangan' => 'Belanja Restock ' . $noBeli,
+                'nama_keuangan' => $namaKeuangan,
                 'total' => $finalTotalBiaya,
-                'keterangan' => 'Supplier: ' . ($json['nama_supplier'] ?? '-') . ' (Tunai Kas Laci)',
+                'keterangan' => 'Supplier: ' . ($json['nama_supplier'] ?? '-') . ' (Nota: ' . $noBeli . ' - Tunai Kas Laci)',
                 'kode_user' => session()->get('kode_user') ?? 'ADMIN',
                 'id_cabang' => $idCabang
             ]);
@@ -562,24 +568,36 @@ class Pembelian extends BaseController
         // Cek penyesuaian kas di data_keuangan
         if ($statusBaru === 'Lunas' || $statusBaru === 'Lunas (Tunai)') {
             // Pastikan ada catatan pengeluaran di buku kas
-            $existingKeu = $db->table('data_keuangan')->like('nama_keuangan', $noBeli)->get()->getRowArray();
+            $existingKeu = $db->table('data_keuangan')
+                ->groupStart()
+                    ->like('nama_keuangan', $noBeli)
+                    ->orLike('keterangan', $noBeli)
+                ->groupEnd()
+                ->get()->getRowArray();
             if (!$existingKeu) {
                 $opsiTgl = $this->request->getPost('tgl_potong_kas') ?? 'hari_ini';
                 $tglBayar = ($opsiTgl === 'tgl_nota') ? $pembelian['tanggal'] : date('Y-m-d H:i:s');
+                $catatanText = trim((string)($pembelian['catatan'] ?? ''));
+                $namaKeuangan = !empty($catatanText) ? $catatanText : ('Belanja Restock ' . $noBeli);
 
                 $db->table('data_keuangan')->insert([
                     'tanggal' => $tglBayar,
                     'jenis_keuangan' => 'Pengeluaran',
-                    'nama_keuangan' => 'Belanja Restock ' . $noBeli,
+                    'nama_keuangan' => $namaKeuangan,
                     'total' => (float)$pembelian['total_biaya'],
-                    'keterangan' => 'Supplier: ' . ($pembelian['nama_supplier'] ?: '-') . ' (Tunai Kas Laci)',
+                    'keterangan' => 'Supplier: ' . ($pembelian['nama_supplier'] ?: '-') . ' (Nota: ' . $noBeli . ' - Tunai Kas Laci)',
                     'kode_user' => session()->get('kode_user') ?: 'ADMIN',
                     'id_cabang' => (int)($pembelian['id_cabang'] ?? (session()->get('id_cabang') ?: 1))
                 ]);
             }
         } else {
             // Jika Lunas (Transfer), Lunas (Tidak Potong Kas), atau Hutang / Tempo -> HAPUS dari buku kas agar tidak memotong kas fisik laci
-            $db->table('data_keuangan')->like('nama_keuangan', $noBeli)->delete();
+            $db->table('data_keuangan')
+                ->groupStart()
+                    ->like('nama_keuangan', $noBeli)
+                    ->orLike('keterangan', $noBeli)
+                ->groupEnd()
+                ->delete();
         }
 
         if ($isPastDate) {

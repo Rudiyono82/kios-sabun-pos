@@ -87,8 +87,9 @@
                 </div>
             </div>
             <div class="mb-0">
-                <label class="form-label small fw-bold mb-1">Catatan Pembelian</label>
-                <textarea id="beli-catatan" class="form-control form-control-sm" rows="2" placeholder="No. invoice supplier / ekspedisi / catatan..."></textarea>
+                <label class="form-label small fw-bold mb-1">Catatan Pembelian / Keterangan Pengeluaran Kas</label>
+                <textarea id="beli-catatan" class="form-control form-control-sm" rows="2" placeholder="Contoh: Bayar mama farhan / No. invoice supplier / catatan..."></textarea>
+                <div class="form-text text-muted" style="font-size: 0.72rem;">Jika bayar Tunai Kas Laci, teks catatan ini otomatis dijadikan nama pengeluaran di Struk Harian &amp; Buku Kas.</div>
             </div>
         </div>
 
