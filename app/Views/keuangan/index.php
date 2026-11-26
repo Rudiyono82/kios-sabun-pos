@@ -2,12 +2,12 @@
 
 <?= $this->section('content') ?>
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+<div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
     <div>
-        <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-wallet2 text-success me-2"></i>Buku Kas & Biaya Operasional Toko</h4>
-        <p class="text-muted small mb-0">Catat dan pantau seluruh pengeluaran rutin toko (listrik, plastik, lakban, jerigen, konsumsi, bensin) serta saldo kas riil toko.</p>
+        <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-wallet2 text-success me-2"></i>Buku Kas &amp; Biaya Operasional Toko</h4>
+        <p class="text-muted small mb-0">Catat dan pantau seluruh pemasukan/pengeluaran rutin toko serta saldo kas riil toko.</p>
     </div>
-    <div class="d-flex flex-wrap align-items-center gap-2">
+    <div class="d-flex flex-wrap align-items-center justify-content-start justify-content-xl-end gap-2">
         <!-- Quick Print Laporan Harian Sesuai Tanggal (Warisan Kemudahan Program Lama) -->
         <div class="d-flex align-items-center gap-1 bg-white p-1 rounded-pill border shadow-sm" title="Pilih tanggal untuk melihat/cetak struk laporan harian toko (seperti di program lama)">
             <span class="small fw-semibold text-muted ps-2"><i class="bi bi-calendar-event me-1 text-primary"></i>Tgl:</span>
@@ -16,17 +16,22 @@
                 <i class="bi bi-receipt me-1 text-warning"></i> Print Laporan Harian
             </button>
         </div>
+
         <?php if (session()->get('role') === 'admin'): ?>
-        <a href="<?= base_url('laporan/arus-kas') ?>" class="btn btn-outline-success rounded-pill px-3 shadow-sm fw-bold">
+        <a href="<?= base_url('laporan/arus-kas') ?>" class="btn btn-outline-success rounded-pill px-3 shadow-sm fw-bold text-nowrap">
             <i class="bi bi-cash-coin me-1"></i> Laporan Arus Kas &amp; Aset
         </a>
         <?php endif; ?>
-        <button type="button" class="btn btn-danger rounded-pill px-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalBiayaKeluar">
-            <i class="bi bi-dash-circle me-1"></i> Catat Biaya Pengeluaran
-        </button>
-        <button type="button" class="btn btn-success rounded-pill px-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalKasMasuk">
-            <i class="bi bi-plus-circle me-1"></i> Catat Kas Masuk
-        </button>
+
+        <!-- Tombol Aksi Mutasi Kas: Masuk & Keluar Berdampingan Selaras -->
+        <div class="d-inline-flex gap-2">
+            <button type="button" class="btn btn-success rounded-pill px-3 shadow-sm fw-bold text-nowrap" data-bs-toggle="modal" data-bs-target="#modalKasMasuk">
+                <i class="bi bi-plus-circle me-1"></i> Catat Kas Masuk
+            </button>
+            <button type="button" class="btn btn-danger rounded-pill px-3 shadow-sm fw-bold text-nowrap" data-bs-toggle="modal" data-bs-target="#modalBiayaKeluar">
+                <i class="bi bi-dash-circle me-1"></i> Catat Biaya Pengeluaran
+            </button>
+        </div>
     </div>
 </div>
 
