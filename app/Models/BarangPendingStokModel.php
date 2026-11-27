@@ -70,7 +70,10 @@ class BarangPendingStokModel extends Model
     public function executePromoteToMaster(string $idBarang, ?string $executedBy = 'SYSTEM_POS'): array
     {
         $db = \Config\Database::connect();
-        $db->transStart();
+        $isNested = ($db->transDepth > 0);
+        if (!$isNested) {
+            $db->transStart();
+        }
 
         $pending = $this->where('id_barang', $idBarang)
             ->where('status_eksekusi', 1)
@@ -78,10 +81,35 @@ class BarangPendingStokModel extends Model
             ->first();
 
         if (!$pending) {
-            $db->transRollback();
+            if (!$isNested) $db->transRollback();
             return [
                 'success' => false,
                 'message' => 'Tidak ada antrean pending harga untuk barang ini.'
+            ];
+        }
+
+        // Cek apakah harga master barang saat ini SUDAH sama dengan harga pending
+        $currentMaster = $db->table('barang')->where('id_barang', $idBarang)->get()->getRowArray();
+        if ($currentMaster && 
+            (float)$currentMaster['harga_beli'] == (float)$pending['harga_beli'] && 
+            (float)$currentMaster['harga_jual'] == (float)$pending['harga_jual']) {
+            
+            // Tandai pending selesai langsung
+            $this->update($pending['id'], [
+                'status_eksekusi' => 0,
+                'status_persetujuan' => 'Setuju',
+                'catatan'         => ($pending['catatan'] ? $pending['catatan'] . ' | ' : '') . 'Harga master sudah sesuai (auto-closed)',
+                'updated_at'      => date('Y-m-d H:i:s')
+            ]);
+
+            if (!$isNested) $db->transComplete();
+
+            return [
+                'success'            => true,
+                'status_persetujuan' => 'Setuju',
+                'harga_beli'         => (float) $pending['harga_beli'],
+                'harga_jual'         => (float) $pending['harga_jual'],
+                'message'            => "Harga master barang [{$idBarang}] sudah sesuai."
             ];
         }
 
@@ -89,7 +117,7 @@ class BarangPendingStokModel extends Model
         // Mencakup: "Setuju" dan "Setuju dengan Perubahan"
         $statusPersetujuan = trim($pending['status_persetujuan']);
         if (!str_contains($statusPersetujuan, 'Setuju') || $statusPersetujuan === 'Belum Setuju') {
-            $db->transRollback();
+            if (!$isNested) $db->transRollback();
             return [
                 'success' => false,
                 'is_unapproved' => true,
@@ -120,23 +148,27 @@ class BarangPendingStokModel extends Model
             'updated_at'      => date('Y-m-d H:i:s')
         ]);
 
-        $db->transComplete();
+        if (!$isNested) {
+            $db->transComplete();
 
-        if ($db->transStatus() === false) {
-            return [
-                'success' => false,
-                'message' => 'Gagal memperbarui harga master ke database.'
-            ];
+            if ($db->transStatus() === false) {
+                return [
+                    'success' => false,
+                    'message' => 'Gagal memperbarui harga master ke database.'
+                ];
+            }
         }
 
         // Catat Audit Trail
-        \App\Models\AuditLogModel::log(
-            'UPDATE_HARGA_MASTER',
-            'BARANG',
-            "Otomatis mempromosikan harga pending barang [{$idBarang}] {$pending['nama_barang']} ke Master (Status: {$statusPersetujuan}, Hrg Beli: Rp " . number_format($pending['harga_beli'], 0, ',', '.') . ", Hrg Jual: Rp " . number_format($pending['harga_jual'], 0, ',', '.') . ")",
-            ['harga_beli' => $pending['harga_beli_lama'], 'harga_jual' => $pending['harga_jual_lama']],
-            $updateMaster
-        );
+        try {
+            \App\Models\AuditLogModel::log(
+                'UPDATE_HARGA_MASTER',
+                'BARANG',
+                "Otomatis mempromosikan harga pending barang [{$idBarang}] {$pending['nama_barang']} ke Master (Status: {$statusPersetujuan}, Hrg Beli: Rp " . number_format($pending['harga_beli'], 0, ',', '.') . ", Hrg Jual: Rp " . number_format($pending['harga_jual'], 0, ',', '.') . ")",
+                ['harga_beli' => $pending['harga_beli_lama'], 'harga_jual' => $pending['harga_jual_lama']],
+                $updateMaster
+            );
+        } catch (\Throwable $t) {}
 
         return [
             'success'            => true,

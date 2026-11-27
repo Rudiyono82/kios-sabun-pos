@@ -65,6 +65,19 @@ class Pos extends BaseController
             $rawStok = (float)($item['stok'] ?? 0);
             $activePending = $pendingModel->getActivePending($item['id_barang']);
             if ($activePending) {
+                // Jika harga master saat ini SUDAH sama dengan harga pending, otomatis selesaikan pending
+                if ((float)($item['harga_beli'] ?? 0) == (float)$activePending['harga_beli'] && 
+                    (float)($item['harga_jual'] ?? 0) == (float)$activePending['harga_jual']) {
+                    $pendingModel->update($activePending['id'], [
+                        'status_eksekusi'    => 0,
+                        'status_persetujuan' => 'Setuju',
+                        'catatan'            => ($activePending['catatan'] ? $activePending['catatan'] . ' | ' : '') . 'Harga master sudah sesuai (auto-closed)',
+                        'updated_at'         => date('Y-m-d H:i:s')
+                    ]);
+                    $activePending = null;
+                }
+            }
+            if ($activePending) {
                 $stokPending = (float)$activePending['stok_pending'];
                 $stokLama = $rawStok - $stokPending;
                 $statusPersetujuan = trim($activePending['status_persetujuan']);
@@ -419,6 +432,19 @@ class Pos extends BaseController
                 // SOP OPSI 3: Cek apakah barang memiliki pending update harga / stok
                 $activePending = $pendingModel->getActivePending($item['id_barang']);
                 if ($activePending) {
+                    // Jika harga master saat ini SUDAH sama dengan harga pending, otomatis selesaikan pending
+                    if ((float)$item['harga_beli'] == (float)$activePending['harga_beli'] && 
+                        (float)$item['harga_jual'] == (float)$activePending['harga_jual']) {
+                        $pendingModel->update($activePending['id'], [
+                            'status_eksekusi'    => 0,
+                            'status_persetujuan' => 'Setuju',
+                            'catatan'            => ($activePending['catatan'] ? $activePending['catatan'] . ' | ' : '') . 'Harga master sudah sesuai (auto-closed)',
+                            'updated_at'         => date('Y-m-d H:i:s')
+                        ]);
+                        $activePending = null;
+                    }
+                }
+                if ($activePending) {
                     $stokPending = (float)$activePending['stok_pending'];
                     $sisaStokLama = (float)$sisaStok - $stokPending;
                     $statusPersetujuan = trim($activePending['status_persetujuan']);
@@ -427,13 +453,17 @@ class Pos extends BaseController
                     if ($sisaStokLama <= 0 || $sisaStok <= 0) {
                         if ($isApproved) {
                             // Status SUDAH disetujui Admin: Auto-promote harga baru ke master barang sekarang juga!
-                            $promoteRes = $pendingModel->executePromoteToMaster($item['id_barang'], 'POS_AUTO_PROMOTE');
-                            if ($promoteRes['success']) {
-                                $promotedItems[] = [
-                                    'id_barang'       => $item['id_barang'],
-                                    'nama_barang'     => $item['nama_barang'],
-                                    'harga_jual_baru' => (float)$activePending['harga_jual']
-                                ];
+                            try {
+                                $promoteRes = $pendingModel->executePromoteToMaster($item['id_barang'], 'POS_AUTO_PROMOTE');
+                                if ($promoteRes['success'] ?? false) {
+                                    $promotedItems[] = [
+                                        'id_barang'       => $item['id_barang'],
+                                        'nama_barang'     => $item['nama_barang'],
+                                        'harga_jual_baru' => (float)$activePending['harga_jual']
+                                    ];
+                                }
+                            } catch (\Throwable $promEx) {
+                                log_message('error', 'Auto promote failed for ' . $item['id_barang'] . ': ' . $promEx->getMessage());
                             }
                         } else {
                             // Status BELUM disetujui Admin:

@@ -840,6 +840,20 @@ try {
         $pdo->exec("UPDATE `stok_cabang` SET `stok` = 5 WHERE `id_barang` = 'B2026075' AND `id_cabang` = 1;");
         echo "[MIGRATION] Stock and status for B2024031, B2026074, B2026075 reconciled.\n";
 
+        // 10. Bersihkan antrean pending stok yang harga masternya sudah sesuai (stale / ghost pending)
+        echo "[MIGRATION] Reconciling obsolete / already promoted pending stock records in MySQL...\n";
+        $pdo->exec("
+            UPDATE `barang_pending_stok` bps
+            JOIN `barang` b ON bps.id_barang = b.id_barang
+            SET bps.status_eksekusi = 0, bps.status_persetujuan = 'Setuju', bps.updated_at = NOW()
+            WHERE bps.status_eksekusi = 1
+              AND (
+                (bps.harga_beli = b.harga_beli AND bps.harga_jual = b.harga_jual)
+                OR (bps.harga_beli = bps.harga_beli_lama AND bps.harga_jual = bps.harga_jual_lama)
+              )
+        ");
+        echo "[MIGRATION] Obsolete pending stock records cleared in MySQL.\n";
+
     } catch (Exception $e) {
         echo "[MIGRATION NOTICE] Purchase stock reconciliation warning: " . $e->getMessage() . "\n";
     }

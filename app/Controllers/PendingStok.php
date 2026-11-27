@@ -305,6 +305,21 @@ class PendingStok extends BaseController
             ]);
         }
 
+        // Jika harga master saat ini SUDAH sama dengan harga pending, otomatis selesaikan antrean pending
+        if ((float)$barang['harga_beli'] == (float)$activePending['harga_beli'] && 
+            (float)$barang['harga_jual'] == (float)$activePending['harga_jual']) {
+            $this->pendingModel->update($activePending['id'], [
+                'status_eksekusi'    => 0,
+                'status_persetujuan' => 'Setuju',
+                'catatan'            => ($activePending['catatan'] ? $activePending['catatan'] . ' | ' : '') . 'Harga master sudah sesuai (auto-closed)',
+                'updated_at'         => date('Y-m-d H:i:s')
+            ]);
+            return $this->response->setJSON([
+                'has_pending' => false,
+                'stok_master' => (float) $barang['stok']
+            ]);
+        }
+
         $statusPersetujuan = trim($activePending['status_persetujuan']);
         $isApproved = str_contains($statusPersetujuan, 'Setuju') && ($statusPersetujuan !== 'Belum Setuju');
 
