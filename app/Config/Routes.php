@@ -7,7 +7,7 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 // Authentication Routes (Login & Logout)
-$routes->get('check-ekonomi', 'Home::checkEkonomi');
+$routes->get('check-ekonomi', 'Home::testSimpanEkonomi');
 $routes->get('login', 'Auth::login');
 $routes->post('auth/process', 'Auth::process');
 $routes->get('logout', 'Auth::logout');
