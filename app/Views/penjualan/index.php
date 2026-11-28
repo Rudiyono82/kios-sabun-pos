@@ -656,12 +656,12 @@
         // 2. Cetak Struk Ulang
         $(document).on('click', '.btn-cetak-struk-ulang', function() {
             const noFaktur = $(this).data('nofaktur');
-            window.open('<?= base_url('pos/cetak-struk') ?>/' + noFaktur, '_blank', 'width=420,height=600');
+            window.open('<?= base_url('pos/cetak-struk') ?>/' + noFaktur, '_blank', 'width=460,height=750,scrollbars=yes,resizable=yes');
         });
 
         $('#btn-cetak-dari-modal').on('click', function() {
             if (activeFaktur) {
-                window.open('<?= base_url('pos/cetak-struk') ?>/' + activeFaktur, '_blank', 'width=420,height=600');
+                window.open('<?= base_url('pos/cetak-struk') ?>/' + activeFaktur, '_blank', 'width=460,height=750,scrollbars=yes,resizable=yes');
             }
         });
 

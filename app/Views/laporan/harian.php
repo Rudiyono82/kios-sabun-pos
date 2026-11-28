@@ -393,7 +393,7 @@
         // Cetak Struk Ulang dari Modal
         $('#btn-cetak-dari-modal').on('click', function() {
             if (activeFakturHarian) {
-                window.open('<?= base_url('pos/cetak-struk') ?>/' + activeFakturHarian, '_blank', 'width=420,height=600');
+                window.open('<?= base_url('pos/cetak-struk') ?>/' + activeFakturHarian, '_blank', 'width=460,height=750,scrollbars=yes,resizable=yes');
             }
         });
 

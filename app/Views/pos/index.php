@@ -1982,7 +1982,7 @@
             } else {
                 const lastFaktur = $('#modal-faktur-label').text().replace('No Faktur: ', '').trim();
                 if (lastFaktur) {
-                    window.open('<?= base_url('pos/cetak-struk') ?>/' + lastFaktur, '_blank', 'width=420,height=600');
+                    window.open('<?= base_url('pos/cetak-struk') ?>/' + lastFaktur, '_blank', 'width=460,height=750,scrollbars=yes,resizable=yes');
                 } else {
                     window.location.href = '<?= base_url('penjualan') ?>';
                 }

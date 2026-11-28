@@ -171,9 +171,9 @@ $lines[] = centerLine("Terima Kasih Kerjasamanya");
 $lines[] = centerLine("Tetap Semangat & Jaga Toko");
 $lines[] = "********************************";
 
-// Hitung tinggi kertas pas dalam millimeter (mencegah buang kertas 30cm)
+// Hitung tinggi kertas pas dalam millimeter (ditambah buffer sobek kertas 10mm)
 $lineCount = count($lines);
-$pageHeightMm = max(60, ceil($lineCount * 3.7 + 6));
+$pageHeightMm = max(60, ceil($lineCount * 3.8 + 10));
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -194,42 +194,32 @@ $pageHeightMm = max(60, ceil($lineCount * 3.7 + 6));
             size: 58mm <?= $pageHeightMm ?>mm;
         }
         html, body {
-            width: 58mm;
-            max-width: 58mm;
-            height: <?= $pageHeightMm ?>mm;
-            max-height: <?= $pageHeightMm ?>mm;
-            margin: 0 auto;
+            width: 100%;
+            height: auto;
+            min-height: 100%;
+            margin: 0;
             padding: 0;
-            background: #fff;
+            background: #f8fafc;
             color: #000;
-            overflow: hidden;
-        }
-        .receipt-pre {
-            font-family: 'Consolas', 'Courier New', 'Lucida Console', Monaco, monospace;
-            font-size: 11px;
-            font-weight: bold;
-            line-height: 1.22;
-            color: #000;
-            white-space: pre;
-            margin: 0 auto;
-            padding: 3px 0 0 0;
-            width: 58mm;
-            max-width: 58mm;
-            letter-spacing: -0.15px;
-            overflow: hidden;
+            overflow-y: auto; /* Memungkinkan kasir scroll ke bawah dengan leluasa saat preview */
+            overflow-x: hidden;
         }
         .action-bar {
-            padding: 6px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 8px;
             background: #f1f5f9;
             border-bottom: 1px solid #cbd5e1;
             display: flex;
             gap: 6px;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .btn-act {
             flex: 1;
-            padding: 6px;
-            font-size: 12px;
+            padding: 8px 12px;
+            font-size: 13px;
             font-weight: bold;
             font-family: sans-serif;
             border-radius: 4px;
@@ -240,6 +230,28 @@ $pageHeightMm = max(60, ceil($lineCount * 3.7 + 6));
         .btn-act-print {
             background: #0f172a;
             color: #fff;
+        }
+        .receipt-wrapper {
+            width: 58mm;
+            max-width: 58mm;
+            margin: 0 auto;
+            background: #fff;
+            padding: 6px 0 24px 0;
+            box-shadow: 0 0 10px rgba(0,0,0,0.08);
+        }
+        .receipt-pre {
+            font-family: 'Consolas', 'Courier New', 'Lucida Console', Monaco, monospace;
+            font-size: 11px;
+            font-weight: bold;
+            line-height: 1.22;
+            color: #000;
+            white-space: pre;
+            margin: 0 auto;
+            padding: 0;
+            width: 58mm;
+            max-width: 58mm;
+            letter-spacing: -0.15px;
+            overflow: visible;
         }
         @media print {
             .no-print {
@@ -252,11 +264,19 @@ $pageHeightMm = max(60, ceil($lineCount * 3.7 + 6));
             html, body {
                 width: 58mm !important;
                 max-width: 58mm !important;
-                height: <?= $pageHeightMm ?>mm !important;
-                max-height: <?= $pageHeightMm ?>mm !important;
+                height: auto !important;
+                min-height: <?= $pageHeightMm ?>mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                overflow: hidden !important;
+                background: #fff !important;
+                overflow: visible !important;
+            }
+            .receipt-wrapper {
+                width: 58mm !important;
+                max-width: 58mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
             }
             .receipt-pre {
                 width: 58mm !important;
@@ -276,6 +296,8 @@ $pageHeightMm = max(60, ceil($lineCount * 3.7 + 6));
             &#10005; TUTUP
         </button>
     </div>
-    <pre class="receipt-pre"><?= esc(implode("\n", $lines)) ?></pre>
+    <div class="receipt-wrapper">
+        <pre class="receipt-pre"><?= esc(implode("\n", $lines)) ?></pre>
+    </div>
 </body>
 </html>
