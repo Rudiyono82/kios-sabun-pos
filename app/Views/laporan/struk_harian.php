@@ -205,16 +205,18 @@ $pageHeightMm = max(60, ceil($lineCount * 3.8 + 10));
             overflow-x: hidden;
         }
         .action-bar {
-            position: sticky;
+            position: fixed;
             top: 0;
-            z-index: 100;
-            padding: 8px;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 99999;
+            padding: 8px 12px;
             background: #f1f5f9;
-            border-bottom: 1px solid #cbd5e1;
+            border-bottom: 2px solid #cbd5e1;
             display: flex;
-            gap: 6px;
-            margin-bottom: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            gap: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
         .btn-act {
             flex: 1;
@@ -226,17 +228,27 @@ $pageHeightMm = max(60, ceil($lineCount * 3.8 + 10));
             cursor: pointer;
             border: 1px solid #000;
             background: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
         .btn-act-print {
             background: #0f172a;
             color: #fff;
         }
+        .btn-act-print:hover {
+            background: #1e293b;
+        }
+        .btn-act:hover {
+            background: #e2e8f0;
+        }
         .receipt-wrapper {
             width: 58mm;
             max-width: 58mm;
-            margin: 0 auto;
+            margin: 54px auto 24px auto; /* Memberikan ruang di atas agar tidak tertutup tombol fixed */
             background: #fff;
-            padding: 6px 0 24px 0;
+            padding: 8px 0 24px 0;
             box-shadow: 0 0 10px rgba(0,0,0,0.08);
         }
         .receipt-pre {
