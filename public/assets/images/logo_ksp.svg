@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 100" width="280" height="100">
+  <!-- Border / Frame -->
+  <rect x="2" y="2" width="276" height="96" rx="10" fill="none" stroke="#000" stroke-width="2.5" stroke-dasharray="6,3"/>
+
+  <!-- Left Icon: Perfume & Soap Bubbles -->
+  <g transform="translate(18, 12)">
+    <!-- Soap Bubbles -->
+    <circle cx="15" cy="18" r="7" fill="none" stroke="#000" stroke-width="2"/>
+    <circle cx="13" cy="16" r="2" fill="#000"/>
+    <circle cx="28" cy="10" r="5" fill="none" stroke="#000" stroke-width="1.8"/>
+    <circle cx="26" cy="8" r="1.5" fill="#000"/>
+    <circle cx="45" cy="16" r="6" fill="none" stroke="#000" stroke-width="1.8"/>
+    
+    <!-- Sparkles -->
+    <path d="M 6 12 L 8 16 L 6 20 L 4 16 Z" fill="#000"/>
+    <path d="M 38 6 L 39.5 9 L 38 12 L 36.5 9 Z" fill="#000"/>
+
+    <!-- Perfume Spray Bottle -->
+    <!-- Cap & Atomizer -->
+    <rect x="22" y="26" width="16" height="6" rx="1" fill="#000"/>
+    <rect x="28" y="21" width="4" height="5" fill="#000"/>
+    <polygon points="17,23 28,21 28,25" fill="#000"/>
+    <circle cx="16" cy="23.5" r="1.5" fill="#000"/>
+    
+    <!-- Spray Mist Lines -->
+    <path d="M 12 21 Q 7 17 2 15" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M 11 24 Q 5 24 0 25" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M 12 27 Q 7 31 3 34" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+    <!-- Bottle Neck -->
+    <rect x="25" y="32" width="10" height="5" fill="#000"/>
+
+    <!-- Bottle Body -->
+    <path d="M 16 40 C 16 37, 20 37, 25 37 L 35 37 C 40 37, 44 37, 44 40 L 47 66 C 47 71, 43 74, 38 74 L 22 74 C 17 74, 13 71, 13 66 Z" fill="none" stroke="#000" stroke-width="2.5"/>
+    <!-- Liquid Level / Facet -->
+    <path d="M 18 52 C 24 50, 36 54, 42 52 L 44 65 C 44 68, 41 70, 37 70 L 23 70 C 19 70, 16 68, 16 65 Z" fill="#000"/>
+    
+    <!-- Soap Bar with Suds -->
+    <rect x="36" y="56" width="22" height="14" rx="4" fill="#fff" stroke="#000" stroke-width="2"/>
+    <line x1="40" y1="63" x2="54" y2="63" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Right Typography -->
+  <g transform="translate(86, 0)">
+    <!-- Monogram KSP -->
+    <text x="88" y="36" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="28" fill="#000" text-anchor="middle" letter-spacing="3">KSP</text>
+    
+    <!-- Divider Line with Diamond -->
+    <line x1="8" y1="44" x2="74" y2="44" stroke="#000" stroke-width="1.5"/>
+    <polygon points="88,41 91,44 88,47 85,44" fill="#000"/>
+    <line x1="102" y1="44" x2="168" y2="44" stroke="#000" stroke-width="1.5"/>
+
+    <!-- Brand Name -->
+    <text x="88" y="60" font-family="'Arial Black', sans-serif" font-weight="bold" font-size="12.5" fill="#000" text-anchor="middle" letter-spacing="1">KIOS SABUN &amp; PARFUM</text>
+    <text x="88" y="74" font-family="'Consolas', 'Courier New', monospace" font-weight="bold" font-size="9" fill="#000" text-anchor="middle" letter-spacing="2">CLEAN &amp; FRAGRANCE</text>
+
+    <!-- Star accents -->
+    <text x="88" y="87" font-size="10" fill="#000" text-anchor="middle">&#9733; METLAND CILEUNGSI &#9733;</text>
+  </g>
+</svg>

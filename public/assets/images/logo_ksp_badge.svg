@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <!-- Outer double ring -->
+  <circle cx="80" cy="80" r="76" fill="none" stroke="#000" stroke-width="3"/>
+  <circle cx="80" cy="80" r="70" fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="4,2"/>
+
+  <!-- Top curved text path -->
+  <path id="curveTop" d="M 22,80 A 58,58 0 0,1 138,80" fill="none"/>
+  <text font-family="'Arial Black', sans-serif" font-weight="bold" font-size="10.5" fill="#000" letter-spacing="2.5">
+    <textPath href="#curveTop" startOffset="50%" text-anchor="middle">
+      KIOS SABUN &amp; PARFUM
+    </textPath>
+  </text>
+
+  <!-- Center Icon: Perfume spray + Bubbles -->
+  <g transform="translate(56, 44)">
+    <!-- Bubbles -->
+    <circle cx="6" cy="10" r="5" fill="none" stroke="#000" stroke-width="1.8"/>
+    <circle cx="5" cy="9" r="1.5" fill="#000"/>
+    <circle cx="42" cy="8" r="4" fill="none" stroke="#000" stroke-width="1.5"/>
+    <circle cx="41" cy="7" r="1" fill="#000"/>
+
+    <!-- Spray Mist -->
+    <path d="M 8 18 Q 4 14 0 12" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M 8 20 Q 3 20 0 21" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M 8 22 Q 4 25 1 27" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+    <!-- Atomizer Nozzle -->
+    <polygon points="12,20 20,18 20,22" fill="#000"/>
+    <rect x="20" y="17" width="8" height="6" rx="1" fill="#000"/>
+    <rect x="22" y="23" width="4" height="4" fill="#000"/>
+
+    <!-- Perfume Bottle -->
+    <path d="M 14 27 L 34 27 L 38 48 C 38 52, 35 55, 30 55 L 18 55 C 13 55, 10 52, 10 48 Z" fill="none" stroke="#000" stroke-width="2.5"/>
+    <!-- Liquid fill -->
+    <path d="M 12 39 C 18 37, 26 41, 36 39 L 37 48 C 37 51, 34 53, 30 53 L 18 53 C 14 53, 11 51, 11 48 Z" fill="#000"/>
+  </g>
+
+  <!-- Central Ribbon / Banner: KSP -->
+  <g transform="translate(0, 104)">
+    <rect x="36" y="0" width="88" height="22" rx="3" fill="#000"/>
+    <text x="80" y="16" font-family="'Arial Black', sans-serif" font-weight="900" font-size="16" fill="#fff" text-anchor="middle" letter-spacing="4">KSP</text>
+  </g>
+
+  <!-- Bottom text -->
+  <path id="curveBottom" d="M 138,80 A 58,58 0 0,1 22,80" fill="none"/>
+  <text font-family="'Arial', sans-serif" font-weight="bold" font-size="9" fill="#000" letter-spacing="2">
+    <textPath href="#curveBottom" startOffset="50%" text-anchor="middle">
+      ★ METLAND CILEUNGSI ★
+    </textPath>
+  </text>
+</svg>
