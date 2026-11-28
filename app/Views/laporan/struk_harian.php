@@ -1,3 +1,180 @@
+<?php
+// =========================================================================
+// STRUK LAPORAN HARIAN KASIR THERMAL 58MM (32 KARAKTER MONOSPACE)
+// IDENTIK DENGAN VB6 ASLI & MENCEGAH KERTAS KELUAR PANJANG
+// =========================================================================
+
+$lines = [];
+
+function centerLine($text, $width = 32) {
+    $text = trim($text);
+    $len = strlen($text);
+    if ($len >= $width) return substr($text, 0, $width);
+    $left = (int)floor(($width - $len) / 2);
+    return str_repeat(' ', $left) . $text;
+}
+
+// 1. Header Profil Toko
+$namaToko = trim($profil['nama_toko'] ?? '(KSP) Kios Sabun & Parfum');
+if (stripos($namaToko, 'kios') === false && stripos($namaToko, 'ksp') === false) {
+    $namaToko = "(KSP) " . $namaToko;
+}
+$lines[] = centerLine($namaToko);
+
+if (!empty($profil['alamat_1'])) {
+    $addr1 = trim($profil['alamat_1']);
+    $addrParts = preg_split('/(?<=,)\s*/', $addr1);
+    foreach ($addrParts as $ap) {
+        $ap = trim($ap);
+        if (!empty($ap)) {
+            $lines[] = centerLine($ap);
+        }
+    }
+} else {
+    $lines[] = centerLine("Jl. Metland Cileungsi,");
+    $lines[] = centerLine("Blok BD.04,No.17");
+}
+
+if (!empty($profil['alamat_2'])) {
+    $lines[] = centerLine(trim($profil['alamat_2']));
+} else {
+    $lines[] = centerLine("Cileungsi-Bogor");
+}
+
+if (!empty($profil['telepon'])) {
+    $lines[] = centerLine("WA." . str_replace(' ', '', trim($profil['telepon'])));
+} else {
+    $lines[] = centerLine("WA.085711159298");
+}
+
+$lines[] = "================================";
+$lines[] = centerLine("LAPORAN REKAP HARIAN KASIR");
+$lines[] = "================================";
+
+// 2. Metadata Laporan
+$lines[] = sprintf("%-10s: %s", "No.Laporan", $no_laporan);
+$lines[] = sprintf("%-10s: %s", "Tanggal", date('d/m/Y', strtotime($tanggal)));
+$lines[] = sprintf("%-10s: %s", "Waktu", $waktu_cetak);
+$lines[] = sprintf("%-10s: %s", "Kasir", substr($kasir, 0, 20));
+
+$lines[] = "--------------------------------";
+
+// 3. Modal Kas Awal Laci
+$lines[] = "MODAL KAS AWAL LACI";
+$lines[] = sprintf("%-16s: Rp.%11s", "Kas Awal", number_format($kas_awal, 0, '.', ','));
+if (!empty($tgl_kas_awal)) {
+    $lines[] = sprintf("  (Diinput: %s)", date('d/m/Y H:i', strtotime($tgl_kas_awal)));
+}
+
+$lines[] = "--------------------------------";
+
+// 4. Rekap Penjualan Toko
+$lines[] = "PENJUALAN TOKO :";
+$lines[] = sprintf("%-16s: %8s Struk", "Jml Transaksi", number_format($total_transaksi, 0, '.', ','));
+$lines[] = sprintf("%-16s: %10s Pcs", "Total Qty", number_format($total_qty, 0, '.', ','));
+$lines[] = sprintf("%-16s: Rp.%11s", "- Tunai (Cash)", number_format($total_tunai, 0, '.', ','));
+$lines[] = sprintf("%-16s: Rp.%11s", "- QRIS", number_format($total_qris, 0, '.', ','));
+$lines[] = sprintf("%-16s: Rp.%11s", "- Transfer Bank", number_format($total_transfer, 0, '.', ','));
+
+if ($total_tukar_jerigen > 0) {
+    $lines[] = sprintf("%-16s: Rp.%11s", "- Tukar Jerigen", "-" . number_format($total_tukar_jerigen, 0, '.', ','));
+}
+if ($total_voucher > 0) {
+    $lines[] = sprintf("%-16s: Rp.%11s", "- Pot. Voucher", "-" . number_format($total_voucher, 0, '.', ','));
+}
+if ($total_diskon > 0) {
+    $lines[] = sprintf("%-16s: Rp.%11s", "- Diskon Tambahan", "-" . number_format($total_diskon, 0, '.', ','));
+}
+
+$lines[] = sprintf("%-16s: Rp.%11s", "TOTAL OMZET", number_format($total_omzet, 0, '.', ','));
+
+$lines[] = "--------------------------------";
+
+// 5. Pengeluaran Kas Toko
+$lines[] = "PENGELUARAN KAS TOKO :";
+if (!empty($list_pengeluaran)) {
+    foreach ($list_pengeluaran as $idx => $peng) {
+        $namaP = ($idx + 1) . ". " . $peng['nama'];
+        if (strlen($namaP) > 32) $namaP = substr($namaP, 0, 32);
+        $lines[] = $namaP;
+        $lines[] = sprintf("   Jam %-7s     Rp.%10s", $peng['jam'] ?? '', number_format($peng['total'], 0, '.', ','));
+    }
+    $lines[] = sprintf("%-16s: Rp.%11s", "TOT. PENGELUARAN", number_format($total_pengeluaran, 0, '.', ','));
+} else {
+    $lines[] = "  (Tidak ada pengeluaran kas)";
+}
+
+// 6. Pemasukan Lain (Jika Ada)
+$cleanPemasukanLain = [];
+$totalCleanPemasukanLain = 0;
+if (!empty($list_pemasukan_lain)) {
+    foreach ($list_pemasukan_lain as $p) {
+        $n = strtolower($p['nama'] ?? '');
+        if (strpos($n, 'profit') !== false || strpos($n, 'laba') !== false || strpos($n, 'omzet') !== false) {
+            continue;
+        }
+        $cleanPemasukanLain[] = $p;
+        $totalCleanPemasukanLain += (float)($p['total'] ?? 0);
+    }
+}
+if (!empty($cleanPemasukanLain)) {
+    $lines[] = "--------------------------------";
+    $lines[] = "PEMASUKAN KAS LAIN :";
+    foreach ($cleanPemasukanLain as $idx => $pem) {
+        $lines[] = ($idx + 1) . ". " . substr($pem['nama'], 0, 28);
+        $lines[] = sprintf("                Rp.%11s", number_format($pem['total'], 0, '.', ','));
+    }
+    $lines[] = sprintf("%-16s: Rp.%11s", "TOT. PEMASUKAN", number_format($totalCleanPemasukanLain, 0, '.', ','));
+}
+
+$lines[] = "================================";
+$lines[] = centerLine("REKAP FISIK KAS LACI");
+$lines[] = "================================";
+
+// 7. Rekap Fisik Kas Laci (Audit Owner)
+$kasBersihHariIni = $total_tunai + $totalCleanPemasukanLain - $total_pengeluaran;
+
+$lines[] = sprintf("%-16s: Rp.%11s", "Penjualan Tunai", number_format($total_tunai, 0, '.', ','));
+if ($totalCleanPemasukanLain > 0) {
+    $lines[] = sprintf("%-16s: Rp.%11s", "Pemasukan Lain", "+" . number_format($totalCleanPemasukanLain, 0, '.', ','));
+}
+$lines[] = sprintf("%-16s: Rp.%11s", "Pengeluaran Kas", "-" . number_format($total_pengeluaran, 0, '.', ','));
+$lines[] = "--------------------------------";
+$lines[] = sprintf("%-16s: Rp.%11s", "Sisa Kas Hr Ini", number_format($kasBersihHariIni, 0, '.', ','));
+$lines[] = sprintf("%-16s: Rp.%11s", "Modal Kas Awal", "+" . number_format($kas_awal, 0, '.', ','));
+$lines[] = "================================";
+$lines[] = sprintf("%-16s: Rp.%11s", "TOTAL UANG LACI", number_format($fisik_kas_laci, 0, '.', ','));
+$lines[] = "================================";
+
+$lines[] = "* QRIS & Trf: Rp. " . number_format($total_qris + $total_transfer, 0, '.', ',');
+$lines[] = "  (Tersimpan di Rekening Toko)";
+
+// 8. Khusus Admin / Owner (Sesuai Aturan Financial Privacy)
+if (!empty($role) && strtolower($role) === 'admin') {
+    $lines[] = "--------------------------------";
+    $lines[] = "[ KHUSUS OWNER / ADMIN ]";
+    $lines[] = sprintf("%-16s: Rp.%11s", "Est. Profit Kotor", number_format($profit_asli, 0, '.', ','));
+    $lines[] = sprintf("(Hex Profit : %s)", $no_laporan);
+}
+
+// 9. Tanda Tangan
+$lines[] = "";
+$lines[] = "Dibuat Oleh:        Mengetahui:";
+$lines[] = "";
+$lines[] = "";
+$kasirShort = substr($kasir, 0, 10);
+$lines[] = sprintf("( %-10s )  ( %-10s )", $kasirShort, "Owner/SPV");
+
+// 10. Footer
+$lines[] = "--------------------------------";
+$lines[] = centerLine("Terima Kasih Kerjasamanya");
+$lines[] = centerLine("Tetap Semangat & Jaga Toko");
+$lines[] = "********************************";
+
+// Hitung tinggi kertas pas dalam millimeter (mencegah buang kertas 30cm)
+$lineCount = count($lines);
+$pageHeightMm = max(60, ceil($lineCount * 3.7 + 6));
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -7,360 +184,98 @@
     <style>
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
-        body {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
-            line-height: 1.35;
-            color: #000;
-            background-color: #fff;
+        @page {
+            margin: 0;
+            size: 58mm <?= $pageHeightMm ?>mm;
+        }
+        html, body {
+            width: 58mm;
+            max-width: 58mm;
+            height: <?= $pageHeightMm ?>mm;
+            max-height: <?= $pageHeightMm ?>mm;
             margin: 0 auto;
-            padding: 10px 14px;
-            width: 100%;
-            max-width: 330px;
+            padding: 0;
+            background: #fff;
+            color: #000;
+            overflow: hidden;
         }
-        .text-center { text-align: center; }
-        .text-end { text-align: right; }
-        .text-start { text-align: left; }
-        .fw-bold { font-weight: bold; }
-        .divider {
-            border-top: 1px dashed #000;
-            margin: 6px 0;
-        }
-        .divider-double {
-            border-top: 2px dashed #000;
-            margin: 7px 0;
-        }
-        .store-title {
-            font-size: 13px;
+        .receipt-pre {
+            font-family: 'Consolas', 'Courier New', 'Lucida Console', Monaco, monospace;
+            font-size: 11px;
             font-weight: bold;
-            letter-spacing: 0.5px;
+            line-height: 1.22;
+            color: #000;
+            white-space: pre;
+            margin: 0 auto;
+            padding: 3px 0 0 0;
+            width: 58mm;
+            max-width: 58mm;
+            letter-spacing: -0.15px;
+            overflow: hidden;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        td {
-            padding: 1.5px 0;
-            vertical-align: top;
-        }
-        .nowrap {
-            white-space: nowrap;
-        }
-        .box-highlight {
-            border: 1px dashed #000;
-            padding: 4px;
-            margin: 5px 0;
-        }
-        .signature-area {
-            margin-top: 14px;
-        }
-
-        /* Tombol Aksi saat di layar komputer */
         .action-bar {
-            margin-bottom: 12px;
+            padding: 6px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #cbd5e1;
             display: flex;
             gap: 6px;
+            margin-bottom: 6px;
         }
         .btn-act {
             flex: 1;
-            padding: 6px 10px;
-            font-family: sans-serif;
-            font-size: 11px;
+            padding: 6px;
+            font-size: 12px;
             font-weight: bold;
-            cursor: pointer;
+            font-family: sans-serif;
             border-radius: 4px;
+            cursor: pointer;
             border: 1px solid #000;
-            background: #f1f5f9;
+            background: #fff;
         }
-        .btn-print {
+        .btn-act-print {
             background: #0f172a;
             color: #fff;
         }
-
         @media print {
             .no-print {
                 display: none !important;
             }
-            body {
-                padding: 0;
-                margin: 0;
-                width: 100%;
-                max-width: 100%;
-            }
             @page {
                 margin: 0;
+                size: 58mm <?= $pageHeightMm ?>mm;
+            }
+            html, body {
+                width: 58mm !important;
+                max-width: 58mm !important;
+                height: <?= $pageHeightMm ?>mm !important;
+                max-height: <?= $pageHeightMm ?>mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+            }
+            .receipt-pre {
+                width: 58mm !important;
+                max-width: 58mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
         }
     </style>
 </head>
 <body>
-
-    <!-- Tombol Khusus di Layar (Tidak Tercetak di Struk Kertas) -->
     <div class="action-bar no-print">
-        <button class="btn-act btn-print" onclick="window.print()">
+        <button type="button" class="btn-act btn-act-print" onclick="window.print()">
             &#128438; CETAK STRUK
         </button>
-        <button class="btn-act" onclick="window.close()">
+        <button type="button" class="btn-act" onclick="window.close()">
             &#10005; TUTUP
         </button>
     </div>
-
-    <!-- Header Profil Toko -->
-    <div class="text-center">
-        <div class="store-title"><?= esc($profil['nama_toko'] ?? 'KIOS SABUN & PARFUM') ?></div>
-        <div><?= esc($profil['alamat_1'] ?? 'Jl. Metland Cileungsi') ?></div>
-        <?php if (!empty($profil['alamat_2'])): ?>
-            <div><?= esc($profil['alamat_2']) ?></div>
-        <?php endif; ?>
-        <div>Telp: <?= esc($profil['telepon'] ?? '-') ?></div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="text-center fw-bold">
-        LAPORAN REKAP HARIAN KASIR
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- Meta Laporan -->
-    <table>
-        <tr>
-            <td style="width: 85px;">No. Laporan</td>
-            <td>: <b><?= esc($no_laporan) ?></b></td>
-        </tr>
-        <tr>
-            <td>Tanggal</td>
-            <td>: <?= date('d/m/Y', strtotime($tanggal)) ?></td>
-        </tr>
-        <tr>
-            <td>Waktu Cetak</td>
-            <td>: <?= $waktu_cetak ?></td>
-        </tr>
-        <tr>
-            <td>Kasir/Shift</td>
-            <td>: <?= esc($kasir) ?></td>
-        </tr>
-    </table>
-
-    <div class="divider"></div>
-
-    <!-- 1. KAS AWAL MODAL LACI -->
-    <table>
-        <tr class="fw-bold">
-            <td>MODAL KAS AWAL LACI</td>
-            <td class="text-end nowrap">Rp <?= number_format($kas_awal, 0, ',', '.') ?></td>
-        </tr>
-        <?php if (!empty($tgl_kas_awal)): ?>
-        <tr>
-            <td colspan="2" style="font-size: 10px; color: #333;">(Diinput: <?= date('d/m/Y H:i', strtotime($tgl_kas_awal)) ?>)</td>
-        </tr>
-        <?php endif; ?>
-    </table>
-
-    <div class="divider"></div>
-
-    <!-- 2. REKAP PENJUALAN / OMZET -->
-    <div class="fw-bold">PENJUALAN TOKO :</div>
-    <table>
-        <tr>
-            <td>Jumlah Transaksi</td>
-            <td class="text-end nowrap"><?= number_format($total_transaksi, 0, ',', '.') ?> Struk</td>
-        </tr>
-        <tr>
-            <td>Total Qty Terjual</td>
-            <td class="text-end nowrap"><?= number_format($total_qty, 0, ',', '.') ?> Pcs</td>
-        </tr>
-        <tr>
-            <td>- Bayar Tunai (Cash)</td>
-            <td class="text-end nowrap">Rp <?= number_format($total_tunai, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <td>- Bayar QRIS</td>
-            <td class="text-end nowrap">Rp <?= number_format($total_qris, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <td>- Bayar Transfer Bank</td>
-            <td class="text-end nowrap">Rp <?= number_format($total_transfer, 0, ',', '.') ?></td>
-        </tr>
-        <?php if ($total_tukar_jerigen > 0): ?>
-        <tr>
-            <td>- Pot. Tukar Jerigen</td>
-            <td class="text-end nowrap">-Rp <?= number_format($total_tukar_jerigen, 0, ',', '.') ?></td>
-        </tr>
-        <?php endif; ?>
-        <?php if ($total_voucher > 0): ?>
-        <tr>
-            <td>- Pot. Voucher Member</td>
-            <td class="text-end nowrap">-Rp <?= number_format($total_voucher, 0, ',', '.') ?></td>
-        </tr>
-        <?php endif; ?>
-        <?php if ($total_diskon > 0): ?>
-        <tr>
-            <td>- Diskon Tambahan</td>
-            <td class="text-end nowrap">-Rp <?= number_format($total_diskon, 0, ',', '.') ?></td>
-        </tr>
-        <?php endif; ?>
-        <tr class="fw-bold">
-            <td>TOTAL OMZET PENJUALAN</td>
-            <td class="text-end nowrap">Rp <?= number_format($total_omzet, 0, ',', '.') ?></td>
-        </tr>
-    </table>
-
-    <div class="divider"></div>
-
-    <!-- 3. BIAYA OPERASIONAL / PENGELUARAN KAS -->
-    <div class="fw-bold">PENGELUARAN KAS TOKO :</div>
-    <?php if (!empty($list_pengeluaran)): ?>
-        <table>
-            <?php foreach ($list_pengeluaran as $idx => $peng): ?>
-                <tr>
-                    <td colspan="2"><?= ($idx + 1) ?>. <?= esc($peng['nama']) ?></td>
-                </tr>
-                <tr>
-                    <td style="font-size: 10px; color: #444; padding-left: 14px;">Jam <?= esc($peng['jam']) ?></td>
-                    <td class="text-end nowrap">Rp <?= number_format($peng['total'], 0, ',', '.') ?></td>
-                </tr>
-            <?php endforeach; ?>
-            <tr class="fw-bold">
-                <td>TOTAL PENGELUARAN</td>
-                <td class="text-end nowrap">Rp <?= number_format($total_pengeluaran, 0, ',', '.') ?></td>
-            </tr>
-        </table>
-    <?php else: ?>
-        <div style="font-style: italic; color: #444;">- Tidak ada pengeluaran kas -</div>
-    <?php endif; ?>
-
-    <!-- 4. PEMASUKAN KAS LAIN (JIKA ADA) -->
-    <?php 
-    $cleanPemasukanLain = [];
-    $totalCleanPemasukanLain = 0;
-    if (!empty($list_pemasukan_lain)) {
-        foreach ($list_pemasukan_lain as $p) {
-            $n = strtolower($p['nama'] ?? '');
-            if (strpos($n, 'profit') !== false || strpos($n, 'laba') !== false || strpos($n, 'omzet') !== false) {
-                continue;
-            }
-            $cleanPemasukanLain[] = $p;
-            $totalCleanPemasukanLain += (float)($p['total'] ?? 0);
-        }
-    }
-    ?>
-    <?php if (!empty($cleanPemasukanLain)): ?>
-        <div class="divider"></div>
-        <div class="fw-bold">PEMASUKAN KAS LAIN :</div>
-        <table>
-            <?php foreach ($cleanPemasukanLain as $idx => $pem): ?>
-                <tr>
-                    <td><?= ($idx + 1) ?>. <?= esc($pem['nama']) ?></td>
-                    <td class="text-end nowrap">Rp <?= number_format($pem['total'], 0, ',', '.') ?></td>
-                </tr>
-            <?php endforeach; ?>
-            <tr class="fw-bold">
-                <td>TOTAL PEMASUKAN LAIN</td>
-                <td class="text-end nowrap">Rp <?= number_format($totalCleanPemasukanLain, 0, ',', '.') ?></td>
-            </tr>
-        </table>
-    <?php endif; ?>
-
-    <div class="divider-double"></div>
-
-    <!-- 5. REKAPITULASI FISIK KAS LACI KASIR (AUDIT OWNER) -->
-    <div class="text-center fw-bold" style="font-size: 12px; margin-bottom: 4px;">
-        REKAP FISIK KAS LACI
-    </div>
-    <?php
-        $kasBersihHariIni = $total_tunai + ($totalCleanPemasukanLain ?? 0) - $total_pengeluaran;
-    ?>
-    <table>
-        <tr>
-            <td>Penjualan Tunai (Cash)</td>
-            <td class="text-end nowrap">Rp <?= number_format($total_tunai, 0, ',', '.') ?></td>
-        </tr>
-        <?php if (!empty($totalCleanPemasukanLain) && $totalCleanPemasukanLain > 0): ?>
-        <tr>
-            <td>+ Pemasukan Kas Lain</td>
-            <td class="text-end nowrap">+Rp <?= number_format($totalCleanPemasukanLain, 0, ',', '.') ?></td>
-        </tr>
-        <?php endif; ?>
-        <tr>
-            <td>- Pengeluaran Kas Toko</td>
-            <td class="text-end nowrap">-Rp <?= number_format($total_pengeluaran, 0, ',', '.') ?></td>
-        </tr>
-    </table>
-
-    <div class="divider"></div>
-
-    <table>
-        <tr class="fw-bold" style="font-weight: bold;">
-            <td>Sisa Kas Penjualan Hari Ini</td>
-            <td class="text-end nowrap">Rp <?= number_format($kasBersihHariIni, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <td>+ Modal Kas Awal</td>
-            <td class="text-end nowrap">+Rp <?= number_format($kas_awal, 0, ',', '.') ?></td>
-        </tr>
-    </table>
-
-    <div class="divider"></div>
-
-    <table class="fw-bold" style="font-size: 12px;">
-        <tr>
-            <td>TOTAL FISIK UANG DI LACI</td>
-            <td class="text-end nowrap">Rp <?= number_format($fisik_kas_laci, 0, ',', '.') ?></td>
-        </tr>
-    </table>
-
-    <div class="divider-double"></div>
-
-    <!-- Info Tambahan Non-Tunai Masuk Rekening Toko -->
-    <div style="font-size: 10px;">
-        <div>* Total QRIS & Transfer: <b>Rp <?= number_format($total_qris + $total_transfer, 0, ',', '.') ?></b> (Masuk Rekening Toko).</div>
-        <div>* Total Penjualan Bersih Toko Hari Ini: <b>Rp <?= number_format($total_omzet, 0, ',', '.') ?></b>.</div>
-    </div>
-
-    <?php if (!empty($role) && strtolower($role) === 'admin'): ?>
-    <div class="box-highlight text-center">
-        <div class="fw-bold" style="font-size: 10px;">[ KHUSUS OWNER / ADMIN ]</div>
-        <div>Estimasi Margin Profit Kotor:</div>
-        <div class="fw-bold" style="font-size: 12px;">Rp <?= number_format($profit_asli, 0, ',', '.') ?> <span style="font-size: 10px; font-weight: normal; color: #444;">(Hex: <?= esc($no_laporan) ?>)</span></div>
-    </div>
-    <?php endif; ?>
-
-    <!-- Tanda Tangan Kasir & Owner -->
-    <div class="signature-area">
-        <table style="text-align: center;">
-            <tr>
-                <td style="width: 50%;">Dibuat Oleh:</td>
-                <td style="width: 50%;">Mengetahui:</td>
-            </tr>
-            <tr>
-                <td style="height: 38px;"></td>
-                <td style="height: 38px;"></td>
-            </tr>
-            <tr>
-                <td>( <?= esc($kasir) ?> )</td>
-                <td>( Owner / SPV )</td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="text-center" style="font-size: 10px; margin-top: 6px;">
-        <div>Terima Kasih Atas Kerjasama Tim!</div>
-        <div>Tetap Semangat & Jaga Integritas Toko.</div>
-    </div>
-
-    <script>
-        // Otomatis muncul dialog print thermal saat dibuka
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                window.print();
-            }, 300);
-        });
-    </script>
+    <pre class="receipt-pre"><?= esc(implode("\n", $lines)) ?></pre>
 </body>
 </html>
-
