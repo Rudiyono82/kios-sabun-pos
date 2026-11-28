@@ -153,6 +153,31 @@
                             <textarea name="footer_struk" id="cabang-footer" class="form-control" rows="2" placeholder="Ucapan terima kasih atau informasi khusus cabang ini pada kertas struk..."></textarea>
                         </div>
 
+                        <!-- WhatsApp Gateway API Auto-Send -->
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <h6 class="fw-bold text-success mb-1">
+                                    <i class="bi bi-whatsapp me-1"></i> WhatsApp Gateway API (Kirim Otomatis ke Member)
+                                </h6>
+                                <p class="small text-muted mb-2">
+                                    Jika token diisi, struk belanja member akan <strong>langsung terkirim otomatis ke WhatsApp pelanggan tanpa kasir klik kirim lagi</strong>.
+                                </p>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-semibold text-muted">Provider Gateway</label>
+                                        <select name="wa_gateway_provider" id="cabang-wa_provider" class="form-select form-select-sm">
+                                            <option value="fonnte">Fonnte (Rekomendasi - api.fonnte.com)</option>
+                                            <option value="wablas">Wablas (phone.wablas.com)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label small fw-semibold text-muted">API Token / API Key</label>
+                                        <input type="text" name="wa_gateway_token" id="cabang-wa_token" class="form-control form-control-sm font-monospace" placeholder="Tempel token API WhatsApp Gateway Anda di sini">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-12">
                             <div class="form-check form-switch p-2 bg-light rounded-3 border">
                                 <input class="form-check-input ms-0 me-2" type="checkbox" name="is_pusat" id="cabang-is_pusat" value="1">
@@ -183,6 +208,8 @@
         $('#cabang-id').val('');
         $('#formCabang')[0].reset();
         $('#cabang-status').val('Aktif').trigger('change');
+        $('#cabang-wa_provider').val('fonnte');
+        $('#cabang-wa_token').val('');
         $('#modalCabangHeader').removeClass('bg-warning text-dark').addClass('bg-primary text-white');
         $('#modalCabangHeader .btn-close').addClass('btn-close-white');
         $('#modalCabangTitle').text('Tambah Cabang Baru');
@@ -198,6 +225,8 @@
         $('#cabang-kota').val(c.kota || '');
         $('#cabang-telepon').val(c.telepon || '');
         $('#cabang-footer').val(c.footer_struk || '');
+        $('#cabang-wa_provider').val(c.wa_gateway_provider || 'fonnte');
+        $('#cabang-wa_token').val(c.wa_gateway_token || '');
         $('#cabang-status').val(c.status || 'Aktif').trigger('change');
         $('#cabang-is_pusat').prop('checked', c.is_pusat == 1);
 

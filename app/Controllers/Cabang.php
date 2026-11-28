@@ -48,15 +48,17 @@ class Cabang extends BaseController
         }
 
         $data = [
-            'kode_cabang'  => $kodeCabang,
-            'nama_cabang'  => $namaCabang,
-            'alamat'       => trim((string)$this->request->getPost('alamat')),
-            'kota'         => trim((string)$this->request->getPost('kota')),
-            'telepon'      => trim((string)$this->request->getPost('telepon')),
-            'footer_struk' => trim((string)$this->request->getPost('footer_struk')),
-            'is_pusat'     => $this->request->getPost('is_pusat') ? 1 : 0,
-            'status'       => $this->request->getPost('status') ?? 'Aktif',
-            'updated_at'   => date('Y-m-d H:i:s')
+            'kode_cabang'         => $kodeCabang,
+            'nama_cabang'         => $namaCabang,
+            'alamat'              => trim((string)$this->request->getPost('alamat')),
+            'kota'                => trim((string)$this->request->getPost('kota')),
+            'telepon'             => trim((string)$this->request->getPost('telepon')),
+            'footer_struk'        => trim((string)$this->request->getPost('footer_struk')),
+            'wa_gateway_token'    => trim((string)$this->request->getPost('wa_gateway_token')),
+            'wa_gateway_provider' => trim((string)($this->request->getPost('wa_gateway_provider') ?: 'fonnte')),
+            'is_pusat'            => $this->request->getPost('is_pusat') ? 1 : 0,
+            'status'              => $this->request->getPost('status') ?? 'Aktif',
+            'updated_at'          => date('Y-m-d H:i:s')
         ];
 
         // Jika diset sebagai pusat, cabang lain otomatis bukan pusat

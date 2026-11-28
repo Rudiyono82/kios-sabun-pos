@@ -1766,11 +1766,20 @@
                 if (res.is_member && res.wa_url) {
                     $('#modal-wa-alert').removeClass('d-none');
                     $('#modal-wa-title').text('Member: ' + res.member_nama);
-                    $('#modal-wa-phone').html('<i class="bi bi-whatsapp text-success me-1"></i>Kirim struk ke <strong>' + res.member_phone + '</strong>');
-                    $('#btn-kirim-wa').attr('href', res.wa_url).removeClass('d-none');
-                    
-                    // Otomatis buka WhatsApp di tab baru untuk kemudahan kasir
-                    window.open(res.wa_url, '_blank');
+
+                    if (res.wa_auto_sent) {
+                        $('#modal-wa-phone').html('<i class="bi bi-check-circle-fill text-success me-1"></i><strong>Struk Terkirim Otomatis!</strong> langsung ke WhatsApp member <strong>' + res.member_phone + '</strong>.');
+                        $('#btn-kirim-wa').attr('href', res.wa_url).removeClass('d-none').html('<i class="bi bi-whatsapp me-1"></i> Kirim Ulang');
+                        if (typeof Toast !== 'undefined') {
+                            Toast.fire({
+                                icon: 'success',
+                                title: 'Struk berhasil dikirim otomatis ke WA member!'
+                            });
+                        }
+                    } else {
+                        $('#modal-wa-phone').html('<i class="bi bi-whatsapp text-success me-1"></i>Kirim struk ke <strong>' + res.member_phone + '</strong>' + (res.wa_send_msg ? ' <small class="text-muted">(' + res.wa_send_msg + ')</small>' : ''));
+                        $('#btn-kirim-wa').attr('href', res.wa_url).removeClass('d-none').html('<i class="bi bi-whatsapp me-1"></i> Kirim WhatsApp');
+                    }
                 } else if (res.is_member && !res.wa_url) {
                     $('#modal-wa-alert').removeClass('d-none');
                     $('#modal-wa-title').text('Member: ' + res.member_nama);

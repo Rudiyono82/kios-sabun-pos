@@ -613,8 +613,21 @@ class Pos extends BaseController
                 $msg .= "_Struk ini sah dan diterbitkan secara digital oleh Sistem POS Kios Sabun._";
 
                 $waText = $msg;
-                if (!empty($phoneClean) && strlen($phoneClean) >= 9) {
+                $waAutoSent = false;
+                $waSendMsg = '';
+
+                if (!empty($phoneClean) && strlen($phoneClean) >= 8) {
                     $waUrl = 'https://api.whatsapp.com/send?phone=' . $phoneClean . '&text=' . rawurlencode($msg);
+
+                    // OTOMATIS KIRIM LANGSUNG VIA WHATSAPP GATEWAY (TANPA ACTION KASIR LAGI)
+                    $waSendResult = \App\Libraries\WaGateway::send($phoneClean, $waText);
+                    if (!empty($waSendResult['success'])) {
+                        $waAutoSent = true;
+                        $waSendMsg = 'Struk belanja telah otomatis terkirim langsung ke WhatsApp member (' . $phoneClean . ')!';
+                    } else {
+                        $waAutoSent = false;
+                        $waSendMsg = $waSendResult['message'] ?? 'WhatsApp Gateway belum terhubung.';
+                    }
                 }
             }
 
@@ -641,6 +654,8 @@ class Pos extends BaseController
                 'member_phone' => $memberData['telepon'] ?? null,
                 'wa_url' => $waUrl,
                 'wa_text' => $waText,
+                'wa_auto_sent' => $waAutoSent,
+                'wa_send_msg' => $waSendMsg,
                 'promoted_items' => $promotedItems,
                 'unapproved_zero_stock_alerts' => $unapprovedZeroStockAlerts
             ]);
