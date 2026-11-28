@@ -674,11 +674,15 @@ class Pos extends BaseController
 
         $profil = $db->table('profil_toko')->get()->getRowArray();
         if ($cabang) {
+            $cabangTelp = trim((string)($cabang['telepon'] ?? ''));
+            if (empty($cabangTelp) || strpos($cabangTelp, '1115') !== false || strpos($cabangTelp, '9298') !== false) {
+                $cabangTelp = '0857-7748-8367';
+            }
             $profil = [
                 'nama_toko'    => $cabang['nama_cabang'],
                 'alamat_1'     => $cabang['alamat'],
                 'alamat_2'     => $cabang['kota'],
-                'telepon'      => $cabang['telepon'],
+                'telepon'      => $cabangTelp,
                 'footer_struk' => $cabang['footer_struk'] ?? ($profil['footer_struk'] ?? 'Terima Kasih atas Kunjungan Anda!')
             ];
         }

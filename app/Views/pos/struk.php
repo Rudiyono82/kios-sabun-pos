@@ -5,39 +5,31 @@
 
 $lines = [];
 
-// 1. Header Profil Toko
-$namaToko = trim($profil['nama_toko'] ?? '(KSP) Kios Sabun & Parfum');
-if (stripos($namaToko, 'kios') === false && stripos($namaToko, 'ksp') === false) {
-    $namaToko = "(KSP) " . $namaToko;
-}
-$lines[] = $namaToko;
-
-if (!empty($profil['alamat_1'])) {
-    $addr1 = trim($profil['alamat_1']);
-    // Pisahkan baris alamat agar rapi sesuai format asli VB6
-    $addrParts = preg_split('/(?<=,)\s*/', $addr1);
-    foreach ($addrParts as $ap) {
-        $ap = trim($ap);
-        if (!empty($ap)) {
-            $lines[] = $ap;
-        }
-    }
-} else {
-    $lines[] = "Jl. Metland Cileungsi,";
-    $lines[] = "Blok BD.04,No.17";
+function centerLine($text, $width = 32) {
+    $text = trim($text);
+    $len = strlen($text);
+    if ($len >= $width) return substr($text, 0, $width);
+    $left = (int)floor(($width - $len) / 2);
+    return str_repeat(' ', $left) . $text;
 }
 
-if (!empty($profil['alamat_2'])) {
-    $lines[] = trim($profil['alamat_2']);
-} else {
-    $lines[] = "Cileungsi-Bogor";
+// 1. Header Profil Toko (Rata Tengah Sesuai Permintaan Owner)
+$namaToko = trim($profil['nama_toko'] ?? 'KSP Metland Cileungsi (Pusat)');
+if (stripos($namaToko, 'kios') !== false && stripos($namaToko, 'metland') !== false) {
+    $namaToko = 'KSP Metland Cileungsi (Pusat)';
 }
+$lines[] = centerLine($namaToko);
+$lines[] = centerLine("Jl. Metland Cileungsi,");
+$lines[] = centerLine("Blok BD.04, No.17");
+$lines[] = centerLine("Cileungsi - Bogor");
 
-if (!empty($profil['telepon'])) {
-    $lines[] = "WA." . str_replace(' ', '', trim($profil['telepon']));
-} else {
-    $lines[] = "WA.085711159298,081287071352";
+$waRaw = !empty($profil['telepon']) ? trim($profil['telepon']) : '0857-7748-8367';
+if (strpos($waRaw, '1115') !== false || strpos($waRaw, '9298') !== false) {
+    $waRaw = '0857-7748-8367';
 }
+$waClean = preg_replace('/[^0-9\-]/', '', $waRaw);
+$waLine = "WA." . ($waClean ?: '0857-7748-8367');
+$lines[] = centerLine($waLine);
 
 $lines[] = "================================";
 

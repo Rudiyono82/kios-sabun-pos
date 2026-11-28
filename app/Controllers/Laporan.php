@@ -143,9 +143,11 @@ class Laporan extends BaseController
             if (!empty($cabangInfo['alamat'])) {
                 $profil['alamat'] = $cabangInfo['alamat'];
             }
-            if (!empty($cabangInfo['telepon'])) {
-                $profil['telepon'] = $cabangInfo['telepon'];
+            $cabangTelp = trim((string)($cabangInfo['telepon'] ?? ''));
+            if (empty($cabangTelp) || strpos($cabangTelp, '1115') !== false || strpos($cabangTelp, '9298') !== false) {
+                $cabangTelp = '0857-7748-8367';
             }
+            $profil['telepon'] = $cabangTelp;
         }
 
         // Data Penjualan Hari Terpilih Terisolasi Cabang

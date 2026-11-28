@@ -14,38 +14,23 @@ function centerLine($text, $width = 32) {
     return str_repeat(' ', $left) . $text;
 }
 
-// 1. Header Profil Toko
-$namaToko = trim($profil['nama_toko'] ?? '(KSP) Kios Sabun & Parfum');
-if (stripos($namaToko, 'kios') === false && stripos($namaToko, 'ksp') === false) {
-    $namaToko = "(KSP) " . $namaToko;
+// 1. Header Profil Toko (Rata Tengah Sesuai Permintaan Owner)
+$namaToko = trim($profil['nama_toko'] ?? 'KSP Metland Cileungsi (Pusat)');
+if (stripos($namaToko, 'kios') !== false && stripos($namaToko, 'metland') !== false) {
+    $namaToko = 'KSP Metland Cileungsi (Pusat)';
 }
 $lines[] = centerLine($namaToko);
+$lines[] = centerLine("Jl. Metland Cileungsi,");
+$lines[] = centerLine("Blok BD.04, No.17");
+$lines[] = centerLine("Cileungsi - Bogor");
 
-if (!empty($profil['alamat_1'])) {
-    $addr1 = trim($profil['alamat_1']);
-    $addrParts = preg_split('/(?<=,)\s*/', $addr1);
-    foreach ($addrParts as $ap) {
-        $ap = trim($ap);
-        if (!empty($ap)) {
-            $lines[] = centerLine($ap);
-        }
-    }
-} else {
-    $lines[] = centerLine("Jl. Metland Cileungsi,");
-    $lines[] = centerLine("Blok BD.04,No.17");
+$waRaw = !empty($profil['telepon']) ? trim($profil['telepon']) : '0857-7748-8367';
+if (strpos($waRaw, '1115') !== false || strpos($waRaw, '9298') !== false) {
+    $waRaw = '0857-7748-8367';
 }
-
-if (!empty($profil['alamat_2'])) {
-    $lines[] = centerLine(trim($profil['alamat_2']));
-} else {
-    $lines[] = centerLine("Cileungsi-Bogor");
-}
-
-if (!empty($profil['telepon'])) {
-    $lines[] = centerLine("WA." . str_replace(' ', '', trim($profil['telepon'])));
-} else {
-    $lines[] = centerLine("WA.085711159298");
-}
+$waClean = preg_replace('/[^0-9\-]/', '', $waRaw);
+$waLine = "WA." . ($waClean ?: '0857-7748-8367');
+$lines[] = centerLine($waLine);
 
 $lines[] = "================================";
 $lines[] = centerLine("LAPORAN REKAP HARIAN KASIR");
