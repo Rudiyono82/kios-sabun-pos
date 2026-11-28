@@ -1753,8 +1753,14 @@
 
                 // Tampilkan Modal Cetak Struk
                 const strukUrl = '<?= base_url('pos/cetak-struk') ?>/' + res.no_faktur;
-                $('#iframe-struk').attr('src', strukUrl);
                 $('#modal-faktur-label').text('No Faktur: ' + res.no_faktur);
+
+                const iframe = document.getElementById('iframe-struk');
+                $('#btn-print-struk').prop('disabled', true).addClass('opacity-75').html('<span class="spinner-border spinner-border-sm me-1"></span> Menyiapkan Struk...');
+                iframe.onload = function() {
+                    $('#btn-print-struk').prop('disabled', false).removeClass('opacity-75').html('<i class="bi bi-printer-fill me-1"></i> Cetak Struk <kbd class="bg-white text-primary font-monospace px-2 py-0 ms-1">[Enter / F10]</kbd>');
+                };
+                iframe.src = strukUrl;
 
                 // Cek jika Member & punya nomor WhatsApp
                 if (res.is_member && res.wa_url) {
@@ -1874,8 +1880,16 @@
     // Cetak Struk Fisik
     $('#btn-print-struk').on('click', function() {
         const iframe = document.getElementById('iframe-struk');
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
+        if (!iframe || !iframe.contentWindow) return;
+        try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+        } catch (err) {
+            console.error('Print error:', err);
+            if (iframe.src) {
+                window.open(iframe.src, '_blank', 'width=380,height=600');
+            }
+        }
     });
 
     // ========================================================
@@ -1992,7 +2006,9 @@
         else if (e.key === 'Enter') {
             if ($('#modalStruk').hasClass('show')) {
                 e.preventDefault();
-                $('#btn-print-struk').trigger('click');
+                if (!$('#btn-print-struk').prop('disabled')) {
+                    $('#btn-print-struk').trigger('click');
+                }
             } else if ($('#modalBayar').hasClass('show')) {
                 // Jika sedang di input-bayar, event sudah ditangani oleh keydown input-bayar
                 if (e.target && e.target.id === 'input-bayar') {
